@@ -1,0 +1,111 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% block tieu_de %}{{ tieu_de_trang }}{% endblock %}
+
+{% block js_them %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const geojson_el = document.getElementById('geojson_input');
+
+        const m = L.map('ban_do_draw').setView([16.07, 108.22], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(m);
+
+        let drawnItems = new L.FeatureGroup();
+        m.addLayer(drawnItems);
+
+        if (geojson_el.value) {
+            try {
+                const existing = L.geoJSON(JSON.parse(geojson_el.value));
+                existing.eachLayer(layer => drawnItems.addLayer(layer));
+                m.fitBounds(drawnItems.getBounds());
+            } catch (e) { console.error("Lỗi GeoJSON"); }
+        }
+
+        const drawControl = new L.Control.Draw({
+            edit: { featureGroup: drawnItems },
+            draw: {
+                polygon: true,
+                polyline: false, circle: false, circlemarker: false,
+                marker: false, rectangle: true
+            }
+        });
+        m.addControl(drawControl);
+
+        m.on(L.Draw.Event.CREATED, function (e) {
+            drawnItems.clearLayers();
+            drawnItems.addLayer(e.layer);
+            updateGeo();
+        });
+
+        m.on(L.Draw.Event.EDITED, updateGeo);
+
+        function updateGeo() {
+            geojson_el.value = JSON.stringify(drawnItems.toGeoJSON());
+        }
+    });
+</script>
+{% endblock %}
+
+{% block noi_dung %}
+<div class="duong_dan">
+    <a href="{% url 'qh_ban_do' %}">Bản đồ Quy hoạch</a>
+    <span class="duong_dan__phan_cach">›</span>
+    <span>{{ tieu_de_trang }}</span>
+</div>
+
+<div class="tieu_de_trang">
+    <h2>{{ tieu_de_trang }}</h2>
+</div>
+
+<form method="post" action="">
+    {% csrf_token %}
+    <input type="hidden" name="geojson" id="geojson_input" value="{{ vung.geojson|default:'' }}">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div class="panel">
+            <div class="panel__tieu_de">Thông tin Quy hoạch</div>
+            <div class="form_nhom">
+                <label class="form_nhan">Tên vùng quy hoạch <span style="color:red;">*</span></label>
+                <input type="text" name="ten_vung" class="form_o_nhap" value="{{ vung.ten_vung|default:'' }}" required>
+            </div>
+            <div class="form_luoi">
+                <div class="form_nhom">
+                    <label class="form_nhan">Loại quy hoạch <span style="color:red;">*</span></label>
+                    <select name="loai_quy_hoach" class="form_o_nhap" required>
+                        {% for ma, ten in loai_qh_choices %}
+                        <option value="{{ ma }}" {% if vung.loai_quy_hoach == ma %}selected{% endif %}>{{ ten }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form_nhom">
+                    <label class="form_nhan">Năm quy hoạch</label>
+                    <input type="number" name="nam_quy_hoach" class="form_o_nhap"
+                        value="{{ vung.nam_quy_hoach|default:2024 }}" required>
+                </div>
+            </div>
+            <div class="form_nhom">
+                <label class="form_nhan">Mô tả vùng</label>
+                <textarea name="mo_ta" class="form_o_nhap" rows="5">{{ vung.mo_ta|default:'' }}</textarea>
+            </div>
+        </div>
+
+        <div>
+            <div class="panel">
+                <div class="panel__tieu_de">Vẽ ranh giới Quy hoạch</div>
+                <div id="ban_do_draw" style="height:350px; border-radius:8px;"></div>
+                <p style="font-size:12px; color:#666; margin-top:8px;">Dùng thanh công cụ bên trái để vẽ vùng quy hoạch
+                    trực tiếp trên bản đồ.</p>
+            </div>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:20px;">
+        <button type="submit" class="nut nut--chinh">Lưu vùng quy hoạch</button>
+        <a href="{% url 'qh_ban_do' %}" class="nut nut--vien">Hủy</a>
+    </div>
+</form>
+{% endblock %}

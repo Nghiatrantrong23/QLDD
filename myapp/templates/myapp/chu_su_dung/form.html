@@ -1,0 +1,51 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% block tieu_de %}{{ tieu_de_trang }}{% endblock %}
+
+{% block noi_dung %}
+<div class="duong_dan">
+    <a href="{% url 'chu_danh_sach' %}">Chủ sử dụng</a>
+    <span class="duong_dan__phan_cach">›</span>
+    <span>{% if is_edit %}Chỉnh sửa{% else %}Thêm mới{% endif %}</span>
+</div>
+
+<div class="tieu_de_trang">
+    <h2>{{ tieu_de_trang }}</h2>
+</div>
+
+<form method="post" action="" class="panel" style="max-width: 800px; margin: 0 auto;">
+    {% csrf_token %}
+    <div class="form_luoi" style="grid-template-columns: 1fr 1fr;">
+        <div class="form_nhom">
+            <label class="form_nhan">Họ và tên <span style="color:red;">*</span></label>
+            <input type="text" name="ho_ten" class="form_o_nhap" value="{{ chu.ho_ten|default:'' }}" required>
+        </div>
+        <div class="form_nhom">
+            <label class="form_nhan">Số CMND/CCCD/MST <span style="color:red;">*</span></label>
+            <input type="text" name="so_giay_to" class="form_o_nhap" value="{{ chu.so_giay_to|default:'' }}" required>
+        </div>
+        <div class="form_nhom">
+            <label class="form_nhan">Loại đối tượng</label>
+            <select name="loai_doi_tuong" class="form_o_nhap">
+                <option value="ca_nhan" {% if chu.loai_doi_tuong == 'ca_nhan' %}selected{% endif %}>Cá nhân</option>
+                <option value="to_chuc" {% if chu.loai_doi_tuong == 'to_chuc' %}selected{% endif %}>Tổ chức</option>
+                <option value="ho_gia_dinh" {% if chu.loai_doi_tuong == 'ho_gia_dinh' %}selected{% endif %}>Hộ gia đình</option>
+            </select>
+        </div>
+        <div class="form_nhom">
+            <label class="form_nhan">Số điện thoại</label>
+            <input type="text" name="so_dien_thoai" class="form_o_nhap" value="{{ chu.so_dien_thoai|default:'' }}">
+        </div>
+        <div class="form_nhom" style="grid-column: span 2;">
+            <label class="form_nhan">Địa chỉ liên lạc</label>
+            <textarea name="dia_chi" class="form_o_nhap" rows="3">{{ chu.dia_chi|default:'' }}</textarea>
+        </div>
+    </div>
+
+    <div style="margin-top: 30px; display: flex; gap: 10px; justify-content: flex-end;">
+        <a href="{% url 'chu_danh_sach' %}" class="nut nut--vien">Hủy bỏ</a>
+        <button type="submit" class="nut nut--chinh">
+            {% if is_edit %}Cập nhật thông tin{% else %}Lưu thông tin{% endif %}
+        </button>
+    </div>
+</form>
+{% endblock %}

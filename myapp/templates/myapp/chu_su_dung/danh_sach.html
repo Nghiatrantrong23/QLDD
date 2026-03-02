@@ -1,0 +1,65 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% block tieu_de %}Danh sách Chủ sử dụng đất{% endblock %}
+
+{% block header_nut %}
+<a href="{% url 'chu_them_moi' %}" class="nut_header nut_header--chinh">+ Thêm chủ sở hữu mới</a>
+{% endblock %}
+
+{% block noi_dung %}
+<div class="tieu_de_trang">
+    <h2>Quản lý Chủ sử dụng đất</h2>
+    <p>Thông tin các cá nhân, tổ chức sử dụng đất trong hệ thống</p>
+</div>
+
+<div class="bo_loc">
+    <form method="get" action="" class="bo_loc__bieu_mau">
+        <input type="text" name="q" value="{{ query }}" placeholder="Tìm theo tên hoặc số giấy tờ..."
+            class="form_o_nhap">
+        <button type="submit" class="nut nut--chinh">Tìm kiếm</button>
+        <a href="{% url 'chu_danh_sach' %}" class="nut nut--vien">Xoá lọc</a>
+    </form>
+</div>
+
+<div class="banner_container">
+    {% if danh_sach %}
+    <table class="bang">
+        <thead>
+            <tr>
+                <th>Họ tên</th>
+                <th>Số Giấy tờ (CCCD/MST)</th>
+                <th>Loại đối tượng</th>
+                <th>Số điện thoại</th>
+                <th>Địa chỉ</th>
+                <th style="text-align:right;">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for chu in danh_sach %}
+            <tr>
+                <td><strong>{{ chu.ho_ten }}</strong></td>
+                <td><code>{{ chu.so_giay_to }}</code></td>
+                <td>
+                    <span class="huy_hieu huy_hieu--xanh-da-troi">
+                        {{ chu.get_loai_doi_tuong_display }}
+                    </span>
+                </td>
+                <td>{{ chu.so_dien_thoai|default:"-" }}</td>
+                <td>{{ chu.dia_chi|truncatechars:30 }}</td>
+                <td style="text-align:right;">
+                    <a href="{% url 'chu_chinh_sua' chu.pk %}" class="nut_phu nut_phu--sua" title="Sửa">Sửa</a>
+                    <a href="{% url 'chu_xoa' chu.pk %}" class="nut_phu nut_phu--xoa"
+                        onclick="return confirm('Xác nhận xoá chủ sử dụng này?')" title="Xoá">Xoá</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="trang_trong">
+
+        <h4>Chưa có dữ liệu chủ sử dụng đất</h4>
+        <p>Vui lòng thêm mới chủ sở hữu để quản lý hồ sơ thửa đất tốt hơn.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

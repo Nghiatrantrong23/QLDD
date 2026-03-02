@@ -1,0 +1,110 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block tieu_de %}QLĐĐ GIS{% endblock %} - Quản lý Đất đai</title>
+    <link rel="stylesheet" href="{% static 'myapp/css/giao_dien.css' %}">
+    {% block css_them %}{% endblock %}
+</head>
+
+<body>
+    <div class="bo_cuc">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar__logo">
+                <div class="sidebar__logo-icon">GIS</div>
+                <div class="sidebar__logo-text">
+                    <h1>QLDD GIS</h1>
+                    <span>Quản lý Đất đai</span>
+                </div>
+            </div>
+
+            <nav class="sidebar__menu">
+                <div class="sidebar__nhom">
+                    <span class="sidebar__nhom-ten">Tổng quan</span>
+                </div>
+                <a href="{% url 'tong_quan' %}"
+                    class="sidebar__item {% if request.resolver_match.url_name == 'tong_quan' %}active{% endif %}">
+                    Tổng quan
+                </a>
+                <a href="{% url 'ban_do' %}"
+                    class="sidebar__item {% if request.resolver_match.url_name == 'ban_do' %}active{% endif %}">
+                    Bản đồ
+                </a>
+
+                <div class="sidebar__nhom">
+                    <span class="sidebar__nhom-ten">Quản lý</span>
+                </div>
+                <a href="{% url 'hs_danh_sach' %}"
+                    class="sidebar__item {% if 'hs_' in request.resolver_match.url_name %}active{% endif %}">
+                    Hồ sơ Đất
+                </a>
+                <a href="{% url 'chu_danh_sach' %}"
+                    class="sidebar__item {% if 'chu_' in request.resolver_match.url_name %}active{% endif %}">
+                    Chủ sử dụng
+                </a>
+                <a href="{% url 'qh_ban_do' %}"
+                    class="sidebar__item {% if 'qh_' in request.resolver_match.url_name %}active{% endif %}">
+                    Quy hoạch
+                </a>
+
+                <div class="sidebar__nhom">
+                    <span class="sidebar__nhom-ten">Phân tích</span>
+                </div>
+                <a href="{% url 'pt_cong_cu' %}"
+                    class="sidebar__item {% if 'pt_' in request.resolver_match.url_name %}active{% endif %}">
+                    Phân tích GIS
+                </a>
+                <a href="{% url 'cb_danh_sach' %}"
+                    class="sidebar__item {% if 'cb_' in request.resolver_match.url_name %}active{% endif %}">
+                    Cảnh báo
+                </a>
+                <a href="{% url 'bc_danh_sach' %}"
+                    class="sidebar__item {% if 'bc_' in request.resolver_match.url_name %}active{% endif %}">
+                    Báo cáo
+                </a>
+            </nav>
+
+            <div
+                style="padding: 16px 20px; border-top: 1px solid rgba(255,255,255,.1); font-size: 11px; color: rgba(255,255,255,.4);">
+                © 2026 Hệ thống QLĐD GIS
+            </div>
+        </aside>
+
+        <!-- HEADER -->
+        <header class="header">
+            <div>
+                <div class="header__tieu_de">{% block header_tieu_de %}{{ tieu_de_trang }}{% endblock %}</div>
+                <div class="header__phu">{% block header_phu %}Hệ thống Quản lý Đất đai & GIS{% endblock %}</div>
+            </div>
+            <div class="header__phai">
+                {% block header_nut %}{% endblock %}
+                <a href="{% url 'hs_them_moi' %}" class="nut_header nut_header--chinh">+ Thêm hồ sơ</a>
+            </div>
+        </header>
+
+        <!-- NỘI DUNG CHÍNH -->
+        <main class="noi_dung_chinh">
+
+            {% if messages %}
+            {% for msg in messages %}
+            <div
+                class="thong_bao {% if msg.tags == 'success' %}thong_bao--thanh_cong{% elif msg.tags == 'error' %}thong_bao--loi{% else %}thong_bao--canh_bao{% endif %}">
+                {{ msg }}
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            {% block noi_dung %}{% endblock %}
+
+        </main>
+    </div>
+
+    {% block js_them %}{% endblock %}
+</body>
+
+</html>

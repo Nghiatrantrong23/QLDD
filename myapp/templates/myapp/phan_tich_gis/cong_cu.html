@@ -1,0 +1,158 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% block tieu_de %}Phân tích GIS{% endblock %}
+
+{% block noi_dung %}
+<div class="tieu_de_trang">
+    <h2> Công cụ Phân tích GIS</h2>
+    <p>Thực hiện các phép tính toán không gian: Vùng đệm, Giao thoa, Kiểm tra quy hoạch</p>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+    <!-- CÔNG CỤ PHÂN TÍCH -->
+    <div>
+        <div class="panel" style="margin-bottom:20px;">
+            <div class="panel__tieu_de">Phân tích Vùng đệm (Buffer)</div>
+            <form id="form_buffer">
+                {% csrf_token %}
+                <input type="hidden" name="loai_phan_tich" value="buffer">
+                <div class="form_luoi">
+                    <div class="form_nhom">
+                        <label class="form_nhan">Vĩ độ trung tâm</label>
+                        <input type="number" step="any" name="vi_do" id="buf_vi_do" class="form_o_nhap"
+                            placeholder="VD: 16.047" required>
+                    </div>
+                    <div class="form_nhom">
+                        <label class="form_nhan">Kinh độ trung tâm</label>
+                        <input type="number" step="any" name="kinh_do" id="buf_kinh_do" class="form_o_nhap"
+                            placeholder="VD: 108.206" required>
+                    </div>
+                </div>
+                <div class="form_nhom">
+                    <label class="form_nhan">Bán kính vùng đệm (mét)</label>
+                    <input type="number" name="ban_kinh" class="form_o_nhap" value="500" min="10" max="50000">
+                </div>
+                <button type="submit" class="nut nut--phu" style="width:100%;">Thực hiện phân tích Vùng đệm</button>
+            </form>
+        </div>
+
+        <div class="panel">
+            <div class="panel__tieu_de"> Kiểm tra Vi phạm Quy hoạch</div>
+            <p style="font-size:13px;color:var(--mau-chu-nhat);margin-bottom:16px;">
+                Kiểm tra tự động xem thửa đất nào đang nằm trong vùng quy hoạch không phù hợp với mục đích sử dụng hiện
+                tại.
+            </p>
+            <p style="font-size:12px;color:var(--mau-chu-nhat);margin-bottom:12px;">
+                Hệ thống có <strong>{{ so_thua_dat }}</strong> thửa đất và <strong>{{ so_quy_hoach }}</strong> vùng
+                quy hoạch
+            </p>
+            <form id="form_vi_pham">
+                {% csrf_token %}
+                <input type="hidden" name="loai_phan_tich" value="vi_pham_quy_hoach">
+                <button type="submit" class="nut nut--do" style="width:100%;">Kiểm tra Vi phạm Quy hoạch</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- KẾT QUẢ & BẢN ĐỒ -->
+    <div>
+        <div class="panel" style="margin-bottom:16px;">
+            <div class="panel__tieu_de">Bản đồ phân tích (nhấn để chọn tâm)</div>
+            <div id="ban_do_pt" style="height:280px;border-radius:8px;"></div>
+        </div>
+
+        <div class="panel" id="ket_qua_panel" style="display:none;">
+            <div class="panel__tieu_de">Kết quả Phân tích</div>
+            <div id="ket_qua_noi_dung"></div>
+        </div>
+    </div>
+</div>
+
+<!-- NHẬT KÝ PHÂN TÍCH -->
+<div class="bang_container" style="margin-top:24px;">
+    <div class="bang_tieu_de">
+        <h3>Nhật ký Phân tích</h3>
+        <a href="{% url 'pt_ket_qua' %}" class="nut nut--vien" style="font-size:12px;padding:5px 12px;">Xem tất cả</a>
+    </div>
+    {% if nhat_ky %}
+    <table class="bang">
+        <thead>
+            <tr>
+                <th>Tên phân tích</th>
+                <th>Loại</th>
+                <th>Thời gian</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for nk in nhat_ky %}
+            <tr>
+                <td>{{ nk.ten_phan_tich }}</td>
+                <td>{{ nk.get_loai_phan_tich_display }}</td>
+                <td>{{ nk.thoi_gian|date:"d/m/Y H:i" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="trang_trong">
+        <div class="trang_trong__bieu_tuong"></div>
+        <h4>Chưa có lần phân tích nào</h4>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block js_them %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const ban_do_pt = L.map('ban_do_pt').setView([16.047, 108.206], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(ban_do_pt);
+    let marker_tam = null;
+    let lop_vung_dem = L.featureGroup().addTo(ban_do_pt);
+
+    ban_do_pt.on('click', function (e) {
+        document.getElementById('buf_vi_do').value = e.latlng.lat.toFixed(6);
+        document.getElementById('buf_kinh_do').value = e.latlng.lng.toFixed(6);
+        if (marker_tam) marker_tam.remove();
+        marker_tam = L.marker(e.latlng).addTo(ban_do_pt).bindPopup('Tâm phân tích').openPopup();
+    });
+
+    function gui_phan_tich(form_id) {
+        const form = document.getElementById(form_id);
+        const data = new FormData(form);
+        fetch("{% url 'pt_thuc_hien' %}", { method: 'POST', body: data })
+            .then(r => r.json())
+            .then(resp => {
+                const panel = document.getElementById('ket_qua_panel');
+                const noi_dung = document.getElementById('ket_qua_noi_dung');
+                panel.style.display = 'block';
+                if (resp.thanh_cong) {
+                    const kq = resp.ket_qua;
+                    if (kq.vung_dem) {
+                        lop_vung_dem.clearLayers();
+                        L.geoJSON(kq.vung_dem, { style: { color: '#3b82f6', fillOpacity: 0.15 } }).addTo(lop_vung_dem);
+                        noi_dung.innerHTML = `<div class="thong_bao thong_bao--thanh_cong">
+               Tìm thấy <strong>${kq.so_thua_trong_vung}</strong> thửa đất trong vùng đệm.
+            </div>
+            ${kq.danh_sach.map(t => `<div style="padding:6px 0;border-bottom:1px solid var(--mau-vien);font-size:13px;">
+              <b>${t.ma_thua}</b> – cách ${t.khoang_cach_m} m
+            </div>`).join('')}`;
+                    } else if (kq.so_vi_pham !== undefined) {
+                        noi_dung.innerHTML = `<div class="thong_bao ${kq.so_vi_pham > 0 ? 'thong_bao--loi' : 'thong_bao--thanh_cong'}">
+                              ${kq.so_vi_pham > 0 ? 'Phát hiện' : 'Thanh cong'} <strong>${kq.so_vi_pham}</strong> vi phạm quy hoạch.
+            </div>
+            ${kq.danh_sach.map(v => `<div style="padding:8px 0;border-bottom:1px solid var(--mau-vien);font-size:13px;">
+              <b style="color:var(--mau-do);">${v.thua}</b> – Xâm phạm: <b>${v.quy_hoach}</b><br>
+              <span style="font-size:11px;color:#64748b;">Mức độ chồng lấn: ${v.dien_tich_m2} đơn vị</span>
+            </div>`).join('')}`;
+                    }
+                }
+            })
+            .catch(e => alert('Lỗi khi thực hiện phân tích: ' + e));
+    }
+
+    document.getElementById('form_buffer').addEventListener('submit', function (e) { e.preventDefault(); gui_phan_tich('form_buffer'); });
+    document.getElementById('form_vi_pham').addEventListener('submit', function (e) { e.preventDefault(); gui_phan_tich('form_vi_pham'); });
+</script>
+{% endblock %}

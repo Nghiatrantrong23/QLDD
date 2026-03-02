@@ -1,0 +1,39 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% block tieu_de %}Kết quả Phân tích GIS{% endblock %}
+
+{% block noi_dung %}
+<div class="tieu_de_trang">
+    <h2> Nhật ký Kết quả Phân tích GIS</h2>
+    <p>Lịch sử các lần thực hiện phân tích không gian</p>
+</div>
+<div class="banner_container">
+    {% if nhat_ky %}
+    <table class="bang">
+        <thead>
+            <tr>
+                <th>Tên phân tích</th>
+                <th>Loại</th>
+                <th>Người thực hiện</th>
+                <th>Thời gian</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for nk in nhat_ky %}
+            <tr>
+                <td><strong>{{ nk.ten_phan_tich }}</strong></td>
+                <td><span class="huy_hieu huy_hieu--xanh-da-troi">{{ nk.get_loai_phan_tich_display }}</span></td>
+                <td>{{ nk.nguoi_thuc_hien|default:"Hệ thống" }}</td>
+                <td>{{ nk.thoi_gian|date:"d/m/Y H:i" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="trang_trong">
+        <div class="trang_trong__bieu_tuong"></div>
+        <h4>Chưa có lần phân tích nào</h4>
+        <p><a href="{% url 'pt_cong_cu' %}">Thực hiện phân tích GIS →</a></p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

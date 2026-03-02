@@ -1,0 +1,258 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% block tieu_de %}{{ tieu_de_trang }}{% endblock %}
+
+{% block js_them %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+<style>
+    .nut_gis_nhanh {
+        padding: 6px 12px;
+        background: var(--mau-chinh);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        margin-top: 8px;
+    }
+
+    .nut_gis_nhanh:hover {
+        opacity: 0.9;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const vi_do_el = document.getElementById('vi_do');
+        const kinh_do_el = document.getElementById('kinh_do');
+        const geojson_el = document.getElementById('geojson_input');
+        const dien_tich_el = document.querySelector('input[name="dien_tich"]');
+
+        let vi_do_val = parseFloat(vi_do_el.value) || 16.0715;
+        let kinh_do_val = parseFloat(kinh_do_el.value) || 108.2210;
+
+        const m = L.map('ban_do_chon_toa_do').setView([vi_do_val, kinh_do_val], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(m);
+
+        // Lớp chứa các hình vẽ
+        let drawnItems = new L.FeatureGroup();
+        m.addLayer(drawnItems);
+
+        // Hiển thị dữ liệu cũ nếu có
+        if (geojson_el.value) {
+            try {
+                const existing = L.geoJSON(JSON.parse(geojson_el.value));
+                existing.eachLayer(layer => drawnItems.addLayer(layer));
+                m.fitBounds(drawnItems.getBounds());
+            } catch (e) { console.error("Lỗi đọc GeoJSON cũ"); }
+        } else {
+            // Marker mặc định
+            L.marker([vi_do_val, kinh_do_val]).addTo(drawnItems);
+        }
+
+        // Toolbar vẽ
+        const drawControl = new L.Control.Draw({
+            edit: { featureGroup: drawnItems },
+            draw: {
+                polygon: { allowIntersection: false, showArea: true },
+                polyline: false, circle: false, circlemarker: false,
+                marker: true, rectangle: true
+            }
+        });
+        m.addControl(drawControl);
+
+        m.on(L.Draw.Event.CREATED, function (event) {
+            drawnItems.clearLayers();
+            const layer = event.layer;
+            drawnItems.addLayer(layer);
+            updateGeoJSON();
+        });
+
+        m.on(L.Draw.Event.EDITED, updateGeoJSON);
+        m.on(L.Draw.Event.DELETED, function () {
+            geojson_el.value = "";
+        });
+
+        function updateGeoJSON() {
+            const data = drawnItems.toGeoJSON();
+            geojson_el.value = JSON.stringify(data);
+
+            // Cập nhật tọa độ tâm từ hình đầu tiên
+            if (data.features.length > 0) {
+                const feat = data.features[0];
+                let center;
+                if (feat.geometry.type === 'Point') {
+                    center = feat.geometry.coordinates;
+                } else {
+                    // Lấy tâm đơn giản của bounds
+                    const bounds = drawnItems.getBounds();
+                    center = [bounds.getCenter().lng, bounds.getCenter().lat];
+                }
+                kinh_do_el.value = center[0].toFixed(6);
+                vi_do_el.value = center[1].toFixed(6);
+            }
+        }
+
+        // Tự động tạo ranh giới từ diện tích
+        window.taoRanhGioiMau = function () {
+            const area = parseFloat(dien_tich_el.value);
+            if (!area || area <= 0) {
+                alert("Vui lòng nhập diện tích trước!");
+                return;
+            }
+
+            const lat = parseFloat(vi_do_el.value);
+            const lng = parseFloat(kinh_do_el.value);
+
+            // Tính cạnh hình vuông (giả định)
+            const side = Math.sqrt(area);
+            const deltaLat = (side / 111320) / 2;
+            const deltaLng = (side / (111320 * Math.cos(lat * Math.PI / 180))) / 2;
+
+            const coords = [
+                [lat - deltaLat, lng - deltaLng],
+                [lat + deltaLat, lng - deltaLng],
+                [lat + deltaLat, lng + deltaLng],
+                [lat - deltaLat, lng + deltaLng],
+                [lat - deltaLat, lng - deltaLng]
+            ];
+
+            drawnItems.clearLayers();
+            const poly = L.polygon(coords, { color: 'blue' }).addTo(drawnItems);
+            m.fitBounds(poly.getBounds());
+            updateGeoJSON();
+        };
+    });
+</script>
+{% endblock %}
+
+{% block noi_dung %}
+<div class="duong_dan">
+    <a href="{% url 'hs_danh_sach' %}">Hồ sơ đất</a>
+    <span class="duong_dan__phan_cach">›</span>
+    <span>{% if thua %}Chỉnh sửa {{ thua.ma_thua }}{% else %}Thêm mới{% endif %}</span>
+</div>
+
+<div class="tieu_de_trang">
+    <h2>{% if thua %}Chỉnh sửa hồ sơ{% else %}Thêm hồ sơ đất mới{% endif %}</h2>
+</div>
+
+<form method="post" action="">
+    {% csrf_token %}
+    <input type="hidden" name="geojson" id="geojson_input" value="{{ thua.geojson|default:'' }}">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+        <!-- THÔNG TIN THỬA ĐẤT -->
+        <div class="panel">
+            <div class="panel__tieu_de">Thông tin Thửa đất</div>
+
+            <div class="form_luoi">
+                <div class="form_nhom">
+                    <label class="form_nhan">Mã thửa đất <span style="color:red;">*</span></label>
+                    <input type="text" name="ma_thua" class="form_o_nhap" value="{{ thua.ma_thua|default:'' }}"
+                        required>
+                </div>
+                <div class="form_nhom">
+                    <label class="form_nhan">Loại đất <span style="color:red;">*</span></label>
+                    <select name="loai_dat" class="form_o_nhap" required>
+                        {% for ma, ten in loai_dat_choices %}
+                        <option value="{{ ma }}" {% if thua.loai_dat == ma %}selected{% endif %}>{{ ten }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form_luoi">
+                <div class="form_nhom">
+                    <label class="form_nhan">Số tờ bản đồ</label>
+                    <input type="number" name="so_to" class="form_o_nhap" value="{{ thua.so_to|default:'' }}" required>
+                </div>
+                <div class="form_nhom">
+                    <label class="form_nhan">Số thửa</label>
+                    <input type="number" name="so_thua" class="form_o_nhap" value="{{ thua.so_thua|default:'' }}"
+                        required>
+                </div>
+            </div>
+
+            <div class="form_nhom">
+                <label class="form_nhan">Diện tích (m²) <span style="color:red;">*</span></label>
+                <input type="number" step="0.01" name="dien_tich" class="form_o_nhap"
+                    value="{{ thua.dien_tich|default:'' }}" required>
+            </div>
+
+            <div class="form_nhom">
+                <label class="form_nhan">Địa chỉ thửa đất</label>
+                <input type="text" name="dia_chi_thua" class="form_o_nhap" value="{{ thua.dia_chi_thua|default:'' }}">
+            </div>
+
+            <div class="form_nhom">
+                <label class="form_nhan">Mục đích sử dụng</label>
+                <input type="text" name="muc_dich_su_dung" class="form_o_nhap"
+                    value="{{ thua.muc_dich_su_dung|default:'' }}">
+            </div>
+
+            <div class="form_nhom"
+                style="margin-top: 15px; background: #fff5f5; padding: 10px; border-radius: 6px; border: 1px dashed #feb2b2;">
+                <label class="form_nhan"
+                    style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #c53030;">
+                    <input type="checkbox" name="that_nghiep_lau" {% if thua.that_nghiep_lau %}checked{% endif %}
+                        style="width: 18px; height: 18px;">
+                    <span style="font-weight: 600;">Thửa đất đang có tranh chấp?</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- BẢN ĐỒ & TỌA ĐỘ -->
+        <div>
+            <div class="panel" style="margin-bottom:16px;">
+                <div class="panel__tieu_de">Bản đồ GIS & Ranh giới</div>
+                <div id="ban_do_chon_toa_do"
+                    style="height:350px;border-radius:8px;margin-top:8px; border: 1px solid #ddd;"></div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <button type="button" class="nut_gis_nhanh" onclick="taoRanhGioiMau()">✨ Tự động tạo ranh giới theo
+                        diện tích</button>
+                    <div style="font-size:11px; color:#666; margin-top:8px;">
+                        Dùng công cụ vẽ [ polygon ] bên trái để vẽ ranh giới thực tế
+                    </div>
+                </div>
+
+                <div class="form_luoi" style="margin-top:10px;">
+                    <div class="form_nhom">
+                        <label class="form_nhan">Vĩ độ (Lat)</label>
+                        <input type="number" step="any" name="vi_do" id="vi_do" class="form_o_nhap"
+                            value="{{ thua.vi_do|default:'' }}">
+                    </div>
+                    <div class="form_nhom">
+                        <label class="form_nhan">Kinh độ (Lng)</label>
+                        <input type="number" step="any" name="kinh_do" id="kinh_do" class="form_o_nhap"
+                            value="{{ thua.kinh_do|default:'' }}">
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel__tieu_de">Chủ sở hữu & Ghi chú</div>
+                <select name="chu_su_dung" class="form_o_nhap" style="margin-bottom:10px;">
+                    <option value="">-- Chọn chủ sở hữu --</option>
+                    {% for chu in chu_su_dung_list %}
+                    <option value="{{ chu.pk }}" {% if thua.chu_su_dung.pk == chu.pk %}selected{% endif %}>{{ chu }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <textarea name="ghi_chu" class="form_o_nhap" rows="3"
+                    placeholder="Ghi chú thêm...">{{ thua.ghi_chu|default:'' }}</textarea>
+            </div>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:20px;">
+        <button type="submit" class="nut nut--chinh">Lưu hồ sơ đất</button>
+        <a href="{% url 'hs_danh_sach' %}" class="nut nut--vien">Quay lại</a>
+    </div>
+</form>
+{% endblock %}

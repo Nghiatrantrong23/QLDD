@@ -1,0 +1,61 @@
+import os
+
+def repair_text(text):
+    result = []
+    i = 0
+    while i < len(text):
+        c = text[i]
+        if ord(c) < 128:
+            result.append(c)
+            i += 1
+        else:
+            # Thu thập chuỗi ký tự có thể là mojibake (nằm trong bảng mã CP1252)
+            j = i
+            buf = []
+            while j < len(text):
+                char = text[j]
+                # Các ký tự trong dải CP1252 thường thấy trong mojibake
+                try:
+                    char.encode('cp1252')
+                    buf.append(char)
+                    j += 1
+                except:
+                    break
+            
+            if buf:
+                # Thử giải mã chuỗi này xem có ra tiếng Việt chuẩn không
+                try:
+                    # Trình tự: Text -> Bytes (CP1252) -> Text (UTF-8)
+                    chunk_bytes = "".join(buf).encode('cp1252')
+                    chunk_fixed = chunk_bytes.decode('utf-8')
+                    result.append(chunk_fixed)
+                    i = j
+                except:
+                    # Nếu không giải mã được, giữ nguyên ký tự hiện tại và tiếp tục
+                    result.append(text[i])
+                    i += 1
+            else:
+                result.append(text[i])
+                i += 1
+    return "".join(result)
+
+def process_directory(directory):
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith('.html'):
+                file_path = os.path.join(root, file)
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    
+                    if 'Ã' in content or 'á' in content or 'º' in content or '»' in content:
+                        print(f"Repairing: {file_path}")
+                        new_content = repair_text(content)
+                        with open(file_path, 'w', encoding='utf-8') as f:
+                            f.write(new_content)
+                except Exception as e:
+                    print(f"Error processing {file_path}: {e}")
+
+if __name__ == "__main__":
+    templates_dir = r'd:\lap_trinh_gis\Web_QLDD\myapp\templates\myapp'
+    process_directory(templates_dir)

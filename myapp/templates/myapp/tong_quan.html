@@ -1,0 +1,159 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% block tieu_de %}Tổng quan{% endblock %}
+
+{% block noi_dung %}
+<div class="tieu_de_trang">
+    <h2>Tổng quan Hệ thống</h2>
+    <p>Thống kê và tình trạng quản lý đất đai toàn huyện</p>
+</div>
+
+<!-- THẺ THỐNG KÊ -->
+<div class="luoi_the" style="margin-bottom: 24px;">
+    <div class="the the--thong_ke">
+        <div class="the__bieu_tuong the__bieu_tuong--xanh"></div>
+        <div>
+            <div class="the__so">{{ tong_thua_dat }}</div>
+            <div class="the__nhan">Tổng số thửa đất</div>
+        </div>
+    </div>
+    <div class="the the--thong_ke">
+        <div class="the__bieu_tuong the__bieu_tuong--la"></div>
+        <div>
+            <div class="the__so">{{ tong_quy_hoach }}</div>
+            <div class="the__nhan">Vùng quy hoạch</div>
+        </div>
+    </div>
+    <div class="the the--thong_ke">
+        <div class="the__bieu_tuong the__bieu_tuong--cam"></div>
+        <div>
+            <div class="the__so">{{ tong_bien_dong }}</div>
+            <div class="the__nhan">Biến động đất đai</div>
+        </div>
+    </div>
+    <div class="the the--thong_ke">
+        <div class="the__bieu_tuong the__bieu_tuong--do"></div>
+        <div>
+            <div class="the__so">{{ tong_canh_bao }}</div>
+            <div class="the__nhan">Cảnh báo chưa xử lý</div>
+        </div>
+    </div>
+</div>
+
+<!-- NỘI DUNG 2 CỘT -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+
+    <!-- Biến động gần nhất -->
+    <div class="bang_container">
+        <div class="bang_tieu_de">
+            <h3>Biến động gần nhất</h3>
+            <a href="{% url 'hs_danh_sach' %}" class="nut nut--vien" style="font-size:12px;padding:5px 12px;">Xem
+                tat ca</a>
+        </div>
+        {% if bien_dong_gan_nhat %}
+        <table class="bang">
+            <thead>
+                <tr>
+                    <th>Thửa đất</th>
+                    <th>Loại biến động</th>
+                    <th>Ngày</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bd in bien_dong_gan_nhat %}
+                <tr>
+                    <td><a href="{% url 'hs_chi_tiet' bd.thua_dat.pk %}">{{ bd.thua_dat.ma_thua }}</a></td>
+                    <td>{{ bd.get_loai_bien_dong_display }}</td>
+                    <td>{{ bd.ngay_bien_dong|date:"d/m/Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="trang_trong">
+            <div class="trang_trong__bieu_tuong"></div>
+            <h4>Chưa có biến động</h4>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Cảnh báo chưa xử lý -->
+    <div class="bang_container">
+        <div class="bang_tieu_de">
+            <h3>Cảnh báo chưa xử lý</h3>
+            <a href="{% url 'cb_danh_sach' %}" class="nut nut--vien" style="font-size:12px;padding:5px 12px;">Xem tat
+                ca</a>
+        </div>
+        {% if canh_bao_chua_xu_ly %}
+        <table class="bang">
+            <thead>
+                <tr>
+                    <th>Tiêu đề</th>
+                    <th>Mức độ</th>
+                    <th>Ngày</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cb in canh_bao_chua_xu_ly %}
+                <tr>
+                    <td><a href="{% url 'cb_chi_tiet' cb.pk %}">{{ cb.tieu_de|truncatechars:35 }}</a></td>
+                    <td>
+                        {% if cb.muc_do == 'khan_cap' %}
+                        <span class="huy_hieu huy_hieu--do">Khẩn cấp</span>
+                        {% elif cb.muc_do == 'cao' %}
+                        <span class="huy_hieu huy_hieu--cam">Cao</span>
+                        {% else %}
+                        <span class="huy_hieu huy_hieu--xanh-da-troi">{{ cb.get_muc_do_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ cb.ngay_phat_sinh|date:"d/m/Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="trang_trong">
+            <div class="trang_trong__bieu_tuong"></div>
+            <h4>Không có cảnh báo</h4>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- THỐNG KÊ LOẠI ĐẤT -->
+{% if thong_ke_loai_dat %}
+<div class="bang_container" style="margin-top:20px;">
+    <div class="bang_tieu_de">
+        <h3>Thống kê theo loại đất</h3>
+    </div>
+    <table class="bang">
+        <thead>
+            <tr>
+                <th>Loại đất</th>
+                <th>Số thửa</th>
+                <th>Tỷ lệ</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for loai, so_luong in thong_ke_loai_dat.items %}
+            <tr>
+                <td>{{ loai }}</td>
+                <td><strong>{{ so_luong }}</strong></td>
+                <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <div style="flex:1;height:6px;background:var(--mau-vien);border-radius:3px;">
+                            <div
+                                style="width:{% widthratio so_luong tong_thua_dat 100 %}%;height:100%;background:var(--mau-phu);border-radius:3px;">
+                            </div>
+                        </div>
+                        <span style="font-size:12px;color:var(--mau-chu-nhat);">{% widthratio so_luong tong_thua_dat 100
+                            %}%</span>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

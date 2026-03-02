@@ -1,0 +1,93 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% block tieu_de %}Cảnh báo GIS{% endblock %}
+
+{% block noi_dung %}
+<div class="tieu_de_trang">
+    <h2>Danh sách Cảnh báo GIS</h2>
+    <p>Theo dõi và xử lý các cảnh báo vi phạm, rủi ro đất đai</p>
+</div>
+
+{% if so_chua_xu_ly > 0 %}
+<div class="thong_bao thong_bao--canh_bao">
+    Hiện có <strong>{{ so_chua_xu_ly }} cảnh báo</strong> chưa được xử lý
+</div>
+{% endif %}
+
+<!-- BỘ LỌC -->
+<div class="the" style="margin-bottom:16px;">
+    <form method="get" class="thanh_tim_kiem">
+        <select name="muc_do" class="form_o_nhap" style="max-width:180px;">
+            <option value="">-- Tất cả mức độ --</option>
+            {% for ma, ten in muc_do_choices %}
+            <option value="{{ ma }}" {% if ma in muc_do_chon and muc_do_chon in ma %}selected{% endif %}>{{ ten }}
+            </option>
+            {% endfor %}
+        </select>
+        <select name="da_xu_ly" class="form_o_nhap" style="max-width:180px;">
+            <option value="">-- Tất cả trạng thái --</option>
+            <option value="0">Chưa xử lý</option>
+            <option value="1">Đã xử lý</option>
+        </select>
+        <button type="submit" class="nut nut--chinh">Lọc</button>
+        <a href="{% url 'cb_danh_sach' %}" class="nut nut--vien">Xóa</a>
+    </form>
+</div>
+
+<!-- DANH SÁCH CẢNH BÁO -->
+<div class="bang_container">
+    {% if danh_sach %}
+    <table class="bang">
+        <thead>
+            <tr>
+                <th>Tiêu đề cảnh báo</th>
+                <th>Loại</th>
+                <th>Mức độ</th>
+                <th>Thửa liên quan</th>
+                <th>Trạng thái</th>
+                <th>Ngày phát sinh</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cb in danh_sach %}
+            <tr>
+                <td><a href="{% url 'cb_chi_tiet' cb.pk %}"><strong>{{ cb.tieu_de }}</strong></a></td>
+                <td style="font-size:12px;">{{ cb.get_loai_canh_bao_display }}</td>
+                <td>
+                    {% if 'khan_cap' in cb.muc_do and cb.muc_do in 'khan_cap' %}
+                    <span class="huy_hieu huy_hieu--do">Khẩn cấp</span>
+                    {% elif 'cao' in cb.muc_do and cb.muc_do in 'cao' %}
+                    <span class="huy_hieu huy_hieu--cam">Cao</span>
+                    {% elif 'trung_binh' in cb.muc_do and cb.muc_do in 'trung_binh' %}
+                    <span class="huy_hieu huy_hieu--xanh-da-troi">Trung bình</span>
+                    {% else %}
+                    <span class="huy_hieu huy_hieu--xam">Thấp</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if cb.thua_dat_lien_quan %}
+                    <a href="{% url 'hs_chi_tiet' cb.thua_dat_lien_quan.pk %}">{{ cb.thua_dat_lien_quan.ma_thua }}</a>
+                    {% else %}—{% endif %}
+                </td>
+                <td>
+                    {% if cb.da_xu_ly %}
+                    <span class="huy_hieu huy_hieu--xanh">Đã xử lý</span>
+                    {% else %}
+                    <span class="huy_hieu huy_hieu--do">Chưa xử lý</span>
+                    {% endif %}
+                </td>
+                <td>{{ cb.ngay_phat_sinh|date:"d/m/Y H:i" }}</td>
+                <td><a href="{% url 'cb_chi_tiet' cb.pk %}" class="nut nut--vien"
+                        style="font-size:12px;padding:4px 10px;">Chi tiết</a></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="trang_trong">
+        <h4>Không có cảnh báo nào</h4>
+        <p>Hệ thống không ghi nhận cảnh báo nào với bộ lọc hiện tại</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

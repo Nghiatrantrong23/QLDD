@@ -1,0 +1,64 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% block tieu_de %}Chi tiết Quy hoạch{% endblock %}
+
+{% block noi_dung %}
+<div class="duong_dan">
+    <a href="{% url 'qh_ban_do' %}">Quy hoạch</a>
+    <span class="duong_dan__phan_cach">›</span>
+    <span>{{ vung.ten_vung }}</span>
+</div>
+<div class="tieu_de_trang">
+    <h2>{{ vung.ten_vung }}</h2>
+    <div style="display:flex;gap:10px;">
+        <a href="{% url 'qh_chinh_sua' vung.pk %}" class="nut nut--chinh">Chỉnh sửa</a>
+        <form method="post" action="{% url 'qh_xoa' vung.pk %}" style="margin:0;">
+            {% csrf_token %}
+            <button type="submit" class="nut nut--do"
+                onclick="return confirm('Xác nhận xóa vùng quy hoạch này?')">Xóa</button>
+        </form>
+    </div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+    <div class="panel">
+        <div class="panel__tieu_de">Thông tin Vùng Quy hoạch</div>
+        <div class="hang_chi_tiet">
+            <div class="hang_chi_tiet__nhan">Tên vùng</div>
+            <div class="hang_chi_tiet__gia_tri"><strong>{{ vung.ten_vung }}</strong></div>
+        </div>
+        <div class="hang_chi_tiet">
+            <div class="hang_chi_tiet__nhan">Loại quy hoạch</div>
+            <div class="hang_chi_tiet__gia_tri"><span class="huy_hieu huy_hieu--xanh-da-troi">{{
+                    vung.get_loai_quy_hoach_display }}</span></div>
+        </div>
+        <div class="hang_chi_tiet">
+            <div class="hang_chi_tiet__nhan">Năm quy hoạch</div>
+            <div class="hang_chi_tiet__gia_tri">{{ vung.nam_quy_hoach }}</div>
+        </div>
+        <div class="hang_chi_tiet">
+            <div class="hang_chi_tiet__nhan">Mô tả</div>
+            <div class="hang_chi_tiet__gia_tri">{{ vung.mo_ta|default:"Không có mô tả" }}</div>
+        </div>
+    </div>
+    <div class="panel">
+        <div class="panel__tieu_de">Vị trí trên bản đồ</div>
+        <div id="ban_do_vung" style="height:250px;border-radius:8px;"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js_them %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const m = L.map('ban_do_vung').setView([16.047, 108.206], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(m);
+    {% if vung.geojson %}
+    try {
+        const lop = L.geoJSON({% templatetag openvariable %} vung.geojson | safe {% templatetag closevariable %}, {
+        style: { color: '#3b82f6', fillOpacity: 0.3 }
+    }).addTo(m);
+    m.fitBounds(lop.getBounds());
+  } catch (e) { }
+    {% endif %}
+</script>
+{% endblock %}

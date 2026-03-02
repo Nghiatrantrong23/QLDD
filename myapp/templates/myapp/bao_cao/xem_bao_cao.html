@@ -1,0 +1,92 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% block tieu_de %}Xem Báo cáo{% endblock %}
+
+{% block noi_dung %}
+<div class="duong_dan">
+    <a href="{% url 'bc_danh_sach' %}">Báo cáo</a>
+    <span class="duong_dan__phan_cach">›</span>
+    <span>{{ loai }}</span>
+</div>
+
+<div class="tieu_de_trang">
+    <h2>Báo cáo: {{ loai|capfirst }}</h2>
+</div>
+
+{% if loai == 'tong_hop' %}
+<div class="bang_container">
+    <div class="bang_tieu_de">
+        <h3>Báo cáo Tổng hợp Đất đai</h3>
+    </div>
+    <table class="bang">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Mã thửa</th>
+                <th>Tờ/Thửa</th>
+                <th>Diện tích</th>
+                <th>Loại đất</th>
+                <th>Chủ sử dụng</th>
+                <th>Số GCN</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for thua in du_lieu.thua_dat %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ thua.ma_thua }}</td>
+                <td>{{ thua.so_to }}/{{ thua.so_thua }}</td>
+                <td>{{ thua.dien_tich|floatformat:1 }} m²</td>
+                <td>{{ thua.get_loai_dat_display }}</td>
+                <td>{{ thua.chu_su_dung.ho_ten|default:"—" }}</td>
+                <td>{{ thua.so_gcn|default:"—" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" style="text-align:center;color:var(--mau-chu-nhat);padding:20px;">Chưa có dữ liệu</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% elif loai == 'canh_bao' %}
+<div class="bang_container">
+    <div class="bang_tieu_de">
+        <h3>Báo cáo Cảnh báo GIS</h3>
+    </div>
+    <table class="bang">
+        <thead>
+            <tr>
+                <th>Tiêu đề</th>
+                <th>Loại</th>
+                <th>Mức độ</th>
+                <th>Trạng thái</th>
+                <th>Ngày</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cb in du_lieu.canh_bao %}
+            <tr>
+                <td>{{ cb.tieu_de }}</td>
+                <td>{{ cb.get_loai_canh_bao_display }}</td>
+                <td>{{ cb.get_muc_do_display }}</td>
+                <td>{% if cb.da_xu_ly %}Đã xử lý{% else %}Chưa xử lý{% endif %}</td>
+                <td>{{ cb.ngay_phat_sinh|date:"d/m/Y" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align:center;padding:20px;">Chưa có cảnh báo nào</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% else %}
+<div class="trang_trong">
+    <div class="trang_trong__bieu_tuong"></div>
+    <h4>Báo cáo đang được xây dựng</h4>
+    <p>Tính năng này sẽ sớm được hoàn thiện</p>
+</div>
+{% endif %}
+{% endblock %}

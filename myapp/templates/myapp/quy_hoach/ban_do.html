@@ -1,0 +1,77 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% load static %}
+{% block tieu_de %}Bản đồ Quy hoạch{% endblock %}
+
+{% block css_them %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    #ban_do_qh {
+        height: 500px;
+        border-radius: var(--bo_goc);
+    }
+</style>
+{% endblock %}
+
+{% block noi_dung %}
+<div class="tieu_de_trang">
+    <h2>Bản đồ Quy hoạch Sử dụng Đất</h2>
+    <a href="{% url 'qh_them_moi' %}" class="nut nut--chinh">Thêm quy hoạch mới</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 280px;gap:20px;">
+    <div class="panel">
+        <div id="ban_do_qh"></div>
+    </div>
+
+    <div>
+        <div class="bang_container">
+            <div class="bang_tieu_de">
+                <h3>Danh sách Vùng</h3>
+            </div>
+            {% if ds_quy_hoach %}
+            {% for vung in ds_quy_hoach %}
+            <div style="padding:12px 16px;border-bottom:1px solid var(--mau-vien);">
+                <div style="font-weight:600;font-size:13.5px;">
+                    <a href="{% url 'qh_chi_tiet' vung.pk %}">{{ vung.ten_vung }}</a>
+                </div>
+                <div style="font-size:12px;color:var(--mau-chu-nhat);margin-top:4px;">
+                    <span class="huy_hieu huy_hieu--xanh-da-troi" style="font-size:11px;">{{
+                        vung.get_loai_quy_hoach_display }}</span>
+                    &nbsp; Năm {{ vung.nam_quy_hoach }}
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="trang_trong" style="padding:30px;">
+                <div class="trang_trong__bieu_tuong"></div>
+                <h4>Chưa có vùng quy hoạch</h4>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js_them %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const ban_do_qh = L.map('ban_do_qh').setView([16.047, 108.206], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(ban_do_qh);
+
+    const mau_qh = {
+        'dat_o': '#3b82f6', 'dat_thuong_mai': '#f59e0b', 'dat_cong_nghiep': '#6366f1',
+        'dat_cong_cong': '#8b5cf6', 'dat_giao_thong': '#6b7280', 'dat_cay_xanh': '#059669',
+        'dat_nong_nghiep': '#10b981', 'dat_du_lich': '#ec4899',
+    };
+
+    {% for vung in ds_quy_hoach %}
+    {% if vung.geojson %}
+    try {
+        L.geoJSON({% templatetag openvariable %} vung.geojson | safe {% templatetag closevariable %}, {
+        style: { color: mau_qh['{% templatetag openvariable %} vung.loai_quy_hoach {% templatetag closevariable %}'] || '#6366f1', fillOpacity: 0.3, weight: 2 }
+    }).addTo(ban_do_qh).bindPopup('<b>{% templatetag openvariable %} vung.ten_vung {% templatetag closevariable %}</b><br>{% templatetag openvariable %} vung.get_loai_quy_hoach_display {% templatetag closevariable %}');
+  } catch (e) { }
+    {% endif %}
+    {% endfor %}
+</script>
+{% endblock %}

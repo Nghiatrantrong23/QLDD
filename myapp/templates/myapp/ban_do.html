@@ -1,0 +1,151 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% load static %}
+{% block tieu_de %}Bản đồ Đất đai GIS{% endblock %}
+
+{% block css_them %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    .noi_dung_chinh {
+        padding: 0;
+    }
+
+    #ban_do_leaflet {
+        height: calc(100vh - 64px);
+    }
+
+    .thanh_cong_cu {
+        position: absolute;
+        top: 80px;
+        right: 16px;
+        z-index: 1000;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(5px);
+        border-radius: 12px;
+        padding: 16px;
+        width: 280px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+        font-size: 13px;
+    }
+
+    .legend-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block noi_dung %}
+<div id="ban_do_leaflet"></div>
+
+<div class="thanh_cong_cu">
+    <h4 style="margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
+        <span>Lớp dữ liệu GIS</span>
+        <span class="huy_hieu">{{ so_thua_dat }} thửa</span>
+    </h4>
+
+    <div class="legend" style="margin-bottom: 20px;">
+        <div class="legend-item">
+            <div class="legend-color" style="background:#3b82f6;"></div><span>Đất ở đô thị (ODT)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background:#10b981;"></div><span>Đất trồng lúa (LUA)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background:#f59e0b;"></div><span>Sản xuất kinh doanh (SKC)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background:#ef4444;"></div><span>Đang tranh chấp</span>
+        </div>
+    </div>
+
+    <button onclick="tai_du_lieu()" class="nut nut--chinh" style="width:100%;">🔄 Làm mới dữ liệu bản đồ</button>
+</div>
+{% endblock %}
+
+{% block js_them %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const ban_do = L.map('ban_do_leaflet').setView([16.07, 108.22], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap | Hệ thống GIS QLĐD'
+    }).addTo(ban_do);
+
+    let lop_du_lieu = L.featureGroup().addTo(ban_do);
+
+    function lay_mau(prop) {
+        if (prop.tranh_chap) return "#ef4444";
+        const mau = {
+            'Đất ở đô thị': '#3b82f6',
+            'Đất trồng lúa': '#10b981',
+            'Đất sản xuất kinh doanh': '#f59e0b',
+        };
+        return mau[prop.loai_dat] || '#8b5cf6';
+    }
+
+    function tai_du_lieu() {
+        fetch("{% url 'api_thua_dat' %}")
+            .then(res => res.json())
+            .then(data => {
+                lop_du_lieu.clearLayers();
+                L.geoJSON(data, {
+                    style: function (f) {
+                        if (f.properties.loai_hien_thi === 'ranh_gioi') {
+                            return {
+                                color: lay_mau(f.properties),
+                                weight: 3,
+                                fillOpacity: 0.3,
+                                dashArray: '5, 5'
+                            };
+                        }
+                        return {};
+                    },
+                    pointToLayer: function (f, latlng) {
+                        return L.marker(latlng);
+                    },
+                    onEachFeature: function (f, layer) {
+                        const p = f.properties;
+                        // Chỉ gắn Popup cho Marker để tránh trùng lặp và dễ bấm
+                        if (p.loai_hien_thi === 'marker') {
+                            layer.bindPopup(`
+                                <div style="min-width:180px;">
+                                    <div style="color:#666; font-size:11px; margin-bottom:4px;">MÃ THỬA ĐẤT</div>
+                                    <b style="font-size:16px; color:#1e40af;">${p.ma_thua}</b><br>
+                                    <hr style="margin:8px 0; border:0; border-top:1px solid #eee;">
+                                    <table style="width:100%; font-size:13px;">
+                                        <tr><td>Diện tích:</td><td align="right"><b>${p.dien_tich} m²</b></td></tr>
+                                        <tr><td>Loại đất:</td><td align="right"><b>${p.loai_dat}</b></td></tr>
+                                        <tr><td>Chủ sở hữu:</td><td align="right"><b>${p.chu_su_dung}</b></td></tr>
+                                    </table>
+                                    <a href="/ho-so-dat/${p.id}/" class="nut nut--phu" style="display:block; margin-top:12px; text-align:center; padding:6px; font-size:12px;">Xem chi tiết hồ sơ →</a>
+                                </div>
+                            `);
+                        }
+
+                        if (p.loai_hien_thi === 'ranh_gioi') {
+                            layer.on({
+                                mouseover: function (e) { e.target.setStyle({ fillOpacity: 0.6, weight: 4 }); },
+                                mouseout: function (e) { e.target.setStyle({ fillOpacity: 0.3, weight: 3 }); }
+                            });
+                        }
+                    }
+                }).addTo(lop_du_lieu);
+
+                if (lop_du_lieu.getLayers().length > 0) {
+                    ban_do.fitBounds(lop_du_lieu.getBounds(), { padding: [50, 50] });
+                }
+            });
+    }
+
+    tai_du_lieu();
+</script>
+{% endblock %}

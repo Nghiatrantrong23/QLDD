@@ -1,0 +1,80 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% block tieu_de %}Chi tiết Cảnh báo{% endblock %}
+
+{% block noi_dung %}
+<div class="duong_dan">
+    <a href="{% url 'cb_danh_sach' %}">Cảnh báo</a>
+    <span class="duong_dan__phan_cach">›</span>
+    <span>Chi tiết</span>
+</div>
+
+<div class="tieu_de_trang">
+    <h2>{{ canh_bao.tieu_de }}</h2>
+</div>
+
+<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px;">
+    <div class="panel">
+        <div class="panel__tieu_de">Thông tin Cảnh báo</div>
+        <div class="hang_chi_tiet">
+            <div class="hang_chi_tiet__nhan">Loại cảnh báo</div>
+            <div class="hang_chi_tiet__gia_tri">{{ canh_bao.get_loai_canh_bao_display }}</div>
+        </div>
+        <div class="hang_chi_tiet">
+            <div class="hang_chi_tiet__nhan">Mức độ</div>
+            <div class="hang_chi_tiet__gia_tri">
+                {% if canh_bao.muc_do == 'khan_cap' %}<span class="huy_hieu huy_hieu--do">Khẩn cấp</span>
+                {% elif canh_bao.muc_do == 'cao' %}<span class="huy_hieu huy_hieu--cam">Cao</span>
+                {% elif canh_bao.muc_do == 'trung_binh' %}<span class="huy_hieu huy_hieu--xanh-da-troi">Trung
+                    bình</span>
+                {% else %}<span class="huy_hieu huy_hieu--xam">Thấp</span>{% endif %}
+            </div>
+        </div>
+        <div class="hang_chi_tiet">
+            <div class="hang_chi_tiet__nhan">Trạng thái</div>
+            <div class="hang_chi_tiet__gia_tri">
+                {% if canh_bao.da_xu_ly %}<span class="huy_hieu huy_hieu--xanh">Đã xử lý ({{
+                    canh_bao.ngay_xu_ly|date:"d/m/Y H:i" }})</span>
+                {% else %}<span class="huy_hieu huy_hieu--do">Chưa xử lý</span>{% endif %}
+            </div>
+        </div>
+        <div class="hang_chi_tiet">
+            <div class="hang_chi_tiet__nhan">Thửa đất liên quan</div>
+            <div class="hang_chi_tiet__gia_tri">
+                {% if canh_bao.thua_dat_lien_quan %}
+                <a href="{% url 'hs_chi_tiet' canh_bao.thua_dat_lien_quan.pk %}">{{ canh_bao.thua_dat_lien_quan }}</a>
+                {% else %}Không xác định{% endif %}
+            </div>
+        </div>
+        <div class="hang_chi_tiet">
+            <div class="hang_chi_tiet__nhan">Ngày phát sinh</div>
+            <div class="hang_chi_tiet__gia_tri">{{ canh_bao.ngay_phat_sinh|date:"d/m/Y H:i" }}</div>
+        </div>
+        <div style="margin-top:16px;">
+            <div class="form_nhan" style="margin-bottom:8px;">Nội dung chi tiết:</div>
+            <div style="background:var(--mau-nen);padding:14px;border-radius:8px;font-size:13.5px;line-height:1.7;">
+                {{ canh_bao.noi_dung }}
+            </div>
+        </div>
+    </div>
+
+    <div>
+        {% if not canh_bao.da_xu_ly %}
+        <div class="panel" style="border-top: 3px solid var(--mau-do);">
+            <div class="panel__tieu_de">Xử lý Cảnh báo</div>
+            <p style="font-size:13px;color:var(--mau-chu-nhat);margin-bottom:16px;">Sau khi đã kiểm tra và xử lý xong,
+                nhấn nút bên dưới để đánh dấu hoàn tất.</p>
+            <form method="post" action="{% url 'cb_xu_ly' canh_bao.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="nut nut--xanh" style="width:100%;">Đánh dấu đã xử lý</button>
+            </form>
+        </div>
+        {% else %}
+        <div class="panel" style="border-top: 3px solid var(--mau-xanh-la);">
+            <div class="panel__tieu_de">Đã hoàn thành xử lý</div>
+            <p style="font-size:13px;color:var(--mau-chu-nhat);">Cảnh báo này đã được xử lý vào {{
+                canh_bao.ngay_xu_ly|date:"d/m/Y H:i" }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

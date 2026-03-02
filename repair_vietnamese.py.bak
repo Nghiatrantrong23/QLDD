@@ -1,0 +1,40 @@
+import os
+
+def fix_double_encoding(directory):
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith('.html'):
+                file_path = os.path.join(root, file)
+                try:
+                    with open(file_path, 'rb') as f:
+                        raw_data = f.read()
+                    
+                    # Thử decode UTF-8 trước
+                    text = raw_data.decode('utf-8')
+                    
+                    # Nếu thấy dấu hiệu của mojibake (các ký tự Latin-1 mở rộng phổ biến)
+                    if any(c in text for c in ['Ã', 'á', 'º', '»', 'â']):
+                        print(f"Detected potential mojibake in {file_path}")
+                        try:
+                            # Phương pháp phục hồi: UTF-8 -> Latin-1 (bytes) -> UTF-8 (text)
+                            fixed_text = text.encode('cp1252').decode('utf-8')
+                            with open(file_path, 'w', encoding='utf-8') as f:
+                                f.write(fixed_text)
+                            print(f"Fixed: {file_path}")
+                        except Exception as e:
+                            # Thử với latin-1 nếu cp1252 lỗi
+                            try:
+                                fixed_text = text.encode('latin-1').decode('utf-8')
+                                with open(file_path, 'w', encoding='utf-8') as f:
+                                    f.write(fixed_text)
+                                print(f"Fixed (latin-1): {file_path}")
+                            except:
+                                print(f"Could not fix {file_path}: {e}")
+                    else:
+                        print(f"File seems OK or no mojibake detected: {file_path}")
+                except Exception as e:
+                    print(f"Error processing {file_path}: {e}")
+
+if __name__ == "__main__":
+    templates_dir = r'd:\lap_trinh_gis\Web_QLDD\myapp\templates\myapp'
+    fix_double_encoding(templates_dir)

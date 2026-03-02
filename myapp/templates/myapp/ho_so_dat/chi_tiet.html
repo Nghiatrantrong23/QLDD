@@ -1,0 +1,217 @@
+﻿{% extends 'myapp/co_so/khung_chinh.html' %}
+{% block tieu_de %}Chi tiết - {{ thua.ma_thua }}{% endblock %}
+{% block header_nut %}
+<a href="{% url 'hs_chinh_sua' thua.pk %}" class="nut_header">Chỉnh sửa</a>
+{% endblock %}
+
+{% block noi_dung %}
+<div class="duong_dan">
+    <a href="{% url 'hs_danh_sach' %}">Hồ sơ Đất</a>
+    <span class="duong_dan__phan_cach">›</span>
+    <span>{{ thua.ma_thua }}</span>
+</div>
+
+<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px;">
+
+    <!-- THÔNG TIN CHÍNH -->
+    <div>
+        <div class="panel" style="margin-bottom:20px;">
+            <div class="panel__tieu_de">Thông tin Thửa đất</div>
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Mã thửa</div>
+                <div class="hang_chi_tiet__gia_tri"><strong>{{ thua.ma_thua }}</strong></div>
+            </div>
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Số tờ / Số thửa</div>
+                <div class="hang_chi_tiet__gia_tri">Tờ {{ thua.so_to }} / Thửa {{ thua.so_thua }}</div>
+            </div>
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Địa chỉ thửa đất</div>
+                <div class="hang_chi_tiet__gia_tri">{{ thua.dia_chi_thua|default:"Chưa có thông tin" }}</div>
+            </div>
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Diện tích</div>
+                <div class="hang_chi_tiet__gia_tri"><strong>{{ thua.dien_tich|floatformat:1 }} m²</strong></div>
+            </div>
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Loại đất</div>
+                <div class="hang_chi_tiet__gia_tri">
+                    <span class="huy_hieu huy_hieu--xanh-da-troi">{{ thua.get_loai_dat_display }}</span>
+                </div>
+            </div>
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Mục đích sử dụng</div>
+                <div class="hang_chi_tiet__gia_tri">{{ thua.muc_dich_su_dung|default:"—" }}</div>
+            </div>
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Tình trạng tranh chấp</div>
+                <div class="hang_chi_tiet__gia_tri">
+                    {% if thua.that_nghiep_lau %}
+                    <span class="huy_hieu huy_hieu--do">Có tranh chấp</span>
+                    {% else %}
+                    <span class="huy_hieu huy_hieu--xanh">Không tranh chấp</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" style="margin-bottom:20px;">
+            <div class="panel__tieu_de">Giấy chứng nhận</div>
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Số GCN</div>
+                <div class="hang_chi_tiet__gia_tri">{{ thua.so_gcn|default:"Chưa có" }}</div>
+            </div>
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Ngày cấp</div>
+                <div class="hang_chi_tiet__gia_tri">{{ thua.ngay_cap_gcn|date:"d/m/Y"|default:"—" }}</div>
+            </div>
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Thời hạn sử dụng</div>
+                <div class="hang_chi_tiet__gia_tri">{{ thua.thoi_han_su_dung|date:"d/m/Y"|default:"Lâu dài" }}</div>
+            </div>
+        </div>
+
+        <!-- CẢNH BÁO LIÊN QUAN -->
+        {% if canh_bao %}
+        <div class="bang_container">
+            <div class="bang_tieu_de">
+                <h3>Cảnh báo liên quan</h3>
+            </div>
+            <table class="bang">
+                <thead>
+                    <tr>
+                        <th>Tiêu đề</th>
+                        <th>Mức độ</th>
+                        <th>Ngày</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cb in canh_bao %}
+                    <tr>
+                        <td><a href="{% url 'cb_chi_tiet' cb.pk %}">{{ cb.tieu_de }}</a></td>
+                        <td><span
+                                class="huy_hieu huy_hieu--{% if cb.muc_do == 'khan_cap' %}do{% elif cb.muc_do == 'cao' %}cam{% else %}xanh-da-troi{% endif %}">{{
+                                cb.get_muc_do_display }}</span></td>
+                        <td>{{ cb.ngay_phat_sinh|date:"d/m/Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- CỘT PHẢI -->
+    <div>
+        <div class="panel" style="margin-bottom:20px;">
+            <div class="panel__tieu_de">Chủ sử dụng đất</div>
+            {% if thua.chu_su_dung %}
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Họ tên</div>
+                <div class="hang_chi_tiet__gia_tri"><strong>{{ thua.chu_su_dung.ho_ten }}</strong></div>
+            </div>
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Số CMND/CCCD</div>
+                <div class="hang_chi_tiet__gia_tri">{{ thua.chu_su_dung.so_giay_to }}</div>
+            </div>
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Loại đối tượng</div>
+                <div class="hang_chi_tiet__gia_tri">{{ thua.chu_su_dung.get_loai_doi_tuong_display }}</div>
+            </div>
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Địa chỉ</div>
+                <div class="hang_chi_tiet__gia_tri">{{ thua.chu_su_dung.dia_chi|default:"—" }}</div>
+            </div>
+            {% else %}
+            <div class="trang_trong" style="padding:20px;">
+                <div class="trang_trong__bieu_tuong">👤</div>
+                <h4>Chưa có chủ sử dụng</h4>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- VỊ TRÍ GIS -->
+        <div class="panel">
+            <div class="panel__tieu_de">Vị trí & Ranh giới thực tế</div>
+            <div id="ban_do_nho" style="height:250px;border-radius:8px; border: 1px solid #ddd;"></div>
+            <div
+                style="margin-top:8px;font-size:12px;color:var(--mau-chu-nhat); display: flex; justify-content: space-between;">
+                <span>Vĩ độ: {{ thua.vi_do }} | Kinh độ: {{ thua.kinh_do }}</span>
+                <span style="font-weight: 600; color: var(--mau-chinh);">GIS Parcel</span>
+            </div>
+        </div>
+
+        <!-- LỊCH SỬ BIẾN ĐỘNG -->
+        <div class="bang_container" style="margin-top:20px;">
+            <div class="bang_tieu_de">
+                <h3>Lịch sử biến động</h3>
+            </div>
+            {% if bien_dong %}
+            <table class="bang">
+                <thead>
+                    <tr>
+                        <th>Loại biến động</th>
+                        <th>Ngày</th>
+                        <th>Văn bản</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bd in bien_dong %}
+                    <tr>
+                        <td>{{ bd.get_loai_bien_dong_display }}</td>
+                        <td>{{ bd.ngay_bien_dong|date:"d/m/Y" }}</td>
+                        <td>{{ bd.so_van_ban|default:"—" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="trang_trong" style="padding:20px;">
+                <h4>Chưa có biến động</h4>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block js_them %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    var lat = {% if thua.vi_do %}{% templatetag openvariable %} thua.vi_do {% templatetag closevariable %} {% else %} 16.047{% endif %};
+    var lng = {% if thua.kinh_do %}{% templatetag openvariable %} thua.kinh_do {% templatetag closevariable %} {% else %} 108.206{% endif %};
+    const m = L.map('ban_do_nho').setView([lat, lng], 17);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(m);
+
+    let boundary;
+    const geojsonData = '{% templatetag openvariable %} thua.geojson|safe {% templatetag closevariable %}';
+
+    if (geojsonData && geojsonData !== 'None' && geojsonData !== '') {
+        try {
+            boundary = L.geoJSON(JSON.parse(geojsonData), {
+                style: function () {
+                    return {
+                        color: "#2563eb",
+                        weight: 3,
+                        opacity: 0.8,
+                        fillColor: "#3b82f6",
+                        fillOpacity: 0.35
+                    };
+                }
+            }).addTo(m);
+            m.fitBounds(boundary.getBounds());
+            boundary.bindPopup('<b>Ranh giới thửa: {% templatetag openvariable %} thua.ma_thua {% templatetag closevariable %}</b>').openPopup();
+        } catch (e) {
+            console.error("Lỗi hiển thị GeoJSON:", e);
+            L.marker([lat, lng]).addTo(m).bindPopup('<b>{% templatetag openvariable %} thua.ma_thua {% templatetag closevariable %}</b>').openPopup();
+        }
+    } else {
+        // Fallback marker nếu không có polygon
+        L.marker([lat, lng])
+            .addTo(m)
+            .bindPopup('<b>{% templatetag openvariable %} thua.ma_thua {% templatetag closevariable %}</b><br>Chưa có dữ liệu ranh giới vùng.')
+            .openPopup();
+    }
+</script>
+{% endblock %}
