@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>sidebar</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.2/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.2/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body xmlns="http://www.w3.org/2000/svg" style="display: none">
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none">
+        <symbol id="icon-arrow-left" viewBox="0 0 24 24">
+            <path d="M15.422 16.078l-1.406 1.406-6-6 6-6 1.406 1.406-4.594 4.594z"/>
+        </symbol>
+        <symbol id="icon-clear" viewBox="0 0 24 24">
+            <path d="M18.984 6.422 13.406 12l5.578 5.578-1.406 1.406L12 13.406l-5.578 5.578-1.406-1.406L10.594 12 5.016 6.422l1.406-1.406L12 10.594l5.578-5.578z"/>
+        </symbol>
+        <symbol id="icon-email" viewBox="0 0 24 24">
+            <path d="M20.016 18.984v-12q0-0.797-.609-1.406t-1.406-.609h-12q-0.797 0-1.406.609t-.609 1.406v12q0 .797.609 1.406t1.406.609h12q.797 0 1.406-.609t.609-1.406zm-1.406-6.563v6.563h-12v-6.563l-1.594-1.031v8.594h15v-8.594z"/>
+        </symbol>
+        <symbol id="icon-menu" viewBox="0 0 24 24">
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+        </symbol>
+        <symbol id="icon-person" viewBox="0 0 24 24">
+            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+        </symbol>
+        <symbol id="icon-settings" viewBox="0 0 24 24">
+            <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+        </symbol>
+    </svg>
+
+    <div class="sidebar">
+        <button aria-label="close sidebar" type="button" class="close-button">
+            <svg><use xlink:href="#icon-clear" /></svg>
+        </button>
+
+        <ul class="sidebar-menu">
+            <li class="menu-item" data-item="menu">
+                <svg><use xlink:href="#icon-menu"/></svg>
+            </li>
+            <li class="menu-item" data-item="person">
+                <svg><use xlink:href="#icon-person"/></svg>
+            </li>
+            <li class="menu-item" data-item="email">
+                <svg><use xlink:href="#icon-email"/></svg>
+            </li>
+            <li class="menu-item" data-item="settings">
+                <svg><use xlink:href="#icon-settings"/></svg>
+            </li>
+        </ul>
+
+        <div class="sidebar-content">
+            <div class="item-content" id="menu">
+                <h2>Sidebar without plugins</h2>
+                <div class="content">
+                    Such a menu is not difficult to create on your own, you only need
+                    a little html, css and only dozens of lines of js. Not only will we learn
+                    something new, but we will adjust the solution 100% to our
+                    assumptions.<br /><br />You really don't need any plugin to do
+                    something like this.
+                </div>
+            </div>
+
+            <div class="item-content" id="person">
+                <h2>Person</h2>
+                <div class="content">
+                    person - Lorem ipsum dolor sit amet, consectetur adipisicing elit.
+                    Omnis, a. Lorem ipsum dolor sit amet, consectetur adipisicing elit.
+                </div>
+            </div>
+
+            <div class="item-content" id="email">
+                <h2>Email</h2>
+                <div class="content">
+                    email - Lorem, ipsum dolor sit amet consectetur adipisicing elit.
+                    Nobis nostrum incidunt, ab animi cumque, culpa aliquam nam? Porro
+                    temporibus, itaque quibusdam vitae consequuntur est ab iure! Commodi
+                    est aspernatur animi quae! Ad fuga perferendis dignissimos eaque
+                    consectetur. Ullamcorper dignissimos officiis mollitia dolor minus assumenda,
+                    necessitatibus, reprehenderit molestias qui doloribus quaerat dolor animi sapiente
+                    deserunt. Sunt ad saepe, dolorem neque voluptas impedit quibusdam, error
+                    iure recusandae laboriosam id neque nam minus ducimus, quaerat
+                    in expedita unde accusantium rem. Accusantium ipsum sint vel
+                    exercitationem tempore vero, ab optio magni laborum mollitia, ut, harum
+                    cum quaerat tempore vero, ab optio magni laborum mollitia, ut, harum
+                    amet nobis natus. Suscipit eos alias temporibus, eligendi quia
+                    deserunt reiciendis dolor magnam et ratione praesentium, aspernatur
+                    officiis dignissimos veniam nam reprehenderit. Fugit beatae, eaque qui odio
+                    velit, blanditiis voluptas ipsum culpa, saepe excepturi quod quaerat
+                    magni quae delectus cum tempore culpa, saepe excepturi quod quaerat
+                    magni quae delectus cum tempore culpa. Ex adipisci harum nihil laudantium
+                    dolore minima quo amet deleniti eius vero, sunt sapiente dicta
+                    aperiam, ratione aliquid officia dolorem similique consectetur
+                    quaerat magni dolores iure odit! Id labore eveniet eligendi
+                    voluptatibus. Repellat, assumenda!!!
+                </div>
+            </div>
+
+            <div class="item-content" id="settings">
+                <h2>Settings</h2>
+                <div class="content">settings</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>

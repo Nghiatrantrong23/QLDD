@@ -1,0 +1,118 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% block tieu_de %}{{ tieu_de_trang }}{% endblock %}
+
+{% block noi_dung %}
+<div class="duong_dan">
+    <a href="{% url 'hs_danh_sach' %}">Hồ sơ đất</a>
+    <span class="duong_dan__phan_cach">›</span>
+    <a href="{% url 'hs_chi_tiet' thua.pk %}">{{ thua.ma_thua }}</a>
+    <span class="duong_dan__phan_cach">›</span>
+    <span>Thêm Giao Dịch Mới</span>
+</div>
+
+<div class="tieu_de_trang" style="display:flex; justify-content:space-between;">
+    <h2>Thêm Giao Dịch / Biến Động Đất Đai</h2>
+</div>
+
+{% if has_warning %}
+<div class="panel" style="background-color:#ffebeb; border-left: 5px solid red; margin-bottom: 20px;">
+    <h3 style="color:red; margin-top:0;">⚠️ Cảnh báo Giao dịch Rủi ro cao!</h3>
+    <p>Thửa đất này hiện đang nằm trong vùng <strong>Vi Phạm Quy Hoạch</strong> hoặc <strong>Đang có Tranh chấp</strong>. Cán bộ xem xét kỹ trước khi xác nhận bất cứ giao dịch chuyển nhượng/tặng cho nào tại đây!</p>
+</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <!-- THÔNG TIN GIAO DỊCH -->
+        <div class="panel">
+            <div class="panel__tieu_de">1. Thông tin Giao dịch</div>
+            <div class="form_luoi">
+                <div class="form_nhom">
+                    <label class="form_nhan">Thửa đất liên quan</label>
+                    <input type="text" class="form_o_nhap" value="{{ thua.ma_thua }} ({{thua.dien_tich}} m²)" disabled>
+                </div>
+                <div class="form_nhom">
+                    <label class="form_nhan">Loại biến động <span style="color:red;">*</span></label>
+                    {{ form.loai_bien_dong }}
+                </div>
+            </div>
+
+            <div class="form_luoi">
+                <div class="form_nhom">
+                    <label class="form_nhan">Ngày giao dịch <span style="color:red;">*</span></label>
+                    {{ form.ngay_bien_dong }}
+                </div>
+                <div class="form_nhom">
+                    <label class="form_nhan">Trạng thái <span style="color:red;">*</span></label>
+                    {{ form.trang_thai }}
+                </div>
+            </div>
+
+            <div class="form_nhom">
+                <label class="form_nhan">Giá trị giao dịch (VNĐ)</label>
+                {{ form.gia_tri_giao_dich }}
+            </div>
+            
+            <div class="panel__tieu_de" style="margin-top:20px;">2. Chủ sử dụng (Cũ ➝ Mới)</div>
+            <p style="font-size:12px; color:#555;">Khi Trạng thái được chọn là "Hoàn tất", hệ thống sẽ tự Gỡ bỏ Chủ Cũ và Thêm mới Chủ Mới vào danh sách của bản ghi Gốc.</p>
+            <div class="form_luoi">
+                <div class="form_nhom">
+                    <label class="form_nhan" style="color:red;">Chủ Cũ (Bán/Tặng)</label>
+                    {{ form.chu_cu }}
+                </div>
+                <div class="form_nhom">
+                    <label class="form_nhan" style="color:green;">Chủ Mới (Mua/Nhận)</label>
+                    {{ form.chu_moi }}
+                </div>
+            </div>
+        </div>
+
+        <!-- HỒ SƠ PHÁP LÝ -->
+        <div class="panel">
+            <div class="panel__tieu_de">3. Hồ sơ & Pháp lý</div>
+            
+            <div class="form_nhom">
+                <label class="form_nhan">Số văn bản / Hợp đồng</label>
+                {{ form.so_van_ban }}
+            </div>
+
+            <div class="form_nhom">
+                <label class="form_nhan">Tệp Hồ Sơ Đính Kèm (PDF, Hình ảnh)</label>
+                {{ form.tai_lieu_dinh_kem }}
+                <p style="font-size:12px; color:#666;">Chỉ hỗ trợ 1 tệp tin. Vui lòng gộp hoặc nén (ZIP) nếu có nhiều.</p>
+            </div>
+
+            <div class="form_nhom" style="margin-top:15px;">
+                <label class="form_nhan">Người/Cơ quan ghi nhận</label>
+                {{ form.nguoi_ghi_nhan }}
+            </div>
+
+            <div class="form_nhom">
+                <label class="form_nhan">Mô tả thêm / Ghi chú</label>
+                {{ form.mo_ta }}
+            </div>
+        </div>
+    </div>
+    
+    <div style="display:none;">{{ form.thua_dat }}</div> <!-- Ẩn input thua_dat đi vì đã fix cứng -->
+
+    <div style="display:flex;gap:12px;margin-top:20px;">
+        <button type="submit" class="nut nut--chinh">Lưu Giao Dịch</button>
+        <a href="{% url 'hs_chi_tiet' thua.pk %}" class="nut nut--vien">Hủy bỏ</a>
+    </div>
+</form>
+
+<style>
+    /* Styling cho input form auto created by Django */
+    input[type="text"], input[type="number"], input[type="date"], select, textarea {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-family: inherit;
+        font-size: 14px;
+        transition: border-color 0.2s;
+    }
+</style>
+{% endblock %}

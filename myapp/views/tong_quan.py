@@ -1,7 +1,8 @@
 from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 from myapp.models import ThuaDat, CanhBaoGIS, BienDongDat, VungQuyHoach
 
-
+@login_required
 def tong_quan(request):
     """Trang Tổng quan - Dashboard chính"""
     tong_thua_dat = ThuaDat.objects.count()
@@ -12,7 +13,7 @@ def tong_quan(request):
     # Thống kê theo loại đất
     tu_dien_loai_dat = {}
     for thua in ThuaDat.objects.all():
-        loai = thua.get_loai_dat_display()
+        loai = thua.get_loai_dat_hien_trang_display()
         tu_dien_loai_dat[loai] = tu_dien_loai_dat.get(loai, 0) + 1
 
     # Biến động gần nhất
@@ -31,4 +32,4 @@ def tong_quan(request):
         'bien_dong_gan_nhat': bien_dong_gan_nhat,
         'canh_bao_chua_xu_ly': canh_bao_chua_xu_ly,
     }
-    return render(request, 'myapp/tong_quan.html', context)
+    return render(request, 'myapp/tong_quan/tong_quan.html', context)

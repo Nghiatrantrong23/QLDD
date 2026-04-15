@@ -1,6 +1,12 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+if os.name == 'nt':
+    os.environ['PATH'] = r'C:\OSGeo4W\bin;' + os.environ.get('PATH', '')
+    GDAL_LIBRARY_PATH = r'C:\OSGeo4W\bin\gdal312.dll'
+    GEOS_LIBRARY_PATH = r'C:\OSGeo4W\bin\geos_c.dll'
 
 SECRET_KEY = 'django-insecure-gis-qldd-secret-key-change-in-production'
 
@@ -14,6 +20,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.auth',
+    'django.contrib.gis',
     'rest_framework',
     'myapp',
 ]
@@ -51,7 +58,7 @@ WSGI_APPLICATION = 'QLDD.wsgi.application'
 # --- Cơ sở dữ liệu PostgreSQL ---
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': 'qldd_db',
         'USER': 'postgres',
         'PASSWORD': 'Nghia23042005az',
@@ -80,3 +87,8 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# --- Authentication ---
+LOGIN_URL = 'dang_nhap'
+LOGIN_REDIRECT_URL = 'tong_quan'
+LOGOUT_REDIRECT_URL = 'dang_nhap'

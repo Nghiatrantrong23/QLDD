@@ -1,0 +1,52 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% block tieu_de %}Nhập dữ liệu Batch (GeoJSON){% endblock %}
+
+{% block noi_dung %}
+<div class="tieu_de_trang">
+    <h2>🚀 Nhập dữ liệu GIS Batch</h2>
+    <p>Tải lên file GeoJSON để khởi tạo hàng loạt thửa đất vào hệ thống.</p>
+</div>
+
+<div class="khung_chinh" style="max-width: 800px; margin: 0 auto;">
+    <div class="the" style="padding: 40px; border: 2px dashed var(--mau-vien); text-align: center; border-radius: 16px; background: white;">
+        <form action="{% url 'hs_import_geojson' %}" method="POST" enctype="multipart/form-data" id="form_upload">
+            {% csrf_token %}
+            <div style="font-size: 50px; margin-bottom: 20px;">📄</div>
+            <h3>Chọn file .geojson hoặc .json</h3>
+            <p style="color: var(--mau-chu-nhat); margin-bottom: 24px;">Kéo thả file vào đây hoặc nhấn để chọn từ máy tính</p>
+            
+            <input type="file" name="file_geojson" id="file_input" accept=".json,.geojson" style="display: none;">
+            <button type="button" onclick="document.getElementById('file_input').click()" class="nut nut--vien">Chọn File</button>
+            <div id="file_info" style="margin-top: 15px; font-weight: 600; color: var(--mau-chinh);"></div>
+            
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
+                <button type="submit" class="nut nut--chinh" style="width: 200px;" id="nut_submit" disabled>Bắt đầu nhập dữ liệu</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="panel" style="margin-top: 24px;">
+        <div class="panel__tieu_de">Lưu ý khi nhập dữ liệu</div>
+        <ul style="font-size: 14px; color: var(--mau-chu-nhat); line-height: 1.6;">
+            <li>File phải tuân thủ định dạng <b>GeoJSON</b> chuẩn (RFC 7946).</li>
+            <li>Hệ tọa độ được khuyến khích là <b>WGS84 (EPSG:4326)</b>.</li>
+            <li>Các thuộc tính cần có trong <code>properties</code>: <code>ma_thua</code>, <code>so_to</code>, <code>so_thua</code>, <code>dien_tich</code>.</li>
+            <li>Nếu chủ sở hữu không tồn tại, hệ thống sẽ gán vào mục "Chưa xác định".</li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    const fileInput = document.getElementById('file_input');
+    const fileInfo = document.getElementById('file_info');
+    const nutSubmit = document.getElementById('nut_submit');
+
+    fileInput.onchange = e => {
+        if (e.target.files.length > 0) {
+            const file = e.target.files[0];
+            fileInfo.innerText = `📁 ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+            nutSubmit.disabled = false;
+        }
+    };
+</script>
+{% endblock %}

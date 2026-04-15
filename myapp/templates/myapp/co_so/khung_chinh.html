@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block tieu_de %}QLĐĐ GIS{% endblock %} - Quản lý Đất đai</title>
     <link rel="stylesheet" href="{% static 'myapp/css/giao_dien.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     {% block css_them %}{% endblock %}
 </head>
 
@@ -25,7 +26,7 @@
 
             <nav class="sidebar__menu">
                 <div class="sidebar__nhom">
-                    <span class="sidebar__nhom-ten">Tổng quan</span>
+                    <span class="sidebar__nhom-ten">Bàn làm việc</span>
                 </div>
                 <a href="{% url 'tong_quan' %}"
                     class="sidebar__item {% if request.resolver_match.url_name == 'tong_quan' %}active{% endif %}">

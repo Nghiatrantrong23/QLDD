@@ -1,0 +1,173 @@
+*,
+:after,
+:before {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+html {
+    height: 100%;
+}
+
+body,
+html,
+#map {
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    position: relative;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #f1f1f1;
+}
+
+/* Custom Toolbar Styles */
+.custom-toolbar {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1000;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+    gap: 4px;
+}
+
+.toolbar-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.toolbar-divider {
+    width: 100%;
+    height: 1px;
+    background: #e0e0e0;
+    margin: 4px 0;
+}
+
+.tool-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #555;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.tool-btn:hover {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.tool-btn.active {
+    background: #0078d4;
+    color: white;
+}
+
+.tool-btn.active:hover {
+    background: #0063b1;
+}
+
+.tool-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Tooltip */
+.tool-btn::after {
+    content: attr(title);
+    position: absolute;
+    left: 45px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #333;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    pointer-events: none;
+}
+
+.tool-btn:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Measurement Info Panel */
+.measurement-info {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+#close-measurement {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 5px;
+}
+
+#close-measurement:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+/* Leaflet Geoman Override */
+.leaflet-pm-toolbar {
+    display: none !important;
+}
+
+/* Custom cursor modes */
+.cursor-crosshair {
+    cursor: crosshair !important;
+}
+
+.cursor-measure {
+    cursor: crosshair !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .custom-toolbar {
+        top: 5px;
+        left: 5px;
+        padding: 6px;
+    }
+
+    .tool-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+    }
+}

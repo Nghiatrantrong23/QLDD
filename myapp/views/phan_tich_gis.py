@@ -1,11 +1,15 @@
 from django.shortcuts import render
 from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
+import threading
 from myapp.models import ThuaDat, VungQuyHoach, NhatKyPhanTich, CanhBaoGIS
 from myapp.services.phan_tich_gis import (
     tao_vung_dem, tim_thua_dat_trong_vung_dem, phan_tich_vi_pham_quy_hoach
 )
 
 
+@login_required
 def cong_cu(request):
     """Trang công cụ phân tích GIS"""
     context = {
@@ -17,10 +21,10 @@ def cong_cu(request):
     return render(request, 'myapp/phan_tich_gis/cong_cu.html', context)
 
 
+@login_required
+@require_POST
 def thuc_hien_phan_tich(request):
     """Thực hiện phân tích GIS và trả về kết quả JSON"""
-    if request.method != 'POST':
-        return JsonResponse({'loi': 'Chỉ chấp nhận POST'}, status=405)
 
     loai = request.POST.get('loai_phan_tich')
     ket_qua_data = {}
@@ -45,27 +49,31 @@ def thuc_hien_phan_tich(request):
         qh_list = VungQuyHoach.objects.all()
         vi_pham = phan_tich_vi_pham_quy_hoach(thua_list, qh_list)
         
-        # Tạo cảnh báo tự động
-        for v in vi_pham:
-            thua = v['thua']
-            qh = v['quy_hoach']
-            dien_tich = v.get('dien_tich_m2', 0)
-            
-            # Kiểm tra xem có cảnh báo tương tự chưa để tránh trùng
-            if not CanhBaoGIS.objects.filter(
-                thua_dat_lien_quan=thua, 
-                loai_canh_bao='vi_pham_quy_hoach',
-                da_xu_ly=False
-            ).exists():
-                CanhBaoGIS.objects.create(
-                    tieu_de=f"Vi phạm quy hoạch: Thửa {thua.ma_thua}",
+        # Function để tạo cảnh báo trong background
+        def tao_canh_bao_background(vi_pham_list):
+            for v in vi_pham_list:
+                thua = v['thua']
+                qh = v['quy_hoach']
+                dien_tich = v.get('dien_tich_m2', 0)
+                
+                # Kiểm tra xem có cảnh báo tương tự chưa để tránh trùng
+                if not CanhBaoGIS.objects.filter(
+                    thua_dat_lien_quan=thua, 
                     loai_canh_bao='vi_pham_quy_hoach',
-                    muc_do='cao',
-                    noi_dung=f"Thửa đất {thua.ma_thua} phát hiện chồng lấn ranh giới với {qh.ten_vung} ({qh.get_loai_quy_hoach_display()}). Diện tích xâm phạm ước tính: {dien_tich:.6f} độ/diện tích.",
-                    thua_dat_lien_quan=thua,
-                    vi_do=thua.vi_do,
-                    kinh_do=thua.kinh_do
-                )
+                    da_xu_ly=False
+                ).exists():
+                    CanhBaoGIS.objects.create(
+                        tieu_de=f"Vi phạm quy hoạch: Thửa {thua.ma_thua}",
+                        loai_canh_bao='vi_pham_quy_hoach',
+                        muc_do='cao',
+                        noi_dung=f"Thửa đất {thua.ma_thua} phát hiện chồng lấn ranh giới với {qh.ten_vung} ({qh.get_loai_quy_hoach_display()}). Diện tích xâm phạm ước tính: {dien_tich:.2f} m².",
+                        thua_dat_lien_quan=thua,
+                        location=thua.centroid
+                    )
+
+        # Chạy task cảnh báo dưới nền bằng Thread giả lập Celery tạm thời
+        th_alert = threading.Thread(target=tao_canh_bao_background, args=(vi_pham,))
+        th_alert.start()
 
         ket_qua_data = {
             'so_vi_pham': len(vi_pham),
@@ -91,6 +99,7 @@ def thuc_hien_phan_tich(request):
     return JsonResponse({'thanh_cong': True, 'ket_qua': ket_qua_data})
 
 
+@login_required
 def ket_qua(request):
     """Trang kết quả phân tích GIS"""
     nhat_ky = NhatKyPhanTich.objects.order_by('-thoi_gian')[:20]

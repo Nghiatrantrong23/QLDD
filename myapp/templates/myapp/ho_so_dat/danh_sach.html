@@ -1,6 +1,7 @@
 {% extends 'myapp/co_so/khung_chinh.html' %}
 {% block tieu_de %}Danh sách hồ sơ Đất{% endblock %}
 {% block header_nut %}
+<a href="{% url 'hs_nhap_lieu' %}" class="nut_header nut_header--phu" style="margin-right:10px;">📥 Nhập Batch (GeoJSON)</a>
 <a href="{% url 'hs_them_moi' %}" class="nut_header nut_header--chinh">+ Thêm hồ sơ mới</a>
 {% endblock %}
 
@@ -10,10 +11,11 @@
     <p>Quản lý thông tin tất cả các thửa đất trong hệ thống ({{ tong_so }} thửa)</p>
 </div>
 
-<div class="bo_loc">
-    <form method="get" action="" class="bo_loc__bieu_mau">
-        <input type="text" name="q" value="{{ query }}" placeholder="Tìm mã thửa, số tờ, số thửa..." class="form_o_nhap"
-            style="max-width:300px;">
+<!-- TÌM KIẾM & LỌC -->
+<div class="the" style="margin-bottom:16px;">
+    <form method="get" class="thanh_tim_kiem">
+        <input type="text" name="q" value="{{ tu_khoa }}" class="form_o_nhap"
+            placeholder="Tìm theo mã thửa, số GCN, địa chỉ...">
         <select name="loai_dat" class="form_o_nhap" style="max-width:200px;">
             <option value="">-- Tất cả loại đất --</option>
             {% for ma, ten in loai_dat_choices %}
@@ -21,57 +23,69 @@
             {% endfor %}
         </select>
         <button type="submit" class="nut nut--chinh">Tìm kiếm</button>
-        <a href="{% url 'hs_danh_sach' %}" class="nut nut--vien">Xoá lọc</a>
+        <a href="{% url 'hs_danh_sach' %}" class="nut nut--vien">Xoá </a>
     </form>
 </div>
 
-<!-- BẢNG DANH SÁCH -->
+<!-- BẢNG DANH SÃCH -->
 <div class="bang_container">
     <div class="bang_tieu_de">
         <h3>Danh sách ({{ tong_so }} thửa)</h3>
-        <a href="{% url 'bc_xem' 'tong_hop' %}" class="nut nut--vien" style="font-size:12px;padding:5px 12px;">Xuất báo cáo</a>
+        <a href="{% url 'bc_xem' 'tong_hop' %}" class="nut nut--vien" style="font-size:12px;padding:5px 12px;">Xuất báo
+            cáo</a>
     </div>
-
+    {% if danh_sach %}
     <table class="bang">
         <thead>
             <tr>
                 <th>Mã thửa</th>
-                <th>Tờ/Thửa</th>
-                <th>Diện tích (m²)</th>
+                <th>Số tá» / Số thửa</th>
+                <th>Diện tích</th>
+                <th>Loại đất</th>
                 <th>Chủ sử dụng</th>
+                <th>Số GCN</th>
                 <th>Trạng thái</th>
-                <th style="text-align:right;">Thao tác</th>
+                <th>Thao tác</th>
             </tr>
         </thead>
         <tbody>
             {% for thua in danh_sach %}
             <tr>
-                <td><strong>{{ thua.ma_thua }}</strong></td>
-                <td>{{ thua.so_to }} / {{ thua.so_thua }}</td>
-                <td>{{ thua.dien_tich }}</td>
-                <td>{{ thua.chu_su_dung.ho_ten|default:"Chưa xác định" }}</td>
+                <td><a href="{% url 'hs_chi_tiet' thua.pk %}"><strong>{{ thua.ma_thua }}</strong></a></td>
+                <td>Tá» {{ thua.so_to }} / Thửa {{ thua.so_thua }}</td>
+                <td>{{ thua.dien_tich|floatformat:1 }} m²</td>
+                <td><span class="huy_hieu huy_hieu--xanh-da-troi">{{ thua.get_loai_dat_hien_trang_display }}</span></td>
                 <td>
-                    {% if thua.that_nghiep_lau %}
+                    {% for chu in thua.danh_sach_chu_su_dung.all %}
+                        {{ chu.ho_ten }}{% if not forloop.last %}, {% endif %}
+                    {% empty %}
+                        —
+                    {% endfor %}
+                </td>
+                <td>{{ thua.so_gcn|default:"—" }}</td>
+                <td>
+                    {% if thua.co_tranh_chap %}
                     <span class="huy_hieu huy_hieu--do">Tranh chấp</span>
                     {% else %}
-                    <span class="huy_hieu huy_hieu--xanh">Bình thường</span>
+                    <span class="huy_hieu huy_hieu--xanh">Bình thuong</span>
                     {% endif %}
                 </td>
-                <td style="text-align:right;">
-                    <a href="{% url 'hs_chi_tiet' thua.pk %}" class="nut_phu nut_phu--xem" title="Xem chi tiết">Xem</a>
-                    <a href="{% url 'hs_chinh_sua' thua.pk %}" class="nut_phu nut_phu--sua" title="Sửa">Sửa</a>
-                    <a href="{% url 'hs_xoa' thua.pk %}" class="nut_phu nut_phu--xoa"
-                        onclick="return confirm('Xác nhận xoá thửa đất này?')" title="Xoá">Xoá</a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="6" style="text-align:center; padding: 40px; color: #64748b;">
-                    Không tìm thấy dữ liệu thửa đất phù hợp.
+                <td>
+                    <a href="{% url 'hs_chi_tiet' thua.pk %}" class="nut nut--vien"
+                        style="font-size:12px;padding:4px 10px;">Chi tiết</a>
+                    <a href="{% url 'hs_chinh_sua' thua.pk %}" class="nut nut--phu"
+                        style="font-size:12px;padding:4px 10px;">Sửa</a>
                 </td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    {% else %}
+    <div class="trang_trong">
+        <div class="trang_trong__bieu_tuong">--</div>
+        <h4>Không tìm thấy hồ sơ đất</h4>
+        <p>Thử thay đổi từ khoá tìm kiếm hoặc <a href="{% url 'hs_them_moi' %}">thêm hồ sơ mới</a></p>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

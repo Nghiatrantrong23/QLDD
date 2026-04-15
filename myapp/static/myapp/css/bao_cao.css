@@ -1,0 +1,522 @@
+/* =============================================================================
+   BAO_CAO.CSS — Phong cách TradingView/Bloomberg Terminal
+   Dark mode, high-contrast, financial dashboard aesthetics
+   ============================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+:root {
+    --bg-base:       #0d1117; /* GitHub dark background */
+    --bg-card:       #161b22; /* Card surface */
+    --bg-card-hover: #1c2128; /* Hover state */
+    --bg-header:     #010409; /* Header strip */
+    --border:        #30363d; /* Subtle borders */
+    --border-bright: #484f58; /* Active/focused borders */
+
+    --blue:    #58a6ff;
+    --green:   #3fb950;
+    --red:     #f85149;
+    --yellow:  #d29922;
+    --purple:  #bc8cff;
+    --orange:  #e3b341;
+    --cyan:    #39d353;
+
+    --text-primary:   #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted:     #484f58;
+
+    --font-main: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --radius-sm: 6px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Override main layout - full dark */
+.noi_dung_chinh {
+    background: var(--bg-base) !important;
+    min-height: 100vh;
+    padding: 0 !important;
+    font-family: var(--font-main) !important;
+    color: var(--text-primary) !important;
+}
+
+/* ── PAGE WRAPPER ── */
+.pt_wrapper {
+    padding: 20px 24px 40px;
+}
+
+/* ── TOPBAR ── */
+.pt_topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.pt_topbar__title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.pt_topbar__title h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    letter-spacing: -0.3px;
+}
+
+.pt_topbar__title .pt_badge {
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 100px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.pt_topbar__actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* ── FILTER BAR ── */
+.pt_filter_bar {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.pt_filter_bar label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    white-space: nowrap;
+}
+
+.pt_select,
+.pt_input {
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    font-size: 13px;
+    font-family: var(--font-main);
+    outline: none;
+    transition: var(--transition);
+    min-width: 120px;
+}
+
+.pt_select:focus,
+.pt_input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.15);
+}
+
+.pt_input { width: 140px; }
+
+.pt_filter_sep {
+    width: 1px;
+    height: 24px;
+    background: var(--border);
+    flex-shrink: 0;
+}
+
+/* ── KPI CARDS ── */
+.pt_kpi_grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.pt_kpi_card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+    transition: var(--transition);
+}
+
+.pt_kpi_card:hover {
+    border-color: var(--border-bright);
+    background: var(--bg-card-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.pt_kpi_card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+
+.pt_kpi_card--blue::before  { background: var(--blue); }
+.pt_kpi_card--green::before { background: var(--green); }
+.pt_kpi_card--red::before   { background: var(--red); }
+.pt_kpi_card--yellow::before{ background: var(--yellow); }
+
+.pt_kpi_card__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.pt_kpi_card__value {
+    font-size: 32px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 8px;
+}
+
+.pt_kpi_card--blue  .pt_kpi_card__value { color: var(--blue); }
+.pt_kpi_card--green .pt_kpi_card__value { color: var(--green); }
+.pt_kpi_card--red   .pt_kpi_card__value { color: var(--red); }
+.pt_kpi_card--yellow .pt_kpi_card__value { color: var(--yellow); }
+
+.pt_kpi_card__sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.pt_kpi_icon {
+    position: absolute;
+    right: 18px;
+    bottom: 12px;
+    font-size: 40px;
+    opacity: 0.06;
+}
+
+/* ── CHART GRID ── */
+.pt_chart_grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.pt_chart_card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    transition: var(--transition);
+}
+
+.pt_chart_card:hover {
+    border-color: var(--border-bright);
+}
+
+.pt_chart_card--wide {
+    grid-column: span 2;
+}
+
+.pt_chart_card__head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.pt_chart_card__title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pt_chart_card__title .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.pt_chart_card__meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+/* ── BOTTOM PANEL (Table + Map) ── */
+.pt_bottom_grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 14px;
+}
+
+/* ── DATA TABLE ── */
+.pt_table_card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.pt_table_head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pt_table_head__title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.pt_table_count {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    background: var(--bg-base);
+    border: 1px solid var(--border);
+    padding: 3px 10px;
+    border-radius: 100px;
+}
+
+.pt_table_wrap {
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+.pt_table_wrap::-webkit-scrollbar { width: 4px; }
+.pt_table_wrap::-webkit-scrollbar-track { background: transparent; }
+.pt_table_wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.pt_table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.pt_table thead th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--bg-base);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    white-space: nowrap;
+}
+
+.pt_table tbody tr {
+    border-bottom: 1px solid rgba(48, 54, 61, 0.6);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.pt_table tbody tr:hover {
+    background: rgba(88, 166, 255, 0.06);
+}
+
+.pt_table tbody tr.active {
+    background: rgba(88, 166, 255, 0.12);
+}
+
+.pt_table td {
+    padding: 10px 14px;
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.pt_table td:first-child {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--blue);
+}
+
+.pt_badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pt_badge--tranh_chap { background: rgba(248, 81, 73, 0.15); color: var(--red); }
+.pt_badge--binh_thuong { background: rgba(63, 185, 80, 0.12); color: var(--green); }
+
+/* Loại đất badges */
+.pt_badge--ODT { background: rgba(248, 81, 73, 0.12); color: #f85149; }
+.pt_badge--ONT { background: rgba(227, 179, 65, 0.12); color: #e3b341; }
+.pt_badge--CLN { background: rgba(63, 185, 80, 0.12); color: #3fb950; }
+.pt_badge--LUA { background: rgba(57, 211, 83, 0.12); color: #39d353; }
+.pt_badge--TSC { background: rgba(188, 140, 255, 0.12); color: #bc8cff; }
+.pt_badge--DGT { background: rgba(139, 148, 158, 0.12); color: #8b949e; }
+.pt_badge--SKC { background: rgba(88, 166, 255, 0.12); color: #58a6ff; }
+.pt_badge--DDT { background: rgba(210, 153, 34, 0.12); color: #d29922; }
+
+/* ── MINI MAP ── */
+.pt_map_card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+#pt_mini_map {
+    flex: 1;
+    min-height: 300px;
+    background: #0b0d11;
+}
+
+.pt_map_info {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.pt_map_area_result {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--cyan);
+}
+
+/* ── BUTTONS ── */
+.pt_btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: var(--font-main);
+    text-decoration: none;
+    transition: var(--transition);
+    white-space: nowrap;
+}
+
+.pt_btn:hover {
+    border-color: var(--border-bright);
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+}
+
+.pt_btn--primary {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: #fff;
+}
+
+.pt_btn--primary:hover {
+    background: #79b8ff;
+    border-color: #79b8ff;
+    color: #fff;
+}
+
+.pt_btn--green {
+    background: rgba(63, 185, 80, 0.15);
+    border-color: var(--green);
+    color: var(--green);
+}
+
+.pt_btn--green:hover {
+    background: rgba(63, 185, 80, 0.25);
+}
+
+.pt_btn--red {
+    background: rgba(248, 81, 73, 0.12);
+    border-color: var(--red);
+    color: var(--red);
+}
+
+.pt_btn--red:hover {
+    background: rgba(248, 81, 73, 0.22);
+}
+
+/* ── LOADING ── */
+.pt_loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    padding: 30px;
+}
+
+.pt_spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: pt_spin 0.7s linear infinite;
+}
+
+@keyframes pt_spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes pt_countUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.pt_kpi_card__value { animation: pt_countUp 0.5s ease-out; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1200px) {
+    .pt_kpi_grid { grid-template-columns: repeat(2, 1fr); }
+    .pt_chart_grid { grid-template-columns: 1fr 1fr; }
+    .pt_chart_card--wide { grid-column: span 2; }
+    .pt_bottom_grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+    .pt_kpi_grid { grid-template-columns: 1fr 1fr; }
+    .pt_chart_grid { grid-template-columns: 1fr; }
+    .pt_chart_card--wide { grid-column: span 1; }
+    .pt_topbar { flex-direction: column; gap: 10px; }
+}

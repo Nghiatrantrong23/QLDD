@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Giấy Chứng Nhận - {{ thua.ma_thua }}</title>
+    <style>
+        @page { size: A4; margin: 2cm; }
+        body { font-family: "Times New Roman", Times, serif; line-height: 1.5; color: #333; }
+        .giay_chung_nhan { border: 5px double #ae8a4b; padding: 40px; position: relative; min-height: 25cm; }
+        .quoc_huy { text-align: center; margin-bottom: 30px; }
+        .quoc_huy h2 { margin: 0; text-transform: uppercase; font-size: 18px; }
+        .quoc_huy h1 { margin: 5px 0; color: #c00; font-size: 24px; }
+        
+        .tieu_de_giay { text-align: center; margin-top: 40px; }
+        .tieu_de_giay h1 { font-size: 32px; color: #8a6d3b; margin-bottom: 0; }
+        .tieu_de_giay p { font-style: italic; margin-top: 5px; }
+
+        .muc { margin-top: 30px; }
+        .muc_tieu_de { font-weight: bold; font-size: 18px; text-decoration: underline; margin-bottom: 10px; }
+        
+        .bang_thong_tin { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .bang_thong_tin td { padding: 8px 0; vertical-align: top; }
+        .nhan { width: 220px; font-weight: bold; }
+
+        .vung_ban_do { margin-top: 40px; border: 1px solid #ccc; height: 350px; position: relative; }
+        .ban_do_placeholder { text-align: center; line-height: 350px; color: #999; font-style: italic; }
+        
+        .chu_ky_vung { margin-top: 60px; display: flex; justify-content: space-between; }
+        .chu_ky_ben { text-align: center; width: 250px; }
+
+        .kiem_tra_quy_hoach { 
+            margin-top: 30px; 
+            padding: 15px; 
+            background: #fffcf0; 
+            border: 1px solid #e6db55; 
+            border-radius: 4px;
+        }
+
+        @media print {
+            .no-print { display: none; }
+            body { margin: 0; }
+            .giay_chung_nhan { border: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print" style="position: fixed; top: 0; left: 0; right: 0; background: #333; color: white; padding: 10px 20px; z-index: 1000; display: flex; justify-content: space-between; align-items: center;">
+    <div>Xem trước bản in: Giấy chứng nhận quyền sử dụng đất</div>
+    <div>
+        <button onclick="window.print()" style="padding: 8px 20px; cursor: pointer; background: #22c55e; border: none; color: white; font-weight: bold; border-radius: 4px;">🖨️ In báo cáo (PDF)</button>
+        <button onclick="window.history.back()" style="padding: 8px 20px; cursor: pointer; background: #666; border: none; color: white; border-radius: 4px; margin-left: 10px;">Quay lại</button>
+    </div>
+</div>
+
+<div class="giay_chung_nhan">
+    <div class="quoc_huy">
+        <h2>Cộng hòa xã hội chủ nghĩa Việt Nam</h2>
+        <p>Độc lập - Tự do - Hạnh phúc</p>
+        <hr style="width: 200px; margin: 10px auto;">
+        <h1>Giấy chứng nhận</h1>
+        <p>Quyền sử dụng đất, quyền sở hữu nhà ở và tài sản khác gắn liền với đất</p>
+    </div>
+
+    <div class="muc">
+        <div class="muc_tieu_de">I. Người sử dụng đất:</div>
+        <table class="bang_thong_tin">
+            <tr>
+                <td class="nhan">Họ và tên:</td>
+                <td><b>{{ thua.chu_su_dung.ho_ten|upper }}</b></td>
+            </tr>
+            <tr>
+                <td class="nhan">Số định danh/CCCD:</td>
+                <td>{{ thua.chu_su_dung.so_cccd|default:"Chưa cập nhật" }}</td>
+            </tr>
+            <tr>
+                <td class="nhan">Địa chỉ thường trú:</td>
+                <td>{{ thua.chu_su_dung.dia_chi|default:"Chưa cập nhật" }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="muc">
+        <div class="muc_tieu_de">II. Thửa đất:</div>
+        <table class="bang_thong_tin">
+            <tr>
+                <td class="nhan">Thửa đất số:</td>
+                <td>{{ thua.so_thua }}</td>
+                <td class="nhan" style="width: 100px;">Tờ bản đồ số:</td>
+                <td>{{ thua.so_to }}</td>
+            </tr>
+            <tr>
+                <td class="nhan">Địa chỉ:</td>
+                <td colspan="3">{{ thua.dia_chi_thua|default:"—" }}</td>
+            </tr>
+            <tr>
+                <td class="nhan">Diện tích:</td>
+                <td colspan="3"><b>{{ thua.dien_tich }} m²</b> (Bằng chữ: ............................)</td>
+            </tr>
+            <tr>
+                <td class="nhan">Mục đích sử dụng:</td>
+                <td colspan="3">{{ thua.get_loai_dat_hien_trang_display }}</td>
+            </tr>
+            <tr>
+                <td class="nhan">Thời hạn sử dụng:</td>
+                <td colspan="3">Lâu dài</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="muc">
+        <div class="muc_tieu_de">III. Sơ đồ thửa đất:</div>
+        <div class="vung_ban_do">
+            <!-- Bản đồ tĩnh hoặc placeholder cho in ấn -->
+            <div id="ban_do_in" style="width: 100%; height: 100%;"></div>
+        </div>
+    </div>
+
+    {% if vi_pham %}
+    <div class="kiem_tra_quy_hoach">
+        <b style="color: #c00;">⚠️ Lưu ý về quy hoạch:</b><br>
+        Dựa trên phân tích GIS, thửa đất này nằm trong vùng ảnh hưởng của quy hoạch:<br>
+        {% for vp in vi_pham %}
+            - <b>{{ vp.quy_hoach.ten_vung }}</b>: Chồng lấn <b>{{ vp.dien_tich_m2|floatformat:2 }} m²</b> ({{ vp.phan_tram|floatformat:1 }}%).<br>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="kiem_tra_quy_hoach" style="border-color: #22c55e; background: #f0fdf4;">
+        <b style="color: #166534;">✅ Tình trạng quy hoạch:</b><br>
+        Thửa đất hiện tại không nằm trong vùng quy hoạch tranh chấp hoặc vi phạm ranh giới.
+    </div>
+    {% endif %}
+
+    <div class="chu_ky_vung">
+        <div class="chu_ky_ben">
+           
+        </div>
+        <div class="chu_ky_ben">
+            Đà Nẵng, ngày {{ ngay_ht|date:"d" }} tháng {{ ngay_ht|date:"m" }} năm {{ ngay_ht|date:"Y" }}<br>
+            <b>THAY MẶT ỦY BAN NHÂN DÂN</b><br>
+            KT. CHỦ TỊCH<br>
+            PHÓ CHỦ TỊCH<br><br><br><br>
+            <b>(Đã ký)</b>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    const map = L.map('ban_do_in', { zoomControl: false, attributionControl: false }).setView([16.07, 108.22], 18);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    const geojsonData = {{ geojson|safe }};
+    const layer = L.geoJSON(geojsonData, {
+        style: { color: '#c00', weight: 4, fillOpacity: 0.2 }
+    }).addTo(map);
+    
+    map.fitBounds(layer.getBounds(), { padding: [50, 50] });
+    map.dragging.disable();
+    map.touchZoom.disable();
+    map.doubleClickZoom.disable();
+    map.scrollWheelZoom.disable();
+</script>
+
+</body>
+</html>

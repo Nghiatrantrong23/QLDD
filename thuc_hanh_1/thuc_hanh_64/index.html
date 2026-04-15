@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>autocomplete with geojson</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.2/dist/leaflet.css" />
+    
+    <!-- Autocomplete CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/tomickigrzegorz/autocomplete@1.6/dist/css/autocomplete.min.css" />
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.2/dist/leaflet.js"></script>
+    
+    <!-- Autocomplete JS -->
+    <script src="https://cdn.jsdelivr.net/gh/tomickigrzegorz/autocomplete@1.6/dist/js/autocomplete.min.js"></script>
+    
+    <!-- CSS của bạn -->
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <!-- SVG icons (giữ nguyên, chỉ bỏ display: none ở body) -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none">
+        <symbol id="icon-marker" viewBox="0 0 32 32">
+            <path d="M16 0c-5.523 0-10 4.477-10 10 0 6.72 10 22 10 22s10-15.28 10-22c0-5.523-4.477-10-10-10zm0 14c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/>
+        </symbol>
+        <symbol id="icon-circlemaker" viewBox="0 0 32 32">
+            <circle cx="17" cy="17" r="2" transform="translate(-1 -1)" />
+        </symbol>
+        <symbol id="icon-polygon" viewBox="0 0 32 32">
+            <path style="fill-rule: evenodd; clip-rule: evenodd; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 1.5;" viewBox="0 0 32 32">
+                <path d="M45 88 160" stroke="#000" stroke-width="15.43px" style="fill: none; stroke: #000; stroke-width: 15.43px" transform="matrix(.07157 .0040412 .0040819 .386 -1.148)" />
+                <path d="M253 91 154" stroke="#000" stroke-width="16.66px" style="fill: none; stroke: #000; stroke-width: 16.66px" transform="matrix(.08104 -.0039039 .087676 .458 2.295)" />
+                <path d="M25 133 197" stroke="#000" stroke-width="16.5px" style="fill: none; stroke: #000; stroke-width: 16.5px" transform="matrix(.083 -.001995 .089704 .716 2.949)" />
+                <path d="M333 95 344" stroke="#000" stroke-width="15.2px" style="fill: none; stroke: #000; stroke-width: 15.2px" transform="matrix(.0754 .003673 .083165 .888 -.045)" />
+            </path>
+        </symbol>
+        <symbol id="icon-polyline" viewBox="0 0 32 32">
+            <path style="fill-rule: evenodd; clip-rule: evenodd; stroke-linecap: round; stroke-linejoin: round; stroke-miterlimit: 1.5;" viewBox="0 0 32 32">
+                <path d="M251 132-59 139 617 733 330-66 117" style="fill: none; stroke: #000; stroke-width: 13.85px" transform="matrix(.09313 .08734 -.981 -1.108)" />
+            </path>
+        </symbol>
+    </svg>
+
+    <div id="map"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>

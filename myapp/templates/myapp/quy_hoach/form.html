@@ -1,55 +1,6 @@
 {% extends 'myapp/co_so/khung_chinh.html' %}
 {% block tieu_de %}{{ tieu_de_trang }}{% endblock %}
 
-{% block js_them %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const geojson_el = document.getElementById('geojson_input');
-
-        const m = L.map('ban_do_draw').setView([16.07, 108.22], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(m);
-
-        let drawnItems = new L.FeatureGroup();
-        m.addLayer(drawnItems);
-
-        if (geojson_el.value) {
-            try {
-                const existing = L.geoJSON(JSON.parse(geojson_el.value));
-                existing.eachLayer(layer => drawnItems.addLayer(layer));
-                m.fitBounds(drawnItems.getBounds());
-            } catch (e) { console.error("Lỗi GeoJSON"); }
-        }
-
-        const drawControl = new L.Control.Draw({
-            edit: { featureGroup: drawnItems },
-            draw: {
-                polygon: true,
-                polyline: false, circle: false, circlemarker: false,
-                marker: false, rectangle: true
-            }
-        });
-        m.addControl(drawControl);
-
-        m.on(L.Draw.Event.CREATED, function (e) {
-            drawnItems.clearLayers();
-            drawnItems.addLayer(e.layer);
-            updateGeo();
-        });
-
-        m.on(L.Draw.Event.EDITED, updateGeo);
-
-        function updateGeo() {
-            geojson_el.value = JSON.stringify(drawnItems.toGeoJSON());
-        }
-    });
-</script>
-{% endblock %}
-
 {% block noi_dung %}
 <div class="duong_dan">
     <a href="{% url 'qh_ban_do' %}">Bản đồ Quy hoạch</a>
@@ -63,7 +14,7 @@
 
 <form method="post" action="">
     {% csrf_token %}
-    <input type="hidden" name="geojson" id="geojson_input" value="{{ vung.geojson|default:'' }}">
+    <input type="hidden" name="geojson" id="geojson_input" value='{{ vung.geom.geojson|safe|default:"" }}'>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
         <div class="panel">
@@ -75,30 +26,42 @@
             <div class="form_luoi">
                 <div class="form_nhom">
                     <label class="form_nhan">Loại quy hoạch <span style="color:red;">*</span></label>
-                    <select name="loai_quy_hoach" class="form_o_nhap" required>
+                    <select name="loai_quy_hoach" id="loai_quy_hoach_id" class="form_o_nhap" required>
                         {% for ma, ten in loai_qh_choices %}
                         <option value="{{ ma }}" {% if vung.loai_quy_hoach == ma %}selected{% endif %}>{{ ten }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="form_nhom">
-                    <label class="form_nhan">Năm quy hoạch</label>
+                    <label class="form_nhan">Năm quy hoạch <span style="color:red;">*</span></label>
                     <input type="number" name="nam_quy_hoach" class="form_o_nhap"
-                        value="{{ vung.nam_quy_hoach|default:2024 }}" required>
+                        value="{{ vung.nam_quy_hoach|default:2025 }}" required>
                 </div>
             </div>
             <div class="form_nhom">
+                <label class="form_nhan">Diện tích hiển thị (m²)</label>
+                <input type="number" step="0.01" id="dien_tich_live" class="form_o_nhap"
+                    value="{{ vung.dien_tich|default:0 }}" disabled style="background-color:#f8fafc; font-weight:bold; color:var(--mau-chinh);">
+                <p style="font-size:11px; color:#888;">Diện tích tự động cập nhật khi vẽ ranh giới trên bản đồ.</p>
+            </div>
+            
+            <div class="form_nhom">
                 <label class="form_nhan">Mô tả vùng</label>
-                <textarea name="mo_ta" class="form_o_nhap" rows="5">{{ vung.mo_ta|default:'' }}</textarea>
+                <textarea name="mo_ta" class="form_o_nhap" rows="3">{{ vung.mo_ta|default:'' }}</textarea>
             </div>
         </div>
 
         <div>
             <div class="panel">
-                <div class="panel__tieu_de">Vẽ ranh giới Quy hoạch</div>
-                <div id="ban_do_draw" style="height:350px; border-radius:8px;"></div>
-                <p style="font-size:12px; color:#666; margin-top:8px;">Dùng thanh công cụ bên trái để vẽ vùng quy hoạch
-                    trực tiếp trên bản đồ.</p>
+                <div class="panel__tieu_de" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>Vẽ ranh giới Quy hoạch <span style="color:red;">*</span></span>
+                    <button type="button" class="nut nut--vien" style="padding:4px 12px; font-size:13px;" onclick="syncAreaFromMap()">📐 Tính lại diện tích</button>
+                </div>
+                <div id="ban_do_draw" style="height:400px; border-radius:8px; border:1px solid #ddd; position:relative; z-index:1;"></div>
+                <div id="map_alert" style="margin-top:10px; font-size:14px; font-weight:bold; color:var(--mau-do); display:none; padding:10px; background-color:#ffebeb; border-radius:5px;">
+                    ⚠️ CẢNH BÁO: Diện tích quy hoạch bất thường (quá nhỏ hoặc quá lớn)!
+                </div>
+                <p style="font-size:12px; color:#666; margin-top:8px;">Dùng thanh công cụ bên trái đẻ Vẽ / Cắt / Sửa. Bấm đúp chuột để kết thúc vẽ một hình.</p>
             </div>
         </div>
     </div>
@@ -108,4 +71,153 @@
         <a href="{% url 'qh_ban_do' %}" class="nut nut--vien">Hủy</a>
     </div>
 </form>
+{% endblock %}
+
+{% block js_them %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Turf & Geoman -->
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css" />
+<script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>
+
+<script>
+    // 1. Color Palette mapping
+    const colorMap = {
+        'dat_o': '#a855f7', // Tím
+        'dat_thuong_mai': '#f97316', // Cam
+        'dat_cong_nghiep': '#dc2626', // Đỏ
+        'dat_cong_cong': '#0ea5e9', // Xanh dương
+        'dat_giao_thong': '#64748b', // Xám
+        'dat_cay_xanh': '#16a34a', // Xanh lá
+        'dat_nong_nghiep': '#84cc16', // Xanh nõn
+        'dat_du_lich': '#ec4899', // Hồng
+        'default': '#3b82f6'
+    };
+
+    function getCurrentColor() {
+        const val = document.getElementById('loai_quy_hoach_id').value;
+        return colorMap[val] || colorMap['default'];
+    }
+
+    // 2. Init Map
+    const m = L.map('ban_do_draw').setView([16.07, 108.22], 13);
+    L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxZoom: 20
+    }).addTo(m);
+
+    // 3. Geoman Controls
+    m.pm.addControls({
+        position: 'topleft',
+        drawMarker: false, drawCircleMarker: false, drawPolyline: false,
+        drawRectangle: true, drawPolygon: true, drawCircle: false, drawText: false,
+        editMode: true, dragMode: true, cutPolygon: true, removalMode: true,
+    });
+    m.pm.setLang('vi');
+
+    // Mặc định layer vẽ sẽ dùng màu hiện tại
+    m.pm.setPathOptions({
+        color: getCurrentColor(),
+        fillColor: getCurrentColor(),
+        fillOpacity: 0.4
+    });
+
+    let currentLayerGroup = L.featureGroup().addTo(m);
+
+    // 4. Load GeoJSON
+    const geojsonInput = document.getElementById('geojson_input');
+    if (geojsonInput.value && geojsonInput.value !== '{}' && geojsonInput.value !== 'None') {
+        try {
+            const data = JSON.parse(geojsonInput.value);
+            const layer = L.geoJSON(data, {
+                style: function() {
+                    let col = getCurrentColor();
+                    return { color: col, fillColor: col, weight: 3, fillOpacity: 0.4 };
+                }
+            });
+            // L.geoJSON sinh ra 1 outer layer, ta bóc các hình con nhét vào currentLayerGroup
+            layer.eachLayer(l => l.addTo(currentLayerGroup));
+            m.fitBounds(currentLayerGroup.getBounds());
+            validateAreaLimits();
+        } catch(e) {}
+    }
+
+    // 5. Events
+    m.on('pm:create', function(e) {
+        e.layer.addTo(currentLayerGroup);
+        // Apply color
+        e.layer.setStyle({ color: getCurrentColor(), fillColor: getCurrentColor() }); 
+        updateGeoJSONAndArea();
+        
+        e.layer.on('pm:edit', updateGeoJSONAndArea);
+    });
+
+    m.on('pm:remove', function(e) {
+        updateGeoJSONAndArea();
+    });
+
+    currentLayerGroup.getLayers().forEach(layer => {
+        layer.on('pm:edit', updateGeoJSONAndArea);
+        layer.on('pm:dragend', updateGeoJSONAndArea);
+    });
+    
+    // Change style when dropdown change
+    document.getElementById('loai_quy_hoach_id').addEventListener('change', function() {
+        const newColor = getCurrentColor();
+        m.pm.setPathOptions({ color: newColor, fillColor: newColor });
+        currentLayerGroup.eachLayer(layer => {
+            layer.setStyle({ color: newColor, fillColor: newColor });
+        });
+    });
+
+    // 6. Cập nhật và tính diện tích
+    function updateGeoJSONAndArea() {
+        if(currentLayerGroup.getLayers().length === 0) {
+            geojsonInput.value = '';
+            document.getElementById('dien_tich_live').value = 0;
+            return;
+        }
+
+        let isMulti = currentLayerGroup.getLayers().length > 1;
+        let finalGeojson;
+        if(isMulti) {
+            // Merge multiple polygons to multi-polygon
+            let coords = [];
+            currentLayerGroup.eachLayer(l => {
+                let j = l.toGeoJSON();
+                if(j.geometry.type === 'Polygon') coords.push(j.geometry.coordinates);
+                else if(j.geometry.type === 'MultiPolygon') coords.push(...j.geometry.coordinates);
+            });
+            finalGeojson = { type: 'MultiPolygon', coordinates: coords };
+        } else {
+            finalGeojson = currentLayerGroup.getLayers()[0].toGeoJSON().geometry;
+        }
+
+        geojsonInput.value = JSON.stringify(finalGeojson);
+
+        // Calculate Turf Area
+        let area = turf.area(finalGeojson);
+        document.getElementById('dien_tich_live').value = area.toFixed(2);
+        
+        validateAreaLimits();
+    }
+
+    function validateAreaLimits() {
+        let area = parseFloat(document.getElementById('dien_tich_live').value);
+        const alertBox = document.getElementById('map_alert');
+        if(area > 0 && (area < 100 || area > 5000000)) {
+            alertBox.style.display = 'block';
+        } else {
+            alertBox.style.display = 'none';
+        }
+    }
+
+    window.syncAreaFromMap = function() {
+        updateGeoJSONAndArea();
+        // Thông báo nho nhỏ góc màn hình
+        alert('Đã tính lại diện tích chính xác: ' + document.getElementById('dien_tich_live').value + ' m²');
+    };
+</script>
 {% endblock %}

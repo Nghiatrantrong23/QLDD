@@ -1,121 +1,138 @@
-
 import math
 import json
+from django.contrib.gis.geos import GEOSGeometry, MultiPolygon, Point as GEOSPoint
+from django.contrib.gis.db.models.functions import Intersection, Area
+from django.db.models import F, Sum, Q
+from myapp.models import ThuaDat, VungQuyHoach
 
+def compute_area_m2(geom):
+    """Tính diện tích mét vuông chuẩn ưu tiên bằng database casting to geography, fallback sang hệ tọa độ 3857."""
+    if not geom: return 0
+    try:
+        # Clone để không làm hỏng geometry gốc
+        geom_projected = geom.clone()
+        geom_projected.transform(4756) # VN-2000 / UTM zone 48N (meters)
+        return geom_projected.area
+    except:
+        # Fallback nếu không có GDAL/PROJ
+        return geom.area * 111320 * 111320 * math.cos(math.radians(16))
 
 def tinh_khoang_cach(lat1, lng1, lat2, lng2):
-    """Tính khoảng cách giữa 2 điểm theo công thức Haversine (mét)"""
-    R = 6371000  # Bán kính Trái Đất (mét)
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    dphi = math.radians(lat2 - lat1)
-    dlambda = math.radians(lng2 - lng1)
-    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
-    return 2 * R * math.asin(math.sqrt(a))
+    """Tính khoảng cách Haversine giữa 2 điểm tọa độ (m)"""
+    R = 6371000  # Bán kính trái đất (mét)
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lng2 - lng1)
+    a = math.sin(delta_phi / 2.0) ** 2 + math.cos(phi1) * math.cos(phi2) * (math.sin(delta_lambda / 2.0) ** 2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
 
-
-def tao_vung_dem(lat, lng, ban_kinh_met, so_diem=32):
-    """Tạo vùng đệm hình tròn quanh một điểm, trả về GeoJSON Polygon"""
-    R = 6371000
-    goc_list = []
-    for i in range(so_diem + 1):
-        goc = math.radians(i * 360 / so_diem)
-        d_lat = (ban_kinh_met / R) * math.cos(goc)
-        d_lng = (ban_kinh_met / R) * math.sin(goc) / math.cos(math.radians(lat))
-        goc_list.append([lng + math.degrees(d_lng), lat + math.degrees(d_lat)])
-    return {
-        "type": "Feature",
-        "geometry": {"type": "Polygon", "coordinates": [goc_list]},
-        "properties": {"ban_kinh_met": ban_kinh_met, "loai": "vung_dem"}
-    }
-
-
-from shapely.geometry import shape, mapping, Point
-from shapely.ops import unary_union
-
-def parse_geometry(data):
-    """Bóc tách và trả về đối tượng Shapely từ GeoJSON (Feature, FeatureCollection, Geometry)"""
-    if not data: return None
-    
-    if data.get('type') == 'FeatureCollection':
-        geoms = []
-        for feature in data.get('features', []):
-            g = parse_geometry(feature)
-            if g: geoms.append(g)
-        return unary_union(geoms) if geoms else None
-        
-    if data.get('type') == 'Feature':
-        return shape(data.get('geometry'))
-        
-    return shape(data)
-
-def kiem_tra_chong_lan_geojson(obj1_data, obj2_data):
-    """Kiểm tra giao thoa giữa 2 đối tượng địa lý (hỗ trợ FeatureCollection)"""
+def tao_vung_dem(lat, lng, ban_kinh_m):
+    """
+    Tạo vùng đệm (buffer) chuẩn bằng PostGIS ST_Transform sang EPSG 3857,
+    sau đó trả về GeoJSON ở EPSG 4326.
+    """
+    tam = GEOSPoint(lng, lat, srid=4326)
     try:
-        # Chuyển đổi dữ liệu sang đối tượng Shapely thông qua hàm parse_geometry
-        geom1 = parse_geometry(obj1_data)
-        geom2 = parse_geometry(obj2_data)
-        
-        if not geom1 or not geom2: return False, 0
-        
-        # Sửa lỗi Polygon không hợp lệ
-        if hasattr(geom1, 'is_valid') and not geom1.is_valid: geom1 = geom1.buffer(0)
-        if hasattr(geom2, 'is_valid') and not geom2.is_valid: geom2 = geom2.buffer(0)
-        
-        if geom1.intersects(geom2):
-            if geom1.geom_type in ['Polygon', 'MultiPolygon'] and geom2.geom_type in ['Polygon', 'MultiPolygon']:
-                intersection = geom1.intersection(geom2)
-                return True, intersection.area
-            return True, 0 # Điểm nằm trong vùng
-        return False, 0
-    except Exception as e:
-        print(f"GIS Error during intersection: {e}")
-        return False, 0
+        # Chuyển sang 3857 để có đơn vị mét, buffer, rồi chuyển lại 4326
+        vung_dem = tam.transform(3857, clone=True).buffer(ban_kinh_m).transform(4326, clone=True)
+    except:
+        # Fallback tính theo độ xấp xỉ
+        vung_dem = tam.buffer(ban_kinh_m / 111320.0)
+    return json.loads(vung_dem.geojson)
 
-def tim_thua_dat_trong_vung_dem(thua_dat_qs, lat_tam, lng_tam, ban_kinh_met):
-    """Tìm các thửa đất nằm trong vùng đệm từ điểm trung tâm"""
-    ket_qua = []
-    for thua in thua_dat_qs:
-        if thua.vi_do and thua.kinh_do:
-            kc = tinh_khoang_cach(lat_tam, lng_tam, thua.vi_do, thua.kinh_do)
-            if kc <= ban_kinh_met:
+def tim_thua_dat_trong_vung_dem(thua_queryset, lat, lng, ban_kinh_m):
+    """
+    Tìm các thửa đất nằm trong vùng đệm sử dụng ST_DWithin cho tốc độ cao.
+    """
+    tam = GEOSPoint(lng, lat, srid=4326)
+    try:
+        ban_kinh_do = ban_kinh_m / 111320.0
+        # Ưu tiên dùng PostGIS
+        thua_huong_loi = thua_queryset.filter(
+            Q(mpoly__dwithin=(tam, ban_kinh_do)) | Q(centroid__dwithin=(tam, ban_kinh_do))
+        )[:100]  # Giới hạn 100 kết quả
+
+        ket_qua = []
+        for t in thua_huong_loi:
+            if t.centroid:
+                kc = tinh_khoang_cach(lat, lng, t.centroid.y, t.centroid.x)
+            else:
+                kc = 0
+            
+            if kc <= ban_kinh_m:
                 ket_qua.append({
-                    'thua': thua,
+                    'thua': t,
                     'khoang_cach_m': round(kc, 1)
                 })
-    return sorted(ket_qua, key=lambda x: x['khoang_cach_m'])
+        
+        # Sắp xếp theo khoảng cách tăng dần
+        ket_qua.sort(key=lambda x: x['khoang_cach_m'])
+        return ket_qua
+    except Exception as e:
+        print(f"Lỗi tim_thua_dat_trong_vung_dem: {e}")
+        return []
 
-def phan_tich_vi_pham_quy_hoach(danh_sach_thua, danh_sach_quy_hoach):
-    """Phân tích vi phạm quy hoạch dựa trên ranh giới thực tế hoặc tọa độ điểm"""
-    vi_pham = []
-    for thua in danh_sach_thua:
-        # Chuẩn bị hình học cho thửa đất
-        geom_thua = None
-        if thua.geojson:
-            try:
-                geom_thua = json.loads(thua.geojson)
-            except: pass
+def phan_tich_vi_pham_quy_hoach(thua_list, qh_list, max_items=201):
+    """
+    Tìm sự chồng lấn ranh giới bằng PostGIS Spatial Query thay vì loop Python.
+    Tối ưu hiệu năng và độ chính xác.
+    """
+    ket_qua = []
+    so_luong = 0
+    
+    # Duyệt qua từng vùng quy hoạch (số lượng thường ít hơn thửa đất)
+    for qh in qh_list:
+        if not qh.geom: continue
         
-        if not geom_thua and thua.vi_do and thua.kinh_do:
-            # Tạo GeoJSON Point nếu không có Polygon
-            geom_thua = {"type": "Point", "coordinates": [thua.kinh_do, thua.vi_do]}
-            
-        if not geom_thua: continue
+        # Lọc các thửa đất giao cắt với vùng quy hoạch này ngay trong database
+        # Sử dụng Intersection để lấy phần chung và Area để tính diện tích
+        thua_vi_pham = thua_list.filter(mpoly__intersects=qh.geom).annotate(
+            dien_tich_overlap=Area(Intersection('mpoly', qh.geom))
+        )
         
-        for qh in danh_sach_quy_hoach:
-            if not qh.geojson: continue
+        for t in thua_vi_pham:
+            if so_luong >= max_items: break
             
-            try:
-                geom_qh = json.loads(qh.geojson)
-                co_chong_lan, dien_tich = kiem_tra_chong_lan_geojson(geom_thua, geom_qh)
+            # Chuyển đổi diện tích sang mét vuông chuẩn VN-2000
+            # Lưu ý diện tích trả về từ Area có thể là Float hoặc Measure tùy phiên bản
+            raw_area = t.dien_tich_overlap.sq_m if hasattr(t.dien_tich_overlap, 'sq_m') else t.dien_tich_overlap
+            
+            # Tính lại diện tích chính xác (nếu SRID 4326 thì Area() trả về độ vuông)
+            geom_giao = Intersection(t.mpoly, qh.geom) # Logic này chỉ chạy server-side
+            # Dự phòng: Tính lại diện tích bằng GEOS trong Python nếu cần độ chính xác UTM
+            if t.mpoly.intersects(qh.geom):
+                giao_geos = t.mpoly.intersection(qh.geom)
+                m2_correct = compute_area_m2(giao_geos)
                 
-                if co_chong_lan:
-                    vi_pham.append({
-                        'thua': thua,
+                if m2_correct > 0.05: # Ngưỡng sai số 5cm2
+                    dt_thua = compute_area_m2(t.mpoly)
+                    phan_tram = (m2_correct / dt_thua * 100) if dt_thua > 0 else 0
+                    loai_qh_text = qh.loai_dat_quy_hoach if qh.loai_dat_quy_hoach else qh.get_loai_quy_hoach_display()
+                    
+                    ket_qua.append({
+                        'thua': t,
                         'quy_hoach': qh,
-                        'dien_tich_m2': dien_tich,
-                        'mo_ta': f"Thửa {thua.ma_thua} {'chồng lấn' if dien_tich > 0 else 'nằm trong'} vùng {qh.get_loai_quy_hoach_display()} ({qh.ten_vung})"
+                        'dien_tich_m2': m2_correct,
+                        'phan_tram': phan_tram,
+                        'mo_ta': f"Chồng lấn {m2_correct:.2f} m² ({phan_tram:.1f}%) vào {qh.ten_vung} ({loai_qh_text})"
                     })
-            except Exception as e:
-                print(f"Error analyzing violation for thửa {thua.ma_thua}: {e}")
-                
-    return vi_pham
+                    so_luong += 1
+
+    return ket_qua
+
+def kiem_tra_chong_lan_geos(geom_thua, geom_qh):
+    """
+    Hàm tĩnh dùng chủ yếu cho Signal trigger để kiểm tra xem một 
+    hình học thửa đất có đè lên hình học quy hoạch không và tính diện tích.
+    """
+    try:
+        if geom_thua.intersects(geom_qh):
+            giao_nhau = geom_thua.intersection(geom_qh)
+            dien_tich_m2 = compute_area_m2(giao_nhau)
+            return True, dien_tich_m2
+    except:
+        pass
+    return False, 0
+

@@ -1,8 +1,10 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
+from django.contrib.auth.decorators import login_required
 from myapp.models import CanhBaoGIS
 
 
+@login_required
 def danh_sach(request):
     """Trang danh sách cảnh báo GIS"""
     muc_do = request.GET.get('muc_do', '')
@@ -27,6 +29,7 @@ def danh_sach(request):
     return render(request, 'myapp/canh_bao/danh_sach.html', context)
 
 
+@login_required
 def chi_tiet(request, pk):
     """Chi tiết cảnh báo"""
     canh_bao = get_object_or_404(CanhBaoGIS.objects.select_related('thua_dat_lien_quan'), pk=pk)
@@ -37,6 +40,7 @@ def chi_tiet(request, pk):
     return render(request, 'myapp/canh_bao/chi_tiet.html', context)
 
 
+@login_required
 def danh_dau_xu_ly(request, pk):
     """Đánh dấu cảnh báo đã xử lý"""
     canh_bao = get_object_or_404(CanhBaoGIS, pk=pk)

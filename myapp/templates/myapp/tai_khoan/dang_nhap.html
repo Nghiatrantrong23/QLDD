@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - Hệ thống WebGIS QLĐD</title>
+    <!-- CSS Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f1f5f9; /* Slate 100 */
+            font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 450px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .login-header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            padding: 40px 30px;
+            text-align: center;
+            color: white;
+        }
+        .login-header i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: #3b82f6; /* Blue 500 */
+        }
+        .login-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: 0.5px;
+        }
+        .login-body {
+            padding: 40px 30px;
+        }
+        .form-control {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+        .form-control:focus {
+            background-color: #ffffff;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+        }
+        .form-label {
+            font-weight: 600;
+            color: #475569;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        .btn-login {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            width: 100%;
+            transition: all 0.2s;
+            margin-top: 20px;
+        }
+        .btn-login:hover {
+            background-color: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+        .errorlist {
+            color: #ef4444;
+            list-style: none;
+            padding: 0;
+            margin-bottom: 15px;
+            font-size: 14px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <div class="login-header">
+            <i class="fas fa-map-marked-alt"></i>
+            <h2>WebGIS QLĐD</h2>
+            <div style="font-size: 14px; color: #94a3b8; margin-top: 8px;">Cổng quản trị hệ thống Đất đai</div>
+        </div>
+        <div class="login-body">
+            {% if form.errors %}
+                <ul class="errorlist">
+                    <li>Tên đăng nhập hoặc mật khẩu không chính xác. Vui lòng thử lại.</li>
+                </ul>
+            {% endif %}
+
+            <form method="post" action="{% url 'dang_nhap' %}">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label for="id_username" class="form-label">Tên đăng nhập</label>
+                    <div class="input-group">
+                        <span class="input-group-text" style="background:#f8fafc; border-color:#e2e8f0; color:#94a3b8;"><i class="fas fa-user"></i></span>
+                        <input type="text" name="username" class="form-control" id="id_username" required autofocus placeholder="Nhập tài khoản của bạn">
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label for="id_password" class="form-label">Mật khẩu</label>
+                    <div class="input-group">
+                        <span class="input-group-text" style="background:#f8fafc; border-color:#e2e8f0; color:#94a3b8;"><i class="fas fa-lock"></i></span>
+                        <input type="password" name="password" class="form-control" id="id_password" required placeholder="Nhập mật khẩu">
+                    </div>
+                </div>
+
+                <input type="hidden" name="next" value="{{ next|default:'/tong-quan/' }}">
+                <button type="submit" class="btn-login"><i class="fas fa-sign-in-alt me-2"></i> Đăng nhập hệ thống</button>
+            </form>
+        </div>
+    </div>
+
+</body>
+</html>

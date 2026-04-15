@@ -1,8 +1,13 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.gis.geos import GEOSGeometry, MultiPolygon, Polygon
+import json
 from myapp.models import VungQuyHoach
+from myapp.services import phan_tich_gis
 
 
+@login_required
 def ban_do_quy_hoach(request):
     """Trang bản đồ quy hoạch"""
     ds_quy_hoach = VungQuyHoach.objects.all()
@@ -14,28 +19,68 @@ def ban_do_quy_hoach(request):
     return render(request, 'myapp/quy_hoach/ban_do.html', context)
 
 
+from myapp.models import VungQuyHoach, ThuaDat
+
+@login_required
 def chi_tiet(request, pk):
-    """Chi tiết vùng quy hoạch"""
+    """Chi tiết vùng quy hoạch & phân tích thửa đất bị ảnh hưởng"""
     vung = get_object_or_404(VungQuyHoach, pk=pk)
+    
+    # Tìm các thửa đất giao cắt với vùng quy hoạch này
+    thua_bi_anh_huong = []
+    if vung.geom:
+        # Sử dụng service phan_tich_gis để lấy danh sách chi tiết (bao gồm diện tích giao cắt)
+        thua_bi_anh_huong = phan_tich_gis.phan_tich_vi_pham_quy_hoach(
+            ThuaDat.objects.all(), [vung]
+        )
+    
+    # Tính toán thống kê
+    tong_so_thua = len(thua_bi_anh_huong)
+    tong_dt_chong_lan = sum(item['dien_tich_m2'] for item in thua_bi_anh_huong)
+    
     context = {
         'tieu_de_trang': f'Quy hoạch: {vung.ten_vung}',
         'vung': vung,
+        'thua_bi_anh_huong': thua_bi_anh_huong,
+        'tong_so_thua': tong_so_thua,
+        'tong_dt_chong_lan': tong_dt_chong_lan,
+        'geojson_vung': vung.geom.geojson if vung.geom else "null",
     }
     return render(request, 'myapp/quy_hoach/chi_tiet.html', context)
 
 
+def _xu_ly_luu_vung_quy_hoach(request, vung):
+    vung.ten_vung = request.POST.get('ten_vung', '')
+    vung.loai_quy_hoach = request.POST.get('loai_quy_hoach', '')
+    vung.nam_quy_hoach = request.POST.get('nam_quy_hoach', 2024)
+    vung.mo_ta = request.POST.get('mo_ta', '')
+
+    geojson_str = request.POST.get('geojson', '').strip()
+    if geojson_str and geojson_str != '{}':
+        try:
+            geom = GEOSGeometry(geojson_str)
+            # Ensure it's a MultiPolygon
+            if isinstance(geom, Polygon):
+                geom = MultiPolygon(geom)
+            elif not isinstance(geom, MultiPolygon):
+                raise ValueError("Sai định dạng hình học (Chỉ hỗ trợ Polygon/MultiPolygon)")
+            
+            vung.geom = geom
+            vung.dien_tich = phan_tich_gis.compute_area_m2(geom)
+        except Exception as e:
+            raise ValueError(f"Lỗi phân tích bản đồ: {str(e)}")
+    else:
+        raise ValueError("Chưa vẽ ranh giới vùng quy hoạch trên bản đồ.")
+    
+    vung.save()
+
+@login_required
 def them_moi(request):
     """Thêm mới vùng quy hoạch"""
     if request.method == 'POST':
         try:
-            vung = VungQuyHoach(
-                ten_vung=request.POST['ten_vung'],
-                loai_quy_hoach=request.POST['loai_quy_hoach'],
-                nam_quy_hoach=request.POST['nam_quy_hoach'],
-                mo_ta=request.POST.get('mo_ta', ''),
-                geojson=request.POST.get('geojson', ''),
-            )
-            vung.save()
+            vung = VungQuyHoach()
+            _xu_ly_luu_vung_quy_hoach(request, vung)
             messages.success(request, f'Đã thêm vùng quy hoạch {vung.ten_vung} thành công!')
             return redirect('qh_ban_do')
         except Exception as e:
@@ -48,17 +93,13 @@ def them_moi(request):
     return render(request, 'myapp/quy_hoach/form.html', context)
 
 
+@login_required
 def chinh_sua(request, pk):
     """Chỉnh sửa vùng quy hoạch"""
     vung = get_object_or_404(VungQuyHoach, pk=pk)
     if request.method == 'POST':
         try:
-            vung.ten_vung = request.POST['ten_vung']
-            vung.loai_quy_hoach = request.POST['loai_quy_hoach']
-            vung.nam_quy_hoach = request.POST['nam_quy_hoach']
-            vung.mo_ta = request.POST.get('mo_ta', '')
-            vung.geojson = request.POST.get('geojson', '')
-            vung.save()
+            _xu_ly_luu_vung_quy_hoach(request, vung)
             messages.success(request, 'Cập nhật vùng quy hoạch thành công!')
             return redirect('qh_chi_tiet', pk=vung.pk)
         except Exception as e:
@@ -72,6 +113,7 @@ def chinh_sua(request, pk):
     return render(request, 'myapp/quy_hoach/form.html', context)
 
 
+@login_required
 def xoa(request, pk):
     """Xóa vùng quy hoạch"""
     vung = get_object_or_404(VungQuyHoach, pk=pk)

@@ -1,134 +1,6 @@
 {% extends 'myapp/co_so/khung_chinh.html' %}
 {% block tieu_de %}{{ tieu_de_trang }}{% endblock %}
 
-{% block js_them %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-
-<style>
-    .nut_gis_nhanh {
-        padding: 6px 12px;
-        background: var(--mau-chinh);
-        color: white;
-        border: none;
-        border-radius: 4px;
-        font-size: 12px;
-        cursor: pointer;
-        margin-top: 8px;
-    }
-
-    .nut_gis_nhanh:hover {
-        opacity: 0.9;
-    }
-</style>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const vi_do_el = document.getElementById('vi_do');
-        const kinh_do_el = document.getElementById('kinh_do');
-        const geojson_el = document.getElementById('geojson_input');
-        const dien_tich_el = document.querySelector('input[name="dien_tich"]');
-
-        let vi_do_val = parseFloat(vi_do_el.value) || 16.0715;
-        let kinh_do_val = parseFloat(kinh_do_el.value) || 108.2210;
-
-        const m = L.map('ban_do_chon_toa_do').setView([vi_do_val, kinh_do_val], 15);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(m);
-
-        // Lớp chứa các hình vẽ
-        let drawnItems = new L.FeatureGroup();
-        m.addLayer(drawnItems);
-
-        // Hiển thị dữ liệu cũ nếu có
-        if (geojson_el.value) {
-            try {
-                const existing = L.geoJSON(JSON.parse(geojson_el.value));
-                existing.eachLayer(layer => drawnItems.addLayer(layer));
-                m.fitBounds(drawnItems.getBounds());
-            } catch (e) { console.error("Lỗi đọc GeoJSON cũ"); }
-        } else {
-            // Marker mặc định
-            L.marker([vi_do_val, kinh_do_val]).addTo(drawnItems);
-        }
-
-        // Toolbar vẽ
-        const drawControl = new L.Control.Draw({
-            edit: { featureGroup: drawnItems },
-            draw: {
-                polygon: { allowIntersection: false, showArea: true },
-                polyline: false, circle: false, circlemarker: false,
-                marker: true, rectangle: true
-            }
-        });
-        m.addControl(drawControl);
-
-        m.on(L.Draw.Event.CREATED, function (event) {
-            drawnItems.clearLayers();
-            const layer = event.layer;
-            drawnItems.addLayer(layer);
-            updateGeoJSON();
-        });
-
-        m.on(L.Draw.Event.EDITED, updateGeoJSON);
-        m.on(L.Draw.Event.DELETED, function () {
-            geojson_el.value = "";
-        });
-
-        function updateGeoJSON() {
-            const data = drawnItems.toGeoJSON();
-            geojson_el.value = JSON.stringify(data);
-
-            // Cập nhật tọa độ tâm từ hình đầu tiên
-            if (data.features.length > 0) {
-                const feat = data.features[0];
-                let center;
-                if (feat.geometry.type === 'Point') {
-                    center = feat.geometry.coordinates;
-                } else {
-                    // Lấy tâm đơn giản của bounds
-                    const bounds = drawnItems.getBounds();
-                    center = [bounds.getCenter().lng, bounds.getCenter().lat];
-                }
-                kinh_do_el.value = center[0].toFixed(6);
-                vi_do_el.value = center[1].toFixed(6);
-            }
-        }
-
-        // Tự động tạo ranh giới từ diện tích
-        window.taoRanhGioiMau = function () {
-            const area = parseFloat(dien_tich_el.value);
-            if (!area || area <= 0) {
-                alert("Vui lòng nhập diện tích trước!");
-                return;
-            }
-
-            const lat = parseFloat(vi_do_el.value);
-            const lng = parseFloat(kinh_do_el.value);
-
-            // Tính cạnh hình vuông (giả định)
-            const side = Math.sqrt(area);
-            const deltaLat = (side / 111320) / 2;
-            const deltaLng = (side / (111320 * Math.cos(lat * Math.PI / 180))) / 2;
-
-            const coords = [
-                [lat - deltaLat, lng - deltaLng],
-                [lat + deltaLat, lng - deltaLng],
-                [lat + deltaLat, lng + deltaLng],
-                [lat - deltaLat, lng + deltaLng],
-                [lat - deltaLat, lng - deltaLng]
-            ];
-
-            drawnItems.clearLayers();
-            const poly = L.polygon(coords, { color: 'blue' }).addTo(drawnItems);
-            m.fitBounds(poly.getBounds());
-            updateGeoJSON();
-        };
-    });
-</script>
-{% endblock %}
-
 {% block noi_dung %}
 <div class="duong_dan">
     <a href="{% url 'hs_danh_sach' %}">Hồ sơ đất</a>
@@ -142,8 +14,6 @@
 
 <form method="post" action="">
     {% csrf_token %}
-    <input type="hidden" name="geojson" id="geojson_input" value="{{ thua.geojson|default:'' }}">
-
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
 
         <!-- THÔNG TIN THỬA ĐẤT -->
@@ -154,13 +24,13 @@
                 <div class="form_nhom">
                     <label class="form_nhan">Mã thửa đất <span style="color:red;">*</span></label>
                     <input type="text" name="ma_thua" class="form_o_nhap" value="{{ thua.ma_thua|default:'' }}"
-                        required>
+                        placeholder="VD: T01_T001" required>
                 </div>
                 <div class="form_nhom">
                     <label class="form_nhan">Loại đất <span style="color:red;">*</span></label>
-                    <select name="loai_dat" class="form_o_nhap" required>
+                    <select name="loai_dat_hien_trang" class="form_o_nhap" required>
                         {% for ma, ten in loai_dat_choices %}
-                        <option value="{{ ma }}" {% if thua.loai_dat == ma %}selected{% endif %}>{{ ten }}</option>
+                        <option value="{{ ma }}" {% if thua.loai_dat_hien_trang == ma %}selected{% endif %}>{{ ten }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -168,25 +38,26 @@
 
             <div class="form_luoi">
                 <div class="form_nhom">
-                    <label class="form_nhan">Số tờ bản đồ</label>
+                    <label class="form_nhan">Số tờ bản đồ <span style="color:red;">*</span></label>
                     <input type="number" name="so_to" class="form_o_nhap" value="{{ thua.so_to|default:'' }}" required>
                 </div>
                 <div class="form_nhom">
-                    <label class="form_nhan">Số thửa</label>
+                    <label class="form_nhan">Số thửa <span style="color:red;">*</span></label>
                     <input type="number" name="so_thua" class="form_o_nhap" value="{{ thua.so_thua|default:'' }}"
                         required>
                 </div>
             </div>
 
             <div class="form_nhom">
-                <label class="form_nhan">Diện tích (m²) <span style="color:red;">*</span></label>
-                <input type="number" step="0.01" name="dien_tich" class="form_o_nhap"
-                    value="{{ thua.dien_tich|default:'' }}" required>
+                <label class="form_nhan">Địa chỉ thửa đất</label>
+                <input type="text" name="dia_chi_thua" class="form_o_nhap" value="{{ thua.dia_chi_thua|default:'' }}"
+                    placeholder="Số nhà, đường, phường/xã, quận/huyện...">
             </div>
 
             <div class="form_nhom">
-                <label class="form_nhan">Địa chỉ thửa đất</label>
-                <input type="text" name="dia_chi_thua" class="form_o_nhap" value="{{ thua.dia_chi_thua|default:'' }}">
+                <label class="form_nhan">Diện tích (m²) <span style="color:red;">*</span></label>
+                <input type="number" step="0.01" name="dien_tich" id="input_dien_tich" class="form_o_nhap"
+                    value="{{ thua.dien_tich|default:'' }}" required>
             </div>
 
             <div class="form_nhom">
@@ -195,64 +66,258 @@
                     value="{{ thua.muc_dich_su_dung|default:'' }}">
             </div>
 
-            <div class="form_nhom"
-                style="margin-top: 15px; background: #fff5f5; padding: 10px; border-radius: 6px; border: 1px dashed #feb2b2;">
-                <label class="form_nhan"
-                    style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #c53030;">
-                    <input type="checkbox" name="that_nghiep_lau" {% if thua.that_nghiep_lau %}checked{% endif %}
-                        style="width: 18px; height: 18px;">
-                    <span style="font-weight: 600;">Thửa đất đang có tranh chấp?</span>
-                </label>
+            <div class="form_nhom">
+                <label class="form_nhan">Nguồn gốc sử dụng đất (6)</label>
+                <textarea name="nguon_goc_su_dung" class="form_o_nhap" rows="2" placeholder="Ví dụ: Nhà nước giao đất có thu tiền sử dụng đất...">{{ thua.nguon_goc_su_dung|default:'' }}</textarea>
             </div>
         </div>
 
-        <!-- BẢN ĐỒ & TỌA ĐỘ -->
+        <!-- THÔNG TIN PHÁP LÝ & VỊ TRÍ -->
         <div>
             <div class="panel" style="margin-bottom:16px;">
-                <div class="panel__tieu_de">Bản đồ GIS & Ranh giới</div>
-                <div id="ban_do_chon_toa_do"
-                    style="height:350px;border-radius:8px;margin-top:8px; border: 1px solid #ddd;"></div>
+                <div class="panel__tieu_de">Giấy chứng nhận & Chủ sử dụng</div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <button type="button" class="nut_gis_nhanh" onclick="taoRanhGioiMau()">✨ Tự động tạo ranh giới theo
-                        diện tích</button>
-                    <div style="font-size:11px; color:#666; margin-top:8px;">
-                        Dùng công cụ vẽ [ polygon ] bên trái để vẽ ranh giới thực tế
+                <div class="form_nhom">
+                    <label class="form_nhan">Danh sách Chủ sử dụng đất</label>
+                    <select name="danh_sach_chu_su_dung" class="form_o_nhap" multiple style="height:100px;">
+                        {% for chu in chu_su_dung_list %}
+                        <option value="{{ chu.pk }}" {% if chu in thua.danh_sach_chu_su_dung.all %}selected{% endif %}>{{ chu }}</option>
+                        {% endfor %}
+                    </select>
+                    <p style="font-size:12px; color:#666; margin-top:4px;">Giữ <kbd>Ctrl</kbd> hoặc <kbd>Shift</kbd> để chọn nhiều người.</p>
+                </div>
+
+                <div class="form_nhom">
+                    <label class="form_nhan">Số Giấy chứng nhận</label>
+                    <input type="text" name="so_gcn" class="form_o_nhap" value="{{ thua.so_gcn|default:'' }}">
+                </div>
+
+                <div class="form_luoi">
+                    <div class="form_nhom">
+                        <label class="form_nhan">Ngày cấp GCN</label>
+                        <input type="date" name="ngay_cap_gcn" class="form_o_nhap"
+                            value="{{ thua.ngay_cap_gcn|date:'Y-m-d'|default:'' }}">
+                    </div>
+                    <div class="form_nhom">
+                        <label class="form_nhan">Thời hạn sử dụng</label>
+                        <input type="date" name="thoi_han_su_dung" class="form_o_nhap"
+                            value="{{ thua.thoi_han_su_dung|date:'Y-m-d'|default:'' }}">
                     </div>
                 </div>
 
-                <div class="form_luoi" style="margin-top:10px;">
-                    <div class="form_nhom">
-                        <label class="form_nhan">Vĩ độ (Lat)</label>
-                        <input type="number" step="any" name="vi_do" id="vi_do" class="form_o_nhap"
-                            value="{{ thua.vi_do|default:'' }}">
-                    </div>
-                    <div class="form_nhom">
-                        <label class="form_nhan">Kinh độ (Lng)</label>
-                        <input type="number" step="any" name="kinh_do" id="kinh_do" class="form_o_nhap"
-                            value="{{ thua.kinh_do|default:'' }}">
-                    </div>
+                <div class="form_nhom">
+                    <label class="form_nhan">Diện tích thuộc quy hoạch (m²)</label>
+                    <input type="number" step="0.01" name="dien_tich_quy_hoach" class="form_o_nhap" value="{{ thua.dien_tich_quy_hoach|default:'' }}" placeholder="Nếu có phần diện tích bị dính quy hoạch...">
                 </div>
             </div>
 
             <div class="panel">
-                <div class="panel__tieu_de">Chủ sở hữu & Ghi chú</div>
-                <select name="chu_su_dung" class="form_o_nhap" style="margin-bottom:10px;">
-                    <option value="">-- Chọn chủ sở hữu --</option>
-                    {% for chu in chu_su_dung_list %}
-                    <option value="{{ chu.pk }}" {% if thua.chu_su_dung.pk == chu.pk %}selected{% endif %}>{{ chu }}
-                    </option>
-                    {% endfor %}
-                </select>
-                <textarea name="ghi_chu" class="form_o_nhap" rows="3"
-                    placeholder="Ghi chú thêm...">{{ thua.ghi_chu|default:'' }}</textarea>
+                <div class="panel__tieu_de">Ghi chú</div>
+                <textarea name="ghi_chu" class="form_o_nhap" rows="4">{{ thua.ghi_chu|default:'' }}</textarea>
             </div>
         </div>
     </div>
 
+    <!-- MAP PANEL FULL WIDTH -->
+    <div class="panel" style="margin-top:20px;">
+        <div class="panel__tieu_de" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Ranh giới Thửa đất (Bản đồ) <span style="color:red;">*</span></span>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="search_address" class="form_o_nhap" style="width:250px; padding:4px 8px; font-size:13px;" placeholder="Tìm nhanh: Đà Nẵng...">
+                <button type="button" class="nut nut--phu" style="padding:4px 12px; font-size:13px;" onclick="searchNominatim()">📍 Tìm kiếm</button>
+                <button type="button" class="nut nut--vien" style="padding:4px 12px; font-size:13px;" onclick="syncAreaFromMap()">📐 Tính lại diện tích</button>
+            </div>
+        </div>
+        <p style="font-size:13px; margin: 5px 0;">Sử dụng công cụ <i class="fas fa-draw-polygon"></i> bên cạnh bản đồ để Vẽ / Cắt / Sửa. Bấm đúp chuột để kết thúc vẽ một hình.</p>
+        <div id="ban_do_ve_ranh_gioi" style="height:600px;border-radius:8px;border:1px solid #ddd; position:relative; z-index:1;"></div>
+        <input type="hidden" name="geojson" id="geojson_input" value='{{ thua.mpoly.geojson|safe|default:"" }}'>
+        <div id="map_alert" style="margin-top:10px; font-size:14px; font-weight:bold; color:var(--mau-do); display:none; padding:10px; background-color:#ffebeb; border-radius:5px;">
+            ⚠️ CẢNH BÁO: Diện tích nhập tay lớn hơn/nhỏ hơn 5% so với khối hình vẽ trên bản đồ!
+        </div>
+    </div>
+
     <div style="display:flex;gap:12px;margin-top:20px;">
-        <button type="submit" class="nut nut--chinh">Lưu hồ sơ đất</button>
-        <a href="{% url 'hs_danh_sach' %}" class="nut nut--vien">Quay lại</a>
+        <button type="submit" class="nut nut--chinh" id="btn_submit_form">Lưu hồ sơ</button>
+        <a href="{% url 'hs_danh_sach' %}" class="nut nut--vien">Huỷ</a>
+        {% if thua %}
+        <form method="post" action="{% url 'hs_xoa' thua.pk %}" style="margin:0;">
+            {% csrf_token %}
+            <button type="submit" class="nut nut--do"
+                onclick="return confirm('Xác nhận xoá thửa đất {{ thua.ma_thua }}?')">Xoá hồ sơ</button>
+        </form>
+        {% endif %}
     </div>
 </form>
+{% endblock %}
+
+{% block js_them %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Turf & Geoman -->
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css" />
+<script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>
+
+<script>
+    // 1. Khởi tạo bản đồ
+    const m = L.map('ban_do_ve_ranh_gioi').setView([16.060, 108.220], 13);
+    L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxZoom: 20
+    }).addTo(m); // Vệ tinh Google Map + Label
+
+    // 2. Thêm Geoman Controls
+    m.pm.addControls({
+        position: 'topleft',
+        drawMarker: false,
+        drawCircleMarker: false,
+        drawPolyline: false,
+        drawRectangle: true,
+        drawPolygon: true,
+        drawCircle: false,
+        drawText: false,
+        editMode: true,
+        dragMode: true,
+        cutPolygon: true,
+        removalMode: true,
+    });
+    // Set language
+    m.pm.setLang('vi');
+
+    let currentLayerGroup = L.featureGroup().addTo(m);
+
+    // 3. Load GeoJSON cũ nếu có
+    const geojsonInput = document.getElementById('geojson_input');
+    if (geojsonInput.value && geojsonInput.value !== '{}') {
+        try {
+            const data = JSON.parse(geojsonInput.value);
+            const layer = L.geoJSON(data).getLayers()[0];
+            if (layer) {
+                layer.addTo(currentLayerGroup);
+                m.fitBounds(layer.getBounds());
+            }
+        } catch(e) {}
+    }
+
+    // 4. Bắt sự kiện vẽ
+    m.on('pm:create', function(e) {
+        // Chỉ giữ 1 polygon chính (xoá các polygon cũ nếu vẽ mới)
+        currentLayerGroup.clearLayers();
+        e.layer.addTo(currentLayerGroup);
+        
+        updateGeoJSONAndArea();
+        
+        // Reverse Geocoding lấy địa chỉ tự động
+        try {
+            const geojsonLayer = currentLayerGroup.getLayers()[0].toGeoJSON();
+            const center = turf.centerOfMass(geojsonLayer);
+            const lng = center.geometry.coordinates[0];
+            const lat = center.geometry.coordinates[1];
+            
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
+                .then(res => res.json())
+                .then(data => {
+                    if(data && data.display_name) {
+                        const addrInput = document.querySelector('input[name="dia_chi_thua"]');
+                        if (addrInput) {
+                            addrInput.value = data.display_name;
+                        }
+                    }
+                }).catch(err => console.log('Geocoding error:', err));
+        } catch(e) {}
+        
+        // Listen edit event on new layer
+        e.layer.on('pm:edit', updateGeoJSONAndArea);
+    });
+
+    m.on('pm:remove', function(e) {
+        geojsonInput.value = '';
+        validateArea();
+    });
+
+    // Nếu layer cũ bị sửa
+    currentLayerGroup.getLayers().forEach(layer => {
+        layer.on('pm:edit', updateGeoJSONAndArea);
+    });
+
+    // 5. Cập nhật GeoJSON và Diện Tích
+    let mapDrawAreaM2 = 0;
+    function updateGeoJSONAndArea() {
+        if(currentLayerGroup.getLayers().length === 0) return;
+        
+        const layer = currentLayerGroup.getLayers()[0];
+        const geojson = layer.toGeoJSON();
+        geojsonInput.value = JSON.stringify(geojson.geometry);
+
+        // Turf JS auto calc area
+        mapDrawAreaM2 = turf.area(geojson);
+        
+        // Nhập tạm vào ô diện tích nếu đang trống (hoặc tự động sync)
+        const dtInput = document.getElementById('input_dien_tich');
+        dtInput.value = mapDrawAreaM2.toFixed(2);
+        
+        // Alert dị thường khu đất quá nhỏ hay lớn
+        if (mapDrawAreaM2 < 10) {
+            alert('CẢNH BÁO: Diện tích thửa đất tự động là ' + mapDrawAreaM2.toFixed(1) + ' m². Quá nhỏ ( < 10 m² ) ! Vui lòng kiểm tra lại.');
+        } else if (mapDrawAreaM2 > 100000) {
+            alert('CẢNH BÁO: Diện tích thửa đất tự động là ' + mapDrawAreaM2.toFixed(1) + ' m². Quá lớn ( > 100.000 m² ) ! Vui lòng kiểm tra lại.');
+        }
+
+        validateArea();
+    }
+
+    // 6. Nút Tính Lại
+    window.syncAreaFromMap = function() {
+        if(currentLayerGroup.getLayers().length > 0) {
+            updateGeoJSONAndArea();
+        } else {
+            alert('Vui lòng vẽ ranh giới trên bản đồ trước!');
+        }
+    };
+
+    // 7. Validate chênh lệch 5%
+    document.getElementById('input_dien_tich').addEventListener('input', validateArea);
+    function validateArea() {
+        const dienTichNhap = parseFloat(document.getElementById('input_dien_tich').value) || 0;
+        const alertBox = document.getElementById('map_alert');
+        
+        if(mapDrawAreaM2 > 0 && dienTichNhap > 0) {
+            const chenhLech = Math.abs(dienTichNhap - mapDrawAreaM2) / mapDrawAreaM2;
+            if (chenhLech > 0.05) { // 5%
+                alertBox.style.display = 'block';
+                document.getElementById('input_dien_tich').style.borderColor = 'red';
+                document.getElementById('input_dien_tich').style.backgroundColor = '#ffebeb';
+            } else {
+                alertBox.style.display = 'none';
+                document.getElementById('input_dien_tich').style.borderColor = '#ccc';
+                document.getElementById('input_dien_tich').style.backgroundColor = 'white';
+            }
+        }
+    }
+
+    // 8. Tìm Kiếm Nominatim
+    window.searchNominatim = function() {
+        const q = document.getElementById('search_address').value;
+        if(!q) return;
+        fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(q))
+            .then(res => res.json())
+            .then(data => {
+                if(data && data.length > 0) {
+                    const lat = data[0].lat;
+                    const lon = data[0].lon;
+                    m.setView([lat, lon], 17);
+                    L.popup().setLatLng([lat, lon]).setContent(data[0].display_name).openOn(m);
+                } else {
+                    alert('Không tìm thấy địa điểm!');
+                }
+            });
+    }
+
+    // Khởi tạo tính diện tích ảo lúc vừa load web (nếu là form edit)
+    if(currentLayerGroup.getLayers().length > 0) {
+        const geojson = currentLayerGroup.getLayers()[0].toGeoJSON();
+        mapDrawAreaM2 = turf.area(geojson);
+    }
+</script>
 {% endblock %}

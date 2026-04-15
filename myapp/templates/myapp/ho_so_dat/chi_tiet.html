@@ -1,217 +1,540 @@
-﻿{% extends 'myapp/co_so/khung_chinh.html' %}
+{% extends 'myapp/co_so/khung_chinh.html' %}
 {% block tieu_de %}Chi tiết - {{ thua.ma_thua }}{% endblock %}
+
 {% block header_nut %}
-<a href="{% url 'hs_chinh_sua' thua.pk %}" class="nut_header">Chỉnh sửa</a>
+<div class="toolbar-hanh-dong">
+    <a href="{% url 'hs_bao_cao' thua.pk %}" target="_blank" class="nut nut--phu nut--nho"><i class="fas fa-print"></i> In GCN</a>
+    <a href="{% url 'hs_them_giao_dich' thua.pk %}" class="nut nut--chinh nut--nho"><i class="fas fa-plus"></i> Thêm giao dịch</a>
+    <a href="{% url 'hs_chinh_sua' thua.pk %}" class="nut nut--vien nut--nho"><i class="fas fa-edit"></i> Sửa</a>
+</div>
 {% endblock %}
 
 {% block noi_dung %}
+<style>
+    /* CSS Nâng cao cho Trang Chi tiết - Giai đoạn 3 */
+    .vung-canh-bao {
+        padding: 15px 20px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .vung-canh-bao--do { background: #fee2e2; border-left: 6px solid #ef4444; color: #991b1b; }
+    .vung-canh-bao--cam { background: #fff7ed; border-left: 6px solid #f97316; color: #9a3412; }
+    
+    .tab-he-thong {
+        display: flex;
+        gap: 8px;
+        border-bottom: 2px solid #f1f5f9;
+        margin-bottom: 24px;
+        padding-bottom: 2px;
+    }
+    .tab-nut {
+        padding: 12px 24px;
+        cursor: pointer;
+        border-radius: 10px 10px 0 0;
+        font-weight: 600;
+        color: #64748b;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid transparent;
+        border-bottom: none;
+    }
+    .tab-nut:hover { background: #f8fafc; color: var(--mau-chinh); }
+    .tab-nut.kich-hoat {
+        background: white;
+        color: var(--mau-chinh);
+        border-color: #e2e8f0;
+        box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05);
+        position: relative;
+    }
+    .tab-nut.kich-hoat::after {
+        content: '';
+        position: absolute;
+        bottom: -2px; left: 0; right: 0;
+        height: 3px; background: var(--mau-chinh);
+        z-index: 10;
+    }
+
+    .tab-noi-dung { display: none; animation: slideUp 0.4s ease-out; }
+    .tab-noi-dung.hien-thi { display: block; }
+
+    @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* GIS & MAP UI */
+    .map-container-wrapper {
+        position: relative;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        box-shadow: var(--bong);
+    }
+    #ban_do_chi_tiet { height: 600px; width: 100%; z-index: 1; }
+    
+    .map-toolbar {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .map-btn {
+        width: 40px; height: 40px;
+        background: white;
+        border: none;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        display: flex; align-items: center; justify-content: center;
+        color: #475569; cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+    .map-btn:hover { background: #f1f5f9; color: var(--mau-chinh); transform: scale(1.05); }
+
+    .gis-legend {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 12px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        font-size: 12px;
+        line-height: 1.8;
+        border: 1px solid #e2e8f0;
+        min-width: 150px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 8px; }
+    .legend-color { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.1); }
+
+    .stats-gis-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin-top: 20px;
+    }
+    .gis-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        padding: 16px;
+        border-radius: 12px;
+        text-align: center;
+        transition: transform 0.2s;
+    }
+    .gis-card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .gis-card__icon { font-size: 20px; color: #3b82f6; margin-bottom: 8px; }
+    .gis-card__label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #94a3b8; margin-bottom: 4px; }
+    .gis-card__value { font-size: 15px; font-weight: 700; color: #1e293b; }
+
+    /* Quy hoạch panel */
+    .qh-item {
+        background: #fff;
+        border: 1px solid #fee2e2;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 12px;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .qh-item:hover { border-color: #ef4444; background: #fff5f5; }
+    .qh-item::before {
+        content: '';
+        position: absolute;
+        left: 0; top: 0; bottom: 0;
+        width: 4px; background: #ef4444;
+    }
+    .qh-progress {
+        height: 6px; background: #fee2e2; border-radius: 3px; margin-top: 8px;
+        overflow: hidden;
+    }
+    .qh-progress-bar { height: 100%; background: #ef4444; border-radius: 3px; }
+
+    .leaflet-popup-content-wrapper { border-radius: 10px; padding: 5px; }
+    .leaflet-popup-tip-container { display: none; }
+
+    @media (max-width: 768px) {
+        .chi-tiet-luoi { grid-template-columns: 1fr !important; }
+        .tab-he-thong { overflow-x: auto; white-space: nowrap; padding-bottom: 5px; }
+        #ban_do_chi_tiet { height: 400px; }
+    }
+</style>
+
+<!-- BREADCRUMB -->
 <div class="duong_dan">
-    <a href="{% url 'hs_danh_sach' %}">Hồ sơ Đất</a>
+    <a href="{% url 'hs_danh_sach' %}">Hồ sơ đất</a>
     <span class="duong_dan__phan_cach">›</span>
     <span>{{ thua.ma_thua }}</span>
 </div>
 
-<div style="display:grid;grid-template-columns:1.4fr 1fr;gap:20px;">
-
-    <!-- THÔNG TIN CHÍNH -->
+<!-- BANNER CẢNH BÁO -->
+{% if tong_dt_vi_pham > 0 or thua.co_tranh_chap %}
+<div class="vung-canh-bao {% if thua.co_tranh_chap %}vung-canh-bao--do{% else %}vung-canh-bao--cam{% endif %}">
+    <div style="font-size: 28px;">
+        {% if thua.co_tranh_chap %}<i class="fas fa-hand-paper"></i>{% else %}<i class="fas fa-exclamation-circle"></i>{% endif %}
+    </div>
     <div>
-        <div class="panel" style="margin-bottom:20px;">
-            <div class="panel__tieu_de">Thông tin Thửa đất</div>
-            <div class="hang_chi_tiet">
-                <div class="hang_chi_tiet__nhan">Mã thửa</div>
-                <div class="hang_chi_tiet__gia_tri"><strong>{{ thua.ma_thua }}</strong></div>
-            </div>
+        <h4 style="margin: 0 0 5px 0;">
+            {% if thua.co_tranh_chap %}CẢNH BÁO: PHÁP LÝ ĐANG TRANH CHẤP{% else %}CẢNH BÁO: VI PHẠM QUY HOẠCH ({{ tong_dt_vi_pham|floatformat:1 }} m²){% endif %}
+        </h4>
+        <p style="margin: 0; font-size: 14px; opacity: 0.9;">
+            {% if thua.co_tranh_chap %}Thửa đất này đang thuộc diện tranh chấp, mọi giao dịch biến động sẽ bị tạm dừng.{% else %}Thửa đất có phần diện tích chồng lấn vào vùng quy hoạch đã công bố.{% endif %}
+        </p>
+    </div>
+</div>
+{% endif %}
+
+<!-- HEADER CHÍNH -->
+<div class="tieu_de_trang" style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 24px;">
+    <div>
+        <h1 style="margin:0; font-size: 28px;">{{ thua.ma_thua }}</h1>
+        <p style="color:#64748b; margin: 8px 0 0 0; font-size: 15px;"><i class="fas fa-map-marker-alt" style="color:#ef4444"></i> {{ thua.dia_chi_thua|default:"Chưa xác định địa chỉ" }}</p>
+    </div>
+    <div style="text-align: right; font-size: 13px; color: #94a3b8;">
+        <span style="background:#f1f5f9; padding:4px 10px; border-radius:20px;">Cập nhật cuối: {{ thua.ngay_cap_nhat|date:"d/m/Y H:i" }}</span>
+    </div>
+</div>
+
+<!-- TABS -->
+<div class="tab-he-thong">
+    <div class="tab-nut kich-hoat" onclick="moTab(event, 'tong-quan')"><i class="fas fa-id-card"></i> Tổng quan</div>
+    <div class="tab-nut" onclick="moTab(event, 'bien-dong')"><i class="fas fa-exchange-alt"></i> Biến động ({{ bien_dong.count }})</div>
+    <div class="tab-nut" onclick="moTab(event, 'ban-do')"><i class="fas fa-map-marked-alt"></i> Bản đồ & GIS</div>
+</div>
+
+<!-- TAB 1: TỔNG QUAN -->
+<div id="tong-quan" class="tab-noi-dung hien-thi">
+    <div class="chi-tiet-luoi" style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+        <div class="panel">
+            <div class="panel__tieu_de"><i class="fas fa-file-contract"></i> Thông tin pháp lý</div>
             <div class="hang_chi_tiet">
                 <div class="hang_chi_tiet__nhan">Số tờ / Số thửa</div>
-                <div class="hang_chi_tiet__gia_tri">Tờ {{ thua.so_to }} / Thửa {{ thua.so_thua }}</div>
+                <div class="hang_chi_tiet__gia_tri"><strong>Tờ {{ thua.so_to }} - Thửa {{ thua.so_thua }}</strong></div>
             </div>
             <div class="hang_chi_tiet">
-                <div class="hang_chi_tiet__nhan">Địa chỉ thửa đất</div>
-                <div class="hang_chi_tiet__gia_tri">{{ thua.dia_chi_thua|default:"Chưa có thông tin" }}</div>
-            </div>
-            <div class="hang_chi_tiet">
-                <div class="hang_chi_tiet__nhan">Diện tích</div>
-                <div class="hang_chi_tiet__gia_tri"><strong>{{ thua.dien_tich|floatformat:1 }} m²</strong></div>
+                <div class="hang_chi_tiet__nhan">Diện tích pháp lý</div>
+                <div class="hang_chi_tiet__gia_tri"><strong style="font-size: 18px; color: var(--mau-chinh);">{{ thua.dien_tich|floatformat:2 }} m²</strong></div>
             </div>
             <div class="hang_chi_tiet">
                 <div class="hang_chi_tiet__nhan">Loại đất</div>
                 <div class="hang_chi_tiet__gia_tri">
-                    <span class="huy_hieu huy_hieu--xanh-da-troi">{{ thua.get_loai_dat_display }}</span>
+                    <span class="huy_hieu huy_hieu--xanh-da-troi">{{ thua.get_loai_dat_hien_trang_display }}</span>
                 </div>
             </div>
-            <div class="hang_chi_tiet">
-                <div class="hang_chi_tiet__nhan">Mục đích sử dụng</div>
-                <div class="hang_chi_tiet__gia_tri">{{ thua.muc_dich_su_dung|default:"—" }}</div>
-            </div>
-            <div class="hang_chi_tiet">
-                <div class="hang_chi_tiet__nhan">Tình trạng tranh chấp</div>
-                <div class="hang_chi_tiet__gia_tri">
-                    {% if thua.that_nghiep_lau %}
-                    <span class="huy_hieu huy_hieu--do">Có tranh chấp</span>
-                    {% else %}
-                    <span class="huy_hieu huy_hieu--xanh">Không tranh chấp</span>
-                    {% endif %}
-                </div>
+            <div class="hang_chi_tiet" style="border:none;">
+                <div class="hang_chi_tiet__nhan">Nguồn gốc sử dụng</div>
+                <div class="hang_chi_tiet__gia_tri">{{ thua.nguon_goc_su_dung|default:"Chưa xác định" }}</div>
             </div>
         </div>
 
-        <div class="panel" style="margin-bottom:20px;">
-            <div class="panel__tieu_de">Giấy chứng nhận</div>
+        <div class="panel">
+            <div class="panel__tieu_de"><i class="fas fa-certificate"></i> Giấy chứng nhận</div>
             <div class="hang_chi_tiet">
                 <div class="hang_chi_tiet__nhan">Số GCN</div>
-                <div class="hang_chi_tiet__gia_tri">{{ thua.so_gcn|default:"Chưa có" }}</div>
-            </div>
-            <div class="hang_chi_tiet">
-                <div class="hang_chi_tiet__nhan">Ngày cấp</div>
-                <div class="hang_chi_tiet__gia_tri">{{ thua.ngay_cap_gcn|date:"d/m/Y"|default:"—" }}</div>
+                <div class="hang_chi_tiet__gia_tri"><strong>{{ thua.so_gcn|default:"Chưa cấp" }}</strong></div>
             </div>
             <div class="hang_chi_tiet">
                 <div class="hang_chi_tiet__nhan">Thời hạn sử dụng</div>
-                <div class="hang_chi_tiet__gia_tri">{{ thua.thoi_han_su_dung|date:"d/m/Y"|default:"Lâu dài" }}</div>
+                <div class="hang_chi_tiet__gia_tri">
+                    {{ thua.thoi_han_su_dung|date:"d/m/Y"|default:"Lâu dài" }}
+                    {% if gcn_status == 'sap_het_han' %}<span class="huy_hieu huy_hieu--cam" style="margin-left:10px;">Sắp hết hạn</span>
+                    {% elif gcn_status == 'het_han' %}<span class="huy_hieu huy_hieu--do" style="margin-left:10px;">Hết hạn</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="hang_chi_tiet" style="border:none;">
+                <div class="hang_chi_tiet__nhan">Ngày cấp</div>
+                <div class="hang_chi_tiet__gia_tri">{{ thua.ngay_cap_gcn|date:"d/m/Y"|default:"—" }}</div>
             </div>
         </div>
+    </div>
 
-        <!-- CẢNH BÁO LIÊN QUAN -->
-        {% if canh_bao %}
-        <div class="bang_container">
-            <div class="bang_tieu_de">
-                <h3>Cảnh báo liên quan</h3>
+    <!-- Chủ sở hữu (Card layout) -->
+    <div class="panel" style="margin-top: 24px;">
+        <div class="panel__tieu_de" style="margin-bottom: 20px;"><i class="fas fa-users"></i> Chủ sở hữu công nhận</div>
+        <div class="luoi-chu-so-huu" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
+            {% for chu in thua.danh_sach_chu_su_dung.all %}
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 16px;">
+                <div style="width: 50px; height: 50px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--mau-chinh); border: 1px solid #e2e8f0; font-size: 20px;">
+                    {% if chu.loai_doi_tuong == 'to_chuc' %}<i class="fas fa-building"></i>{% else %}<i class="fas fa-user"></i>{% endif %}
+                </div>
+                <div>
+                    <div style="font-weight: 700; font-size: 15px; color: var(--mau-chinh);">{{ chu.ho_ten }}</div>
+                    <div style="font-size: 12px; color: #64748b; margin-top: 2px;">{{ chu.get_loai_doi_tuong_display }} • {{ chu.so_giay_to }}</div>
+                </div>
             </div>
-            <table class="bang">
-                <thead>
-                    <tr>
-                        <th>Tiêu đề</th>
-                        <th>Mức độ</th>
-                        <th>Ngày</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for cb in canh_bao %}
-                    <tr>
-                        <td><a href="{% url 'cb_chi_tiet' cb.pk %}">{{ cb.tieu_de }}</a></td>
-                        <td><span
-                                class="huy_hieu huy_hieu--{% if cb.muc_do == 'khan_cap' %}do{% elif cb.muc_do == 'cao' %}cam{% else %}xanh-da-troi{% endif %}">{{
-                                cb.get_muc_do_display }}</span></td>
-                        <td>{{ cb.ngay_phat_sinh|date:"d/m/Y" }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            {% empty %}
+            <div class="trang_trong" style="grid-column: 1/-1; padding: 20px;">Chưa có dữ liệu chủ sở hữu.</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- TAB 2: BIẾN ĐỘNG -->
+<div id="bien-dong" class="tab-noi-dung">
+    <div class="panel">
+        <div class="panel__tieu_de" style="display:flex; justify-content:space-between; align-items:center;">
+            <span><i class="fas fa-history"></i> Lịch sử tài sản</span>
+            <a href="{% url 'hs_them_giao_dich' thua.pk %}" class="nut nut--chinh nut--nho"><i class="fas fa-plus"></i> Tạo giao dịch mới</a>
+        </div>
+        {% if bien_dong %}
+        <table class="bang">
+            <thead>
+                <tr>
+                    <th>Loại giao dịch</th>
+                    <th>Nội dung biến động</th>
+                    <th>Thời điểm</th>
+                    <th>Trạng thái</th>
+                    <th style="text-align: right;">Chi tiết</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bd in bien_dong %}
+                <tr>
+                    <td><strong>{{ bd.get_loai_bien_dong_display }}</strong></td>
+                    <td>
+                        {% if bd.chu_moi %}<div><i class="fas fa-arrow-right" style="font-size:10px; color:#10b981;"></i> {{ bd.chu_moi.ho_ten }}</div>{% endif %}
+                        <div style="font-size: 12px; color: #64748b;">{{ bd.mo_ta|truncatechars:100 }}</div>
+                    </td>
+                    <td>{{ bd.ngay_bien_dong|date:"d/m/Y" }}</td>
+                    <td>
+                        {% if bd.trang_thai == 'hoan_tat' %}<span class="huy_hieu huy_hieu--xanh">Hoàn tất</span>
+                        {% elif bd.trang_thai == 'dang_xu_ly' %}<span class="huy_hieu huy_hieu--cam">Đang xử lý</span>
+                        {% else %}<span class="huy_hieu huy_hieu--xam">Huỷ</span>{% endif %}
+                    </td>
+                    <td style="text-align: right;"><a href="{% url 'bd_chi_tiet' bd.pk %}" class="nut nut--vien nut--nho">Xem</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="trang_trong" style="padding: 60px;">
+            <div style="font-size: 50px; opacity: 0.3; margin-bottom: 20px;"><i class="fas fa-folder-open"></i></div>
+            <h4>Chưa có lịch sử giao dịch</h4>
+            <p>Mọi biến động về ranh giới, chủ sở hữu sẽ được lưu trữ tại đây.</p>
         </div>
         {% endif %}
     </div>
+</div>
 
-    <!-- CỘT PHẢI -->
-    <div>
-        <div class="panel" style="margin-bottom:20px;">
-            <div class="panel__tieu_de">Chủ sử dụng đất</div>
-            {% if thua.chu_su_dung %}
-            <div class="hang_chi_tiet">
-                <div class="hang_chi_tiet__nhan">Họ tên</div>
-                <div class="hang_chi_tiet__gia_tri"><strong>{{ thua.chu_su_dung.ho_ten }}</strong></div>
+<!-- TAB 3: BẢN ĐỒ & GIS -->
+<div id="ban-do" class="tab-noi-dung">
+    <div style="display:grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+        <div>
+            <div class="map-container-wrapper">
+                <div id="ban_do_chi_tiet"></div>
+                <div class="map-toolbar">
+                    <button class="map-btn" title="Phóng đến thửa đất" onclick="zoomToExtents()"><i class="fas fa-expand-arrows-alt"></i></button>
+                    <button class="map-btn" title="Toàn màn hình" onclick="toggleFullscreen()"><i class="fas fa-expand"></i></button>
+                    <a href="{% url 'hs_chinh_sua' thua.pk %}" class="map-btn" title="Chỉnh sửa ranh giới" style="color:#f59e0b;"><i class="fas fa-draw-polygon"></i></a>
+                    
+                    <div class="gis-legend">
+                        <div style="font-weight:700; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom:5px; color:var(--mau-chinh);">Chú giải bản đồ</div>
+                        <div class="legend-item"><div class="legend-color" style="background: rgba(37, 99, 235, 0.5); border: 2px solid #2563eb;"></div> Thửa đất hiện tại</div>
+                        <div class="legend-item"><div class="legend-color" style="background: rgba(239, 68, 68, 0.4); border: 1px dashed #ef4444;"></div> Vùng quy hoạch</div>
+                        <div style="font-size: 10px; color: #94a3b8; margin-top: 5px; font-style: italic;">* Click vào hình để xem chi tiết</div>
+                    </div>
+                </div>
             </div>
-            <div class="hang_chi_tiet">
-                <div class="hang_chi_tiet__nhan">Số CMND/CCCD</div>
-                <div class="hang_chi_tiet__gia_tri">{{ thua.chu_su_dung.so_giay_to }}</div>
+            
+            <div class="stats-gis-grid">
+                <div class="gis-card">
+                    <div class="gis-card__icon"><i class="fas fa-vector-square"></i></div>
+                    <div class="gis-card__label">Diện mạo Không gian</div>
+                    <div class="gis-card__value" id="gis_area">---</div>
+                </div>
+                <div class="gis-card">
+                    <div class="gis-card__icon"><i class="fas fa-map-pin"></i></div>
+                    <div class="gis-card__label">Hệ tọa độ VN-2000</div>
+                    <div class="gis-card__value" id="gis_centroid" style="font-size:12px;">---</div>
+                </div>
+                <div class="gis-card">
+                    <div class="gis-card__icon"><i class="fas fa-fingerprint"></i></div>
+                    <div class="gis-card__label">Số điểm ranh giới</div>
+                    <div class="gis-card__value" id="gis_nodes">---</div>
+                </div>
             </div>
-            <div class="hang_chi_tiet">
-                <div class="hang_chi_tiet__nhan">Loại đối tượng</div>
-                <div class="hang_chi_tiet__gia_tri">{{ thua.chu_su_dung.get_loai_doi_tuong_display }}</div>
-            </div>
-            <div class="hang_chi_tiet">
-                <div class="hang_chi_tiet__nhan">Địa chỉ</div>
-                <div class="hang_chi_tiet__gia_tri">{{ thua.chu_su_dung.dia_chi|default:"—" }}</div>
-            </div>
-            {% else %}
-            <div class="trang_trong" style="padding:20px;">
-                <div class="trang_trong__bieu_tuong">👤</div>
-                <h4>Chưa có chủ sử dụng</h4>
-            </div>
-            {% endif %}
         </div>
 
-        <!-- VỊ TRÍ GIS -->
-        <div class="panel">
-            <div class="panel__tieu_de">Vị trí & Ranh giới thực tế</div>
-            <div id="ban_do_nho" style="height:250px;border-radius:8px; border: 1px solid #ddd;"></div>
-            <div
-                style="margin-top:8px;font-size:12px;color:var(--mau-chu-nhat); display: flex; justify-content: space-between;">
-                <span>Vĩ độ: {{ thua.vi_do }} | Kinh độ: {{ thua.kinh_do }}</span>
-                <span style="font-weight: 600; color: var(--mau-chinh);">GIS Parcel</span>
-            </div>
-        </div>
+        <div>
+            <div class="panel" style="height: 100%; position: relative;">
+                <div class="panel__tieu_de"><i class="fas fa-shield-alt"></i> Phân tích Quy hoạch</div>
+                
+                {% if vi_pham %}
+                <div style="margin-bottom: 20px; background: #fff5f5; padding: 12px; border-radius: 8px; border: 1px solid #fee2e2;">
+                    <div style="font-size: 12px; color: #991b1b; font-weight: 600;">TỔNG DIỆN TÍCH BỊ ẢNH HƯỞNG</div>
+                    <div style="font-size: 28px; font-weight: 800; color: #ef4444;">{{ tong_dt_vi_pham|floatformat:2 }} m²</div>
+                </div>
 
-        <!-- LỊCH SỬ BIẾN ĐỘNG -->
-        <div class="bang_container" style="margin-top:20px;">
-            <div class="bang_tieu_de">
-                <h3>Lịch sử biến động</h3>
-            </div>
-            {% if bien_dong %}
-            <table class="bang">
-                <thead>
-                    <tr>
-                        <th>Loại biến động</th>
-                        <th>Ngày</th>
-                        <th>Văn bản</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for bd in bien_dong %}
-                    <tr>
-                        <td>{{ bd.get_loai_bien_dong_display }}</td>
-                        <td>{{ bd.ngay_bien_dong|date:"d/m/Y" }}</td>
-                        <td>{{ bd.so_van_ban|default:"—" }}</td>
-                    </tr>
+                <div style="max-height: 420px; overflow-y: auto; padding-right: 5px;">
+                    {% for item in vi_pham %}
+                    <div class="qh-item" onclick="highlightQh('{{ item.quy_hoach.pk }}')">
+                        <div style="font-weight: 700; color: #1e293b; font-size: 14px;">{{ item.quy_hoach.ten_vung }}</div>
+                        <div style="font-size: 11px; color: #64748b; margin-top: 2px;">{{ item.quy_hoach.get_loai_quy_hoach_display }}</div>
+                        <div style="margin-top: 10px; font-size: 13px; display: flex; justify-content: space-between; align-items: flex-end;">
+                            <span style="color:#64748b;">Chồng lấn: <strong style="color:#1e293b;">{{ item.dien_tich_m2|floatformat:1 }} m²</strong></span>
+                            <span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 700;">{{ item.phan_tram|floatformat:1 }}%</span>
+                        </div>
+                        <div class="qh-progress">
+                            <div class="qh-progress-bar" style="width: {{ item.phan_tram }}%"></div>
+                        </div>
+                    </div>
                     {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <div class="trang_trong" style="padding:20px;">
-                <h4>Chưa có biến động</h4>
+                </div>
+                {% else %}
+                <div class="trang_trong" style="padding: 60px 0;">
+                    <div style="font-size: 45px; color: #22c55e; margin-bottom: 20px;"><i class="fas fa-check-shield"></i></div>
+                    <h4 style="color: #1e293b;">Thửa đất an toàn</h4>
+                    <p style="font-size: 13px; color: #64748b;">Không phát hiện chồng lấn ranh giới với các vùng quy hoạch hiện hành.</p>
+                </div>
+                {% endif %}
+
+                <div class="panel__tieu_de" style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fas fa-marker"></i> Ghi chú GIS</span>
+                    <a href="{% url 'hs_chinh_sua' thua.pk %}" title="Sửa ghi chú" style="font-size: 14px; color: #3b82f6;"><i class="fas fa-pen"></i></a>
+                </div>
+                <div style="font-size: 13px; color: #475569; line-height: 1.6; background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px dashed #cbd5e1;">
+                    {{ thua.ghi_chu|default:"Chưa có ghi chú địa chính." }}
+                </div>
             </div>
-            {% endif %}
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block js_them %}
+{% load l10n %}
+<!-- Thư viện chuyên sâu -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+
+<!-- Leaflet.Measure (Giai đoạn 3) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-measure@3.1.0/dist/leaflet-measure.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet-measure@3.1.0/dist/leaflet-measure.min.js"></script>
+
 <script>
-    var lat = {% if thua.vi_do %}{% templatetag openvariable %} thua.vi_do {% templatetag closevariable %} {% else %} 16.047{% endif %};
-    var lng = {% if thua.kinh_do %}{% templatetag openvariable %} thua.kinh_do {% templatetag closevariable %} {% else %} 108.206{% endif %};
-    const m = L.map('ban_do_nho').setView([lat, lng], 17);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(m);
-
-    let boundary;
-    const geojsonData = '{% templatetag openvariable %} thua.geojson|safe {% templatetag closevariable %}';
-
-    if (geojsonData && geojsonData !== 'None' && geojsonData !== '') {
-        try {
-            boundary = L.geoJSON(JSON.parse(geojsonData), {
-                style: function () {
-                    return {
-                        color: "#2563eb",
-                        weight: 3,
-                        opacity: 0.8,
-                        fillColor: "#3b82f6",
-                        fillOpacity: 0.35
-                    };
-                }
-            }).addTo(m);
-            m.fitBounds(boundary.getBounds());
-            boundary.bindPopup('<b>Ranh giới thửa: {% templatetag openvariable %} thua.ma_thua {% templatetag closevariable %}</b>').openPopup();
-        } catch (e) {
-            console.error("Lỗi hiển thị GeoJSON:", e);
-            L.marker([lat, lng]).addTo(m).bindPopup('<b>{% templatetag openvariable %} thua.ma_thua {% templatetag closevariable %}</b>').openPopup();
+    // 1. CHUYỂN TAB & REFRESH MAP
+    function moTab(evt, tenTab) {
+        let i, tabContent, tabButtons;
+        tabContent = document.getElementsByClassName("tab-noi-dung");
+        for (i = 0; i < tabContent.length; i++) tabContent[i].classList.remove("hien-thi");
+        tabButtons = document.getElementsByClassName("tab-nut");
+        for (i = 0; i < tabButtons.length; i++) tabButtons[i].classList.remove("kich-hoat");
+        document.getElementById(tenTab).classList.add("hien-thi");
+        if (evt) evt.currentTarget.classList.add("kich-hoat");
+        
+        if(tenTab === 'ban-do' && window.m) {
+            setTimeout(() => { 
+                window.m.invalidateSize(); 
+                zoomToExtents(); 
+            }, 300);
         }
-    } else {
-        // Fallback marker nếu không có polygon
-        L.marker([lat, lng])
-            .addTo(m)
-            .bindPopup('<b>{% templatetag openvariable %} thua.ma_thua {% templatetag closevariable %}</b><br>Chưa có dữ liệu ranh giới vùng.')
-            .openPopup();
     }
+
+    // 2. KHỞI TẠO BẢN ĐỒ
+    {% localize off %}
+    const centerLat = {{ thua.centroid.y|default:16.047 }};
+    const centerLng = {{ thua.centroid.x|default:108.206 }};
+    {% endlocalize %}
+
+    window.m = L.map('ban_do_chi_tiet', {
+        zoomControl: true,
+        attributionControl: false
+    }).setView([centerLat, centerLng], 18);
+
+    // Google Satellite + Hybrid
+    const satellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+        maxZoom: 22, subdomains:['mt0','mt1','mt2','mt3']
+    }).addTo(window.m);
+
+    // 3. CÔNG CỤ ĐO ĐẠC (Giai đoạn 3)
+    const measureControl = new L.Control.Measure({
+        position: 'topleft',
+        primaryLengthUnit: 'meters',
+        secondaryLengthUnit: 'kilometers',
+        primaryAreaUnit: 'sqmeters',
+        activeColor: '#f59e0b',
+        completedColor: '#d97706',
+        localization: 'vi'
+    });
+    measureControl.addTo(window.m);
+
+    // 4. VẼ DỮ LIỆU
+    const layerGroup = L.featureGroup().addTo(window.m);
+    const qhLayers = {};
+
+    const geojsonPlotStr = '{{ geojson_thua|safe|default:"null" }}';
+    if (geojsonPlotStr && geojsonPlotStr !== "null") {
+        try {
+            const data = JSON.parse(geojsonPlotStr);
+            const plotLayer = L.geoJSON(data, {
+                style: {
+                    color: "#2563eb", weight: 3, opacity: 1,
+                    fillColor: "#3b82f6", fillOpacity: 0.5
+                }
+            }).addTo(layerGroup);
+
+            // Click vào thửa đất hiện Popup (Giai đoạn 3)
+            plotLayer.bindPopup(`
+                <div style="min-width:180px;">
+                    <h4 style="margin:0 0 5px 0; color:#2563eb;">{{ thua.ma_thua }}</h4>
+                    <p style="margin:0; font-size:12px;"><b>Tờ/Thửa:</b> {{ thua.so_to }}/{{ thua.so_thua }}</p>
+                    <p style="margin:0; font-size:12px;"><b>Diện tích:</b> {{ thua.dien_tich|floatformat:1 }} m²</p>
+                    <p style="margin:0; font-size:12px;"><b>Chủ sở hữu:</b> {% for c in thua.danh_sach_chu_su_dung.all %}{{ c.ho_ten }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+                </div>
+            `);
+            
+            // Tính toán GIS chuẩn
+            const area = turf.area(data);
+            document.getElementById('gis_area').innerText = area.toFixed(1) + ' m²';
+            document.getElementById('gis_centroid').innerText = centerLat.toFixed(6) + ', ' + centerLng.toFixed(6);
+            
+            let nodesCount = 0;
+            if (data.type === "Polygon") nodesCount = data.coordinates[0].length;
+            else if (data.type === "MultiPolygon") nodesCount = data.coordinates[0][0].length;
+            document.getElementById('gis_nodes').innerText = nodesCount;
+
+        } catch(e) { console.error(e); }
+    }
+
+    // Vẽ vùng quy hoạch
+    {% for item in vi_pham %}
+        {% if item.geojson %}
+        try {
+            const qhData = JSON.parse('{{ item.geojson|safe }}');
+            const qhL = L.geoJSON(qhData, {
+                style: { color: "#ef4444", weight: 1, fillColor: "#ef4444", fillOpacity: 0.3, dashArray: '5, 5' }
+            }).bindPopup("<b>{{ item.quy_hoach.ten_vung }}</b><br>Diện tích chồng lấn: {{ item.dien_tich_m2|floatformat:1 }} m²")
+            .addTo(window.m);
+            qhLayers['{{ item.quy_hoach.pk }}'] = qhL;
+        } catch(e) {}
+        {% endif %}
+    {% endfor %}
+
+    // 5. MAP INTERACTION
+    function zoomToExtents() {
+        if (!layerGroup.getBounds().isValid()) return;
+        window.m.fitBounds(layerGroup.getBounds(), { padding: [50, 50], maxZoom: 20 });
+    }
+
+    function toggleFullscreen() {
+        const doc = window.document;
+        const docEl = document.getElementById('ban_do_chi_tiet').parentNode;
+        const requestFS = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+        const cancelFS = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+        if(!doc.fullscreenElement) requestFS.call(docEl); else cancelFS.call(doc);
+    }
+
+    function highlightQh(pk) {
+        if(qhLayers[pk]) {
+            window.m.fitBounds(qhLayers[pk].getBounds());
+            qhLayers[pk].openPopup();
+            // Hiệu ứng flash
+            const el = qhLayers[pk];
+            el.setStyle({fillOpacity: 0.7});
+            setTimeout(() => el.setStyle({fillOpacity: 0.3}), 500);
+        }
+    }
+
 </script>
 {% endblock %}

@@ -1,0 +1,157 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% block tieu_de %}{{ tieu_de_trang }}{% endblock %}
+
+{% block noi_dung %}
+<div class="duong_dan">
+    <a href="{% url 'hs_danh_sach' %}">Hồ sơ đất</a>
+    <span class="duong_dan__phan_cach">›</span>
+    <a href="{% url 'hs_chi_tiet' thua.pk %}">{{ thua.ma_thua }}</a>
+    <span class="duong_dan__phan_cach">›</span>
+    <span>Lịch sử: Văn bản số {{ bd.so_van_ban|default:bd.pk }}</span>
+</div>
+
+<div class="tieu_de_trang" style="display:flex; justify-content:space-between; align-items:center;">
+    <h2>Giấy biên nhận Giao Dịch</h2>
+    <div>
+        {% if bd.trang_thai == 'hoan_tat' %}
+            <span class="huy_hieu huy_hieu--xanh" style="font-size:14px; padding:8px 15px;"><i class="fas fa-check-circle"></i> ĐÃ HOÀN TẤT</span>
+        {% elif bd.trang_thai == 'dang_xu_ly' %}
+            <span class="huy_hieu huy_hieu--cam" style="font-size:14px; padding:8px 15px;"><i class="fas fa-spinner fa-spin"></i> ĐANG XỬ LÝ</span>
+        {% else %}
+            <span class="huy_hieu huy_hieu--xam" style="font-size:14px; padding:8px 15px;"><i class="fas fa-ban"></i> ĐÃ HỦY BỎ</span>
+        {% endif %}
+    </div>
+</div>
+
+{% if has_warning %}
+<div class="panel" style="background-color:#ffebeb; border-left: 5px solid red; margin-bottom: 20px;">
+    <h3 style="color:red; margin-top:0;">⚠️ Cảnh báo Giao dịch Rủi ro cao!</h3>
+    <p>Thuở đất này đang có cảnh báo Vi Phạm Quy Hoạch hoặc Tranh Chấp chưa được xử lý!</p>
+</div>
+{% endif %}
+
+<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:20px;">
+    <!-- NỘI DUNG GIAO DỊCH -->
+    <div>
+        <div class="panel" style="margin-bottom:20px;">
+            <div class="panel__tieu_de">Chi tiết văn bản / Quyết định</div>
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Số văn bản định danh</div>
+                <div class="hang_chi_tiet__gia_tri"><strong>{{ bd.so_van_ban|default:"—" }}</strong></div>
+            </div>
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Loại hình biến động</div>
+                <div class="hang_chi_tiet__gia_tri">
+                    <span class="huy_hieu huy_hieu--xanh-da-troi">{{ bd.get_loai_bien_dong_display }}</span>
+                </div>
+            </div>
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Ngày thực thi / có hiệu lực</div>
+                <div class="hang_chi_tiet__gia_tri">{{ bd.ngay_bien_dong|date:"d/m/Y" }}</div>
+            </div>
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Giá trị khai báo</div>
+                <div class="hang_chi_tiet__gia_tri"><strong style="color:green;">{{ bd.gia_tri_giao_dich|default:"0" }} VNĐ</strong></div>
+            </div>
+            <div class="hang_chi_tiet">
+                <div class="hang_chi_tiet__nhan">Cán bộ / Cơ quan thụ lý</div>
+                <div class="hang_chi_tiet__gia_tri">{{ bd.nguoi_ghi_nhan|default:"—" }}</div>
+            </div>
+            <div class="hang_chi_tiet" style="border-bottom:none;">
+                <div class="hang_chi_tiet__nhan">Mô tả / Ghi chú</div>
+                <div class="hang_chi_tiet__gia_tri"><i>{{ bd.mo_ta|default:"—" }}</i></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel__tieu_de">Hồ sơ Scan / Đính kèm tài liệu</div>
+            <div style="padding: 20px; background-color: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1; text-align:center;">
+                {% if bd.tai_lieu_dinh_kem %}
+                    <i class="fas fa-file-pdf" style="font-size:40px; color:#ef4444; margin-bottom:10px;"></i><br>
+                    <a href="{{ bd.tai_lieu_dinh_kem.url }}" target="_blank" class="nut nut--chinh nut--nho" style="margin-top:10px;"><i class="fas fa-download"></i> Tải Xuống Bản Scan</a>
+                {% else %}
+                    <i class="fas fa-file-excel" style="font-size:40px; color:#bbb; margin-bottom:10px;"></i>
+                    <p style="color:#666; margin:0;">Không có hồ sơ số hóa nào được đính kèm vào giao dịch này.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- CỘT PHẢI -->
+    <div>
+        <div class="panel" style="margin-bottom:20px;">
+            <div class="panel__tieu_de">Chuyển nhượng Quyền Sở Hữu</div>
+            <div style="text-align:center; padding: 15px 0;">
+                <div style="border: 2px solid #ef4444; border-radius:8px; padding:15px; margin-bottom: 10px; background-color:#fef2f2;">
+                    <div style="font-size:12px; font-weight:bold; color:#ef4444; margin-bottom:5px;">[BÊN GIAO]</div>
+                    {% if bd.chu_cu %}
+                        <div style="font-size:16px; font-weight:bold;">{{ bd.chu_cu.ho_ten }}</div>
+                        <div style="font-size:13px; color:#666;">CMND/CCCD: {{ bd.chu_cu.so_giay_to }}</div>
+                    {% else %}
+                        <div style="color:#888;"><i>(Trống)</i></div>
+                    {% endif %}
+                </div>
+                
+                <i class="fas fa-arrow-down" style="font-size:24px; color:#ccc;"></i>
+                
+                <div style="border: 2px solid #22c55e; border-radius:8px; padding:15px; margin-top: 10px; background-color:#f0fdf4;">
+                    <div style="font-size:12px; font-weight:bold; color:#22c55e; margin-bottom:5px;">[BÊN NHẬN]</div>
+                    {% if bd.chu_moi %}
+                        <div style="font-size:16px; font-weight:bold;">{{ bd.chu_moi.ho_ten }}</div>
+                        <div style="font-size:13px; color:#666;">CMND/CCCD: {{ bd.chu_moi.so_giay_to }}</div>
+                    {% else %}
+                        <div style="color:#888;"><i>(Trống)</i></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel__tieu_de">Bản đồ Thửa đất liên quan</div>
+            <a href="{% url 'hs_chi_tiet' thua.pk %}" style="text-decoration:none;">
+                <div style="background-color:#1e40af; color:white; padding:10px; border-radius:6px 6px 0 0; font-weight:bold; text-align:center;">
+                    📌 Thửa: {{ thua.ma_thua }}
+                </div>
+            </a>
+            <div id="ban_do_nho" style="height:200px;border-radius:0 0 8px 8px; border: 1px solid #ddd;"></div>
+        </div>
+    </div>
+</div>
+
+<div style="margin-top:20px;">
+    <a href="{% url 'hs_chi_tiet' thua.pk %}" class="nut nut--vien">🔙 Quay lại Phím tắt Thửa đất</a>
+</div>
+{% endblock %}
+
+{% block js_them %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    var lat = {{ thua.centroid.y|default:16.047 }};
+    var lng = {{ thua.centroid.x|default:108.206 }};
+    const m = L.map('ban_do_nho').setView([lat, lng], 17);
+    L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        maxZoom: 20
+    }).addTo(m);
+
+    let boundary;
+    const geojsonData = '{{ thua.mpoly.geojson|safe|default:"" }}';
+
+    if (geojsonData && geojsonData !== 'None' && geojsonData !== '') {
+        try {
+            boundary = L.geoJSON(JSON.parse(geojsonData), {
+                style: function () {
+                    return { color: "#f59e0b", weight: 3, opacity: 0.8, fillColor: "#fbbf24", fillOpacity: 0.35 };
+                }
+            }).addTo(m);
+            m.fitBounds(boundary.getBounds());
+            boundary.bindPopup('<b>Thửa mục tiêu giao dịch</b>').openPopup();
+        } catch (e) {
+            L.marker([lat, lng]).addTo(m);
+        }
+    } else {
+        L.marker([lat, lng]).addTo(m);
+    }
+</script>
+{% endblock %}

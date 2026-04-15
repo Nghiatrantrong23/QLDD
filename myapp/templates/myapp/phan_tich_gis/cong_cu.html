@@ -104,7 +104,9 @@
 
 {% block js_them %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>
 <script>
     const ban_do_pt = L.map('ban_do_pt').setView([16.047, 108.206], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(ban_do_pt);
@@ -116,6 +118,29 @@
         document.getElementById('buf_kinh_do').value = e.latlng.lng.toFixed(6);
         if (marker_tam) marker_tam.remove();
         marker_tam = L.marker(e.latlng).addTo(ban_do_pt).bindPopup('Tâm phân tích').openPopup();
+    });
+
+    // Cấu hình Geoman cho trang phân tích
+    ban_do_pt.pm.addControls({
+        position: 'topleft',
+        drawMarker: true,
+        drawPolygon: true,
+        drawRectangle: true,
+        drawCircle: true,
+        removalMode: true,
+    });
+    ban_do_pt.pm.setLang('vi');
+
+    // Tự động điền tọa độ khi vẽ Marker bằng Geoman
+    ban_do_pt.on('pm:create', function(e) {
+        if (e.shape === 'Marker') {
+            const latlng = e.layer.getLatLng();
+            document.getElementById('buf_vi_do').value = latlng.lat.toFixed(6);
+            document.getElementById('buf_kinh_do').value = latlng.lng.toFixed(6);
+            if (marker_tam) marker_tam.remove();
+            marker_tam = e.layer;
+            marker_tam.bindPopup('Tâm phân tích').openPopup();
+        }
     });
 
     function gui_phan_tich(form_id) {
