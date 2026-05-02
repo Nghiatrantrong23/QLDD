@@ -1,0 +1,234 @@
+{% comment %}
+  ORS ROUTING PANEL - Thay thế Leaflet Routing Machine
+  Dùng OpenRouteService API (ổn định, miễn phí 500 req/ngày)
+  
+  Cách dùng: 
+  {% include 'myapp/components/routing_ors_panel.html' %}
+{% endcomment %}
+
+<style>
+.ors-routing-panel {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    width: 300px;
+    background: linear-gradient(145deg, #1e3a5f 0%, #0f2027 100%);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    z-index: 1000;
+    overflow: hidden;
+    color: white;
+}
+
+.ors-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    background: rgba(0,0,0,0.2);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.ors-header i { color: #60a5fa; font-size: 20px; }
+.ors-header span { font-weight: 700; font-size: 15px; }
+
+.ors-body { padding: 20px; }
+
+.ors-profiles {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.ors-profile-btn {
+    padding: 10px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    color: rgba(255,255,255,0.7);
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ors-profile-btn:hover { background: rgba(255,255,255,0.1); }
+.ors-profile-btn.active { 
+    background: #3b82f6; 
+    border-color: #3b82f6; 
+    color: white; 
+    box-shadow: 0 4px 12px rgba(59,130,246,0.4);
+}
+
+.ors-input-group {
+    position: relative;
+    margin-bottom: 12px;
+}
+
+.ors-input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+}
+.ors-input-icon.start { color: #10b981; }
+.ors-input-icon.end { color: #dc2626; }
+
+.ors-input {
+    width: 100%;
+    padding: 12px 12px 12px 40px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    color: white;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.ors-input::placeholder { color: rgba(255,255,255,0.4); }
+.ors-input:focus { border-color: #3b82f6; background: rgba(255,255,255,0.12); }
+
+.ors-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.ors-btn-primary {
+    flex: 1;
+    padding: 12px;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.ors-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59,130,246,0.5); }
+
+.ors-btn-clear {
+    width: 44px;
+    height: 44px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.ors-btn-clear:hover { background: rgba(220,38,38,0.2); border-color: #dc2626; color: #dc2626; }
+
+.ors-info {
+    display: none;
+    margin-top: 16px;
+    padding: 16px;
+    background: rgba(0,0,0,0.25);
+    border-radius: 12px;
+}
+
+.ors-info.active { display: block; }
+
+.ors-info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.ors-info-row:last-child { margin-bottom: 0; }
+
+.ors-info-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(255,255,255,0.7); }
+.ors-info-value { font-size: 18px; font-weight: 700; }
+
+.ors-api-note {
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(59,130,246,0.1);
+    border: 1px solid rgba(59,130,246,0.3);
+    border-radius: 8px;
+    font-size: 12px;
+    color: #60a5fa;
+}
+
+.ors-api-note a { color: #93c5fd; text-decoration: underline; }
+</style>
+
+<div class="ors-routing-panel" id="orsRoutingPanel">
+    <div class="ors-header">
+        <i class="fas fa-route"></i>
+        <span>Tìm đường (ORS)</span>
+    </div>
+    <div class="ors-body">
+        <!-- Profiles -->
+        <div class="ors-profiles">
+            <button class="ors-profile-btn active" data-profile="driving-car" onclick="setORSProfile('driving-car')">🚗</button>
+            <button class="ors-profile-btn" data-profile="cycling-regular" onclick="setORSProfile('cycling-regular')">🚲</button>
+            <button class="ors-profile-btn" data-profile="foot-walking" onclick="setORSProfile('foot-walking')">🚶</button>
+        </div>
+        
+        <!-- Start -->
+        <div class="ors-input-group">
+            <span class="ors-input-icon start">📍</span>
+            <input type="text" id="orsStartInput" class="ors-input" placeholder="Click chọn điểm bắt đầu..." readonly>
+        </div>
+        
+        <!-- End -->
+        <div class="ors-input-group">
+            <span class="ors-input-icon end">🏁</span>
+            <input type="text" id="orsEndInput" class="ors-input" placeholder="Click chọn điểm đến..." readonly>
+        </div>
+        
+        <!-- Actions -->
+        <div class="ors-actions">
+            <button class="ors-btn-primary" onclick="calculateORSRoute(MapApp.state.map)">
+                <i class="fas fa-search-location"></i> Tìm đường
+            </button>
+            <button class="ors-btn-clear" onclick="clearORSRoute(MapApp.state.map)" title="Xóa">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        
+        <!-- Info -->
+        <div class="ors-info" id="orsInfo">
+            <div class="ors-info-row">
+                <span class="ors-info-label"><i class="fas fa-road"></i> Khoảng cách</span>
+                <span class="ors-info-value" id="orsDistance">--</span>
+            </div>
+            <div class="ors-info-row">
+                <span class="ors-info-label"><i class="fas fa-clock"></i> Thời gian</span>
+                <span class="ors-info-value" id="orsTime">--</span>
+            </div>
+        </div>
+        
+        <!-- API Note -->
+        <div class="ors-api-note">
+            <i class="fas fa-info-circle"></i> Cần API Key: 
+            <a href="https://openrouteservice.org/dev/" target="_blank">Đăng ký miễn phí</a> (500 req/ngày)
+        </div>
+    </div>
+</div>
+
+<!-- Load ORS Routing JS -->
+<script src="{% static 'myapp/js/routing_ors.js' %}"></script>
+<script>
+// Khởi tạo khi map ready
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        if (MapApp && MapApp.state.map) {
+            initORSRouting(MapApp.state.map);
+        }
+    }, 2000);
+});
+</script>

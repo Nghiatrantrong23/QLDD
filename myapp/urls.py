@@ -1,18 +1,23 @@
-from django.urls import path
-from myapp.views import tong_quan, ban_do, ho_so_dat, phan_tich_gis, bao_cao, canh_bao, quy_hoach, chu_su_dung, export_import, auth_views, bien_dong
+from django.urls import path, include
+from myapp.views import tong_quan, ban_do, ho_so_dat, phan_tich_gis, bao_cao, canh_bao, quy_hoach, chu_su_dung, export_import, auth_views, bien_dong, nguoi_dung, quan_ly_nguoi_dung
+from myapp.views import routing_views
 # from myapp.views import quan_ly_nguoi_dung, api, can_bo
 
 urlpatterns = [
-    # Phân hệ CÁN BỘ ĐỊA CHÍNH (Mới - Chuyên biệt)
-    # path('can-bo/', can_bo.cb_tong_quan, name='cb_tong_quan'),
-    # path('can-bo/ban-do/', can_bo.cb_ban_do_nghiep_vu, name='cb_ban_do'),
-
+   
     # Trang chủ - Tổng quan
     path('', tong_quan.tong_quan, name='tong_quan'),
+    
+    # Routing API (Django Backend)
+    path('api/routing/ors/directions/', routing_views.ors_directions, name='ors_directions'),
+    path('api/routing/geocode/', routing_views.geocode_address, name='geocode_address'),
+    path('api/routing/reverse-geocode/', routing_views.reverse_geocode, name='reverse_geocode'),
+    path('api/routing/status/', routing_views.routing_status, name='routing_status'),
 
     # Xác thực
     path('dang-nhap/', auth_views.UserLoginView.as_view(), name='dang_nhap'),
     path('dang-xuat/', auth_views.UserLogoutView.as_view(), name='dang_xuat'),
+    path('dang-ky/', auth_views.UserRegisterView.as_view(), name='dang_ky'),
 
     # Bản đồ
     path('ban-do/', ban_do.ban_do, name='ban_do'),
@@ -22,7 +27,8 @@ urlpatterns = [
     path('ban-do/api/tim-kiem/', ban_do.api_tim_kiem_thua_dat, name='api_tim_kiem_ban_do'),
     path('api/add-parcel/', ban_do.api_them_thua_dat, name='api_them_thua_dat'),
     path('api/update-parcel/<int:thua_id>/', ban_do.api_cap_nhat_thua_dat, name='api_cap_nhat_thua_dat'),
-
+    path('api/check-planning/', ban_do.api_check_planning, name='api_check_planning'),
+    path('api/history/', ban_do.api_lich_su, name='api_lich_su'),
     # API GIS
     # path('api/tinh-dien-tich/', api.api_tinh_dien_tich, name='api_tinh_dien_tich'),
     # path('api/tim-kiem/', api.api_tim_kiem_thua_dat, name='api_tim_kiem'),
@@ -51,10 +57,12 @@ urlpatterns = [
     # Báo cáo
     path('bao-cao/', bao_cao.danh_sach, name='bc_danh_sach'),
     path('bao-cao/xuat-excel/', bao_cao.xuat_excel_thong_ke, name='bc_xuat_excel'),
+    path('bao-cao/xuat-pdf/', bao_cao.xuat_pdf_thong_ke, name='bc_xuat_pdf'),
     path('bao-cao/<str:loai>/', bao_cao.xem_bao_cao, name='bc_xem'),
 
     # Cảnh báo
     path('canh-bao/', canh_bao.danh_sach, name='cb_danh_sach'),
+    path('canh-bao/them-moi/', canh_bao.them_moi, name='cb_them_moi'),
     path('canh-bao/<int:pk>/', canh_bao.chi_tiet, name='cb_chi_tiet'),
     path('canh-bao/<int:pk>/danh-dau-xu-ly/', canh_bao.danh_dau_xu_ly, name='cb_xu_ly'),
 
@@ -65,25 +73,29 @@ urlpatterns = [
     path('quy-hoach/<int:pk>/chinh-sua/', quy_hoach.chinh_sua, name='qh_chinh_sua'),
     path('quy-hoach/<int:pk>/xoa/', quy_hoach.xoa, name='qh_xoa'),
 
-    # Chủ sử dụng đất
+    # Chủ sử dụng đất (alias: chu-su-dung = chu-so-huu)
     path('chu-so-huu/', chu_su_dung.danh_sach, name='chu_danh_sach'),
-    # path('chu-so-huu/<int:pk>/', chu_su_dung.chi_tiet, name='chu_chi_tiet'),
+    path('chu-su-dung/', chu_su_dung.danh_sach, name='chu_danh_sach_alt'),
+    path('chu-so-huu/<int:pk>/', chu_su_dung.chi_tiet, name='chu_chi_tiet'),
+    path('chu-su-dung/<int:pk>/', chu_su_dung.chi_tiet, name='chu_chi_tiet_alt'),
     path('chu-so-huu/them-moi/', chu_su_dung.them_moi, name='chu_them_moi'),
+    path('chu-su-dung/them-moi/', chu_su_dung.them_moi, name='chu_them_moi_alt'),
     path('chu-so-huu/<int:pk>/chinh-sua/', chu_su_dung.chinh_sua, name='chu_chinh_sua'),
+    path('chu-su-dung/<int:pk>/chinh-sua/', chu_su_dung.chinh_sua, name='chu_chinh_sua_alt'),
     path('chu-so-huu/<int:pk>/xoa/', chu_su_dung.xoa, name='chu_xoa'),
+    path('chu-su-dung/<int:pk>/xoa/', chu_su_dung.xoa, name='chu_xoa_alt'),
+
+    # Quản lý người dùng (Dành cho công dân)
+    path('profile/', nguoi_dung.user_dashboard, name='profile_dashboard'),
+    path('api/my-parcels/', nguoi_dung.api_user_parcels, name='api_my_parcels'),
 
     # Quản lý người dùng (admin)
-    # path('nguoi-dung/', quan_ly_nguoi_dung.danh_sach_nguoi_dung, name='nd_danh_sach'),
-    # path('nguoi-dung/them-moi/', quan_ly_nguoi_dung.them_nguoi_dung, name='nd_them_moi'),
-    # path('nguoi-dung/<int:pk>/chinh-sua/', quan_ly_nguoi_dung.chinh_sua_nguoi_dung, name='nd_chinh_sua'),
-    # path('nguoi-dung/<int:pk>/xoa/', quan_ly_nguoi_dung.xoa_nguoi_dung, name='nd_xoa'),
-    # API Nghiệp vụ Cán bộ
-    # path('api/thua-dat/all/', api.api_lay_tat_ca_thua_dat, name='api_lay_tat_ca_thua_dat'),
-    # path('api/thua-dat/add/', api.api_them_thua_dat, name='api_them_thua_dat'),
-    # path('api/thua-dat/update/<int:pk>/', api.api_cap_nhat_thua_dat, name='api_cap_nhat_thua_dat'),
-    # path('api/gis/kiem-tra-quy-hoach/', api.api_kiem_tra_quy_hoach, name='api_kiem_tra_quy_hoach'),
-    # path('api/geocoding/', api.api_geocoding_proxy, name='api_geocoding'),
-
+    path('nguoi-dung/', quan_ly_nguoi_dung.danh_sach_nguoi_dung, name='nd_danh_sach'),
+    path('nguoi-dung/them-moi/', quan_ly_nguoi_dung.them_nguoi_dung, name='nd_them_moi'),
+    path('nguoi-dung/<int:pk>/chinh-sua/', quan_ly_nguoi_dung.chinh_sua_nguoi_dung, name='nd_chinh_sua'),
+    path('nguoi-dung/<int:pk>/xoa/', quan_ly_nguoi_dung.xoa_nguoi_dung, name='nd_xoa'),
+    path('api/user-actions/', quan_ly_nguoi_dung.api_thao_tac_tai_khoan, name='api_user_actions'),
+    
   
 ]
 

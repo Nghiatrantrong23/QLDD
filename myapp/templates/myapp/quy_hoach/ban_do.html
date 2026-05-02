@@ -35,9 +35,7 @@
                     <a href="{% url 'qh_chi_tiet' vung.pk %}">{{ vung.ten_vung }}</a>
                 </div>
                 <div style="font-size:12px;color:var(--mau-chu-nhat);margin-top:4px;">
-                    <span class="huy_hieu huy_hieu--xanh-da-troi" style="font-size:11px;">{{
-                        vung.get_loai_quy_hoach_display }}</span>
-                    &nbsp; Năm {{ vung.nam_quy_hoach }}
+                    <span class="huy_hieu huy_hieu--xanh-da-troi" style="font-size:11px;">{{ vung.get_loai_quy_hoach_display }}</span>&nbsp; Năm {{ vung.nam_quy_hoach }}
                 </div>
             </div>
             {% endfor %}
@@ -65,12 +63,17 @@
     };
 
     {% for vung in ds_quy_hoach %}
-    {% if vung.geojson %}
+    {% if vung.mpoly %}
     try {
-        L.geoJSON({% templatetag openvariable %} vung.geojson | safe {% templatetag closevariable %}, {
-        style: { color: mau_qh['{% templatetag openvariable %} vung.loai_quy_hoach {% templatetag closevariable %}'] || '#6366f1', fillOpacity: 0.3, weight: 2 }
-    }).addTo(ban_do_qh).bindPopup('<b>{% templatetag openvariable %} vung.ten_vung {% templatetag closevariable %}</b><br>{% templatetag openvariable %} vung.get_loai_quy_hoach_display {% templatetag closevariable %}');
-  } catch (e) { }
+        const geojson_{{ vung.pk }} = {{ vung.mpoly.geojson|safe }};
+        L.geoJSON(geojson_{{ vung.pk }}, {
+            style: { 
+                color: mau_qh['{{ vung.loai_quy_hoach }}'] || '#6366f1', 
+                fillOpacity: 0.3, 
+                weight: 2 
+            }
+        }).addTo(ban_do_qh).bindPopup('<b>{{ vung.ten_vung|escapejs }}</b><br>{{ vung.get_loai_quy_hoach_display|escapejs }}');
+    } catch (e) { console.error('Lỗi vẽ vùng {{ vung.pk }}:', e); }
     {% endif %}
     {% endfor %}
 </script>

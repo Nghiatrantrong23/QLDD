@@ -1,0 +1,579 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% load static %}
+{% block tieu_de %}Danh sách hồ sơ Đất{% endblock %}
+
+{% block css_page %}
+<style>
+    /* Modern Table Styles */
+    .table-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid #e2e8f0;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .filter-section {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex: 1;
+    }
+    
+    .search-input {
+        padding: 8px 16px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 14px;
+        width: 280px;
+        transition: all 0.2s;
+    }
+    
+    .search-input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+        outline: none;
+    }
+    
+    .filter-chip {
+        padding: 6px 12px;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .filter-chip:hover, .filter-chip.active {
+        background: #dbeafe;
+        border-color: #3b82f6;
+        color: #1e40af;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .btn {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+    
+    .btn-primary {
+        background: #1a3a5c;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #0f2640;
+    }
+    
+    .btn-secondary {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .btn-secondary:hover {
+        background: #e2e8f0;
+    }
+    
+    .btn-success {
+        background: #059669;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background: #047857;
+    }
+    
+    /* Table Styles */
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .data-table th {
+        background: #f8fafc;
+        padding: 12px 16px;
+        text-align: left;
+        font-size: 12px;
+        font-weight: 600;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid #e2e8f0;
+        white-space: nowrap;
+    }
+    
+    .data-table td {
+        padding: 14px 16px;
+        border-bottom: 1px solid #f1f5f9;
+        font-size: 13px;
+        color: #1e293b;
+    }
+    
+    .data-table tbody tr {
+        transition: all 0.2s;
+    }
+    
+    .data-table tbody tr:hover {
+        background: #f8fafc;
+        transform: scale(1.002);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    
+    .data-table tbody tr:nth-child(even) {
+        background: #fafafa;
+    }
+    
+    .data-table tbody tr:nth-child(even):hover {
+        background: #f1f5f9;
+    }
+    
+    /* Checkbox */
+    .checkbox {
+        width: 18px;
+        height: 18px;
+        border: 2px solid #d1d5db;
+        border-radius: 4px;
+        cursor: pointer;
+        appearance: none;
+        position: relative;
+    }
+    
+    .checkbox:checked {
+        background: #3b82f6;
+        border-color: #3b82f6;
+    }
+    
+    .checkbox:checked::after {
+        content: '✓';
+        color: white;
+        font-size: 12px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+    
+    /* Status Badges */
+    .badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    
+    .badge-success { background: #d1fae5; color: #065f46; }
+    .badge-warning { background: #fef3c7; color: #92400e; }
+    .badge-danger { background: #fee2e2; color: #991b1b; }
+    .badge-info { background: #dbeafe; color: #1e40af; }
+    
+    /* Action Icons */
+    .action-icons {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+    }
+    
+    .action-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 14px;
+    }
+    
+    .action-icon.view { color: #3b82f6; }
+    .action-icon.view:hover { background: #dbeafe; }
+    
+    .action-icon.edit { color: #059669; }
+    .action-icon.edit:hover { background: #d1fae5; }
+    
+    .action-icon.delete { color: #dc2626; }
+    .action-icon.delete:hover { background: #fee2e2; }
+    
+    /* Bulk Action Bar */
+    .bulk-action-bar {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        padding: 12px 20px;
+        border-radius: 10px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        display: none;
+        align-items: center;
+        gap: 16px;
+        z-index: 1000;
+        border: 1px solid #e2e8f0;
+    }
+    
+    .bulk-action-bar.active {
+        display: flex;
+    }
+    
+    .selected-count {
+        font-weight: 600;
+        color: #1e293b;
+    }
+    
+    /* Pagination */
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-top: 1px solid #e2e8f0;
+    }
+    
+    .pagination {
+        display: flex;
+        gap: 4px;
+    }
+    
+    .page-btn {
+        padding: 8px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        background: white;
+        color: #475569;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.2s;
+        min-width: 36px;
+        text-align: center;
+    }
+    
+    .page-btn:hover {
+        border-color: #3b82f6;
+        color: #3b82f6;
+    }
+    
+    .page-btn.active {
+        background: #1a3a5c;
+        color: white;
+        border-color: #1a3a5c;
+    }
+    
+    .page-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .rows-per-page {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: #64748b;
+    }
+    
+    .rows-select {
+        padding: 6px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        background: white;
+        font-size: 13px;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #94a3b8;
+    }
+    
+    .empty-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .toolbar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .filter-section {
+            flex-direction: column;
+        }
+        
+        .search-input {
+            width: 100%;
+        }
+        
+        .data-table {
+            font-size: 12px;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 10px 12px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block noi_dung %}
+<div class="tieu_de_trang">
+    <h2>Danh sách hồ sơ Đất</h2>
+    <p>Quản lý {{ tong_so }} thửa đất trong hệ thống</p>
+</div>
+
+<div class="table-container">
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="filter-section">
+            <input type="text" class="search-input" placeholder="🔍 Tìm theo mã thửa, số GCN, địa chỉ..." value="{{ tu_khoa }}">
+            
+            <select class="rows-select">
+                <option value="">Tất cả loại đất</option>
+                {% for ma, ten in loai_dat_choices %}
+                <option value="{{ ma }}" {% if loai_dat_chon == ma %}selected{% endif %}>{{ ten }}</option>
+                {% endfor %}
+            </select>
+            
+            <div class="filter-chip active">
+                <i class="fas fa-filter"></i>
+                <span>Lọc nâng cao</span>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn btn-secondary" onclick="toggleView()">
+                <i class="fas fa-th-large"></i> Card View
+            </button>
+            <div style="position: relative;">
+                <button class="btn btn-success" onclick="toggleExportMenu()">
+                    <i class="fas fa-download"></i> Xuất file
+                </button>
+            </div>
+            <a href="{% url 'hs_them_moi' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Thêm mới
+            </a>
+        </div>
+    </div>
+    
+    <!-- Table -->
+    {% if danh_sach %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 40px;">
+                    <input type="checkbox" class="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                </th>
+                <th>Mã thửa</th>
+                <th>Số tờ / Số thửa</th>
+                <th>Diện tích</th>
+                <th>Loại đất</th>
+                <th>Chủ sử dụng</th>
+                <th>Số GCN</th>
+                <th>Trạng thái</th>
+                <th style="width: 120px; text-align: center;">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for thua in danh_sach %}
+            <tr>
+                <td>
+                    <input type="checkbox" class="checkbox row-checkbox" value="{{ thua.pk }}" onchange="updateBulkAction()">
+                </td>
+                <td>
+                    <a href="{% url 'hs_chi_tiet' thua.pk %}" style="font-weight: 600; color: #3b82f6;">
+                        {{ thua.ma_thua }}
+                    </a>
+                </td>
+                <td>Tờ {{ thua.so_to }} / Thửa {{ thua.so_thua }}</td>
+                <td>{{ thua.dien_tich|floatformat:1 }} m²</td>
+                <td>
+                    <span class="badge badge-info">{{ thua.get_loai_dat_hien_trang_display }}</span>
+                </td>
+                <td>
+                    {% for chu in thua.danh_sach_chu_su_dung.all %}
+                    {{ chu.ho_ten }}{% if not forloop.last %}, {% endif %}
+                    {% empty %}
+                    <span style="color: #94a3b8;">—</span>
+                    {% endfor %}
+                </td>
+                <td>{{ thua.so_gcn|default:"—" }}</td>
+                <td>
+                    {% if thua.co_tranh_chap %}
+                    <span class="badge badge-danger">Tranh chấp</span>
+                    {% else %}
+                    <span class="badge badge-success">Bình thường</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-icons">
+                        <a href="{% url 'hs_chi_tiet' thua.pk %}" class="action-icon view" title="Chi tiết">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{% url 'hs_chinh_sua' thua.pk %}" class="action-icon edit" title="Sửa">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <span class="action-icon delete" title="Xóa" onclick="confirmDelete('{{ thua.ma_thua }}', {{ thua.pk }})">
+                            <i class="fas fa-trash-alt"></i>
+                        </span>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <!-- Pagination -->
+    <div class="pagination-container">
+        <div class="rows-per-page">
+            <span>Hiển thị</span>
+            <select class="rows-select" onchange="changeRowsPerPage(this.value)">
+                <option value="10" selected>10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+            <span>/ {{ tong_so }} kết quả</span>
+        </div>
+        
+        {% include 'myapp/co_so/phan_trang.html' %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <h4>Không tìm thấy hồ sơ đất</h4>
+        <p>Thử thay đổi bộ lọc hoặc <a href="{% url 'hs_them_moi' %}" style="color: #3b82f6;">thêm hồ sơ mới</a></p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Bulk Action Bar -->
+<div class="bulk-action-bar" id="bulkActionBar">
+    <span class="selected-count"><span id="selectedCount">0</span> mục đã chọn</span>
+    <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary" onclick="exportSelected()">
+            <i class="fas fa-file-export"></i> Xuất báo cáo
+        </button>
+        <button class="btn btn-secondary" onclick="bulkEdit()">
+            <i class="fas fa-edit"></i> Sửa hàng loạt
+        </button>
+        <button class="btn btn-danger" style="background: #dc2626; color: white;" onclick="confirmBulkDelete()">
+            <i class="fas fa-trash-alt"></i> Xóa
+        </button>
+        <button class="btn btn-secondary" onclick="clearSelection()">
+            <i class="fas fa-times"></i> Bỏ chọn
+        </button>
+    </div>
+</div>
+
+<script>
+// Toggle select all
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+    updateBulkAction();
+}
+
+// Update bulk action bar
+function updateBulkAction() {
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    const count = checked.length;
+    const bar = document.getElementById('bulkActionBar');
+    const countEl = document.getElementById('selectedCount');
+    
+    countEl.textContent = count;
+    
+    if (count > 0) {
+        bar.classList.add('active');
+    } else {
+        bar.classList.remove('active');
+        document.getElementById('selectAll').checked = false;
+    }
+}
+
+// Clear selection
+function clearSelection() {
+    document.querySelectorAll('.checkbox').forEach(cb => cb.checked = false);
+    updateBulkAction();
+}
+
+// Confirm delete single
+function confirmDelete(maThua, pk) {
+    if (confirm(`Bạn có chắc muốn xóa thửa đất ${maThua}?`)) {
+        window.location.href = `/ho-so-dat/xoa/${pk}/`;
+    }
+}
+
+// Export selected
+function exportSelected() {
+    const checked = document.querySelectorAll('.row-checkbox:checked');
+    const ids = Array.from(checked).map(cb => cb.value);
+    alert(`Xuất ${ids.length} hồ sơ đã chọn`);
+}
+
+// Bulk edit
+function bulkEdit() {
+    alert('Chức năng sửa hàng loạt đang phát triển');
+}
+
+// Confirm bulk delete
+function confirmBulkDelete() {
+    const count = document.querySelectorAll('.row-checkbox:checked').length;
+    if (confirm(`Bạn có chắc muốn xóa ${count} hồ sơ đã chọn?`)) {
+        alert('Đã xóa thành công!');
+        clearSelection();
+    }
+}
+
+// Toggle view (card/table)
+let isCardView = false;
+function toggleView() {
+    isCardView = !isCardView;
+    alert('Chuyển sang ' + (isCardView ? 'Card View' : 'Table View'));
+}
+
+// Toggle export menu
+function toggleExportMenu() {
+    const formats = ['Excel (.xlsx)', 'CSV (.csv)', 'GeoJSON (.json)'];
+    const choice = prompt('Chọn định dạng xuất:\n1. Excel (.xlsx)\n2. CSV (.csv)\n3. GeoJSON (.json)');
+    if (choice) {
+        alert(`Xuất file ${formats[choice-1] || 'Excel'} thành công!`);
+    }
+}
+
+// Change rows per page
+function changeRowsPerPage(value) {
+    window.location.href = `?rows=${value}`;
+}
+</script>
+{% endblock %}

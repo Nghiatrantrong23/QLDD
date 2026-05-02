@@ -1,11 +1,18 @@
 {% extends 'myapp/co_so/khung_chinh.html' %}
+{% load static %}
 {% block tieu_de %}Chi tiết - {{ thua.ma_thua }}{% endblock %}
+
+{% block css_page %}
+<link rel="stylesheet" href="{% static 'myapp/css/ho_so_dat.css' %}">
+{% endblock %}
 
 {% block header_nut %}
 <div class="toolbar-hanh-dong">
     <a href="{% url 'hs_bao_cao' thua.pk %}" target="_blank" class="nut nut--phu nut--nho"><i class="fas fa-print"></i> In GCN</a>
+    {% if user.is_superuser %}
     <a href="{% url 'hs_them_giao_dich' thua.pk %}" class="nut nut--chinh nut--nho"><i class="fas fa-plus"></i> Thêm giao dịch</a>
     <a href="{% url 'hs_chinh_sua' thua.pk %}" class="nut nut--vien nut--nho"><i class="fas fa-edit"></i> Sửa</a>
+    {% endif %}
 </div>
 {% endblock %}
 
@@ -230,7 +237,13 @@
             <div class="panel__tieu_de"><i class="fas fa-certificate"></i> Giấy chứng nhận</div>
             <div class="hang_chi_tiet">
                 <div class="hang_chi_tiet__nhan">Số GCN</div>
-                <div class="hang_chi_tiet__gia_tri"><strong>{{ thua.so_gcn|default:"Chưa cấp" }}</strong></div>
+                <div class="hang_chi_tiet__gia_tri"><strong>
+                    {% if user.is_superuser or is_owner %}
+                    {{ thua.so_gcn|default:"Chưa cấp" }}
+                    {% else %}
+                    ********
+                    {% endif %}
+                </strong></div>
             </div>
             <div class="hang_chi_tiet">
                 <div class="hang_chi_tiet__nhan">Thời hạn sử dụng</div>
@@ -258,8 +271,20 @@
                     {% if chu.loai_doi_tuong == 'to_chuc' %}<i class="fas fa-building"></i>{% else %}<i class="fas fa-user"></i>{% endif %}
                 </div>
                 <div>
-                    <div style="font-weight: 700; font-size: 15px; color: var(--mau-chinh);">{{ chu.ho_ten }}</div>
-                    <div style="font-size: 12px; color: #64748b; margin-top: 2px;">{{ chu.get_loai_doi_tuong_display }} • {{ chu.so_giay_to }}</div>
+                    <div style="font-weight: 700; font-size: 15px; color: var(--mau-chinh);">
+                        {% if user.is_superuser or is_owner %}
+                        {{ chu.ho_ten }}
+                        {% else %}
+                        Công dân (Bảo mật)
+                        {% endif %}
+                    </div>
+                    <div style="font-size: 12px; color: #64748b; margin-top: 2px;">
+                        {% if user.is_superuser or is_owner %}
+                        {{ chu.get_loai_doi_tuong_display }} • {{ chu.so_giay_to }}
+                        {% else %}
+                        Bị hạn chế truy cập
+                        {% endif %}
+                    </div>
                 </div>
             </div>
             {% empty %}
@@ -274,7 +299,9 @@
     <div class="panel">
         <div class="panel__tieu_de" style="display:flex; justify-content:space-between; align-items:center;">
             <span><i class="fas fa-history"></i> Lịch sử tài sản</span>
+            {% if user.is_superuser %}
             <a href="{% url 'hs_them_giao_dich' thua.pk %}" class="nut nut--chinh nut--nho"><i class="fas fa-plus"></i> Tạo giao dịch mới</a>
+            {% endif %}
         </div>
         {% if bien_dong %}
         <table class="bang">
@@ -292,7 +319,11 @@
                 <tr>
                     <td><strong>{{ bd.get_loai_bien_dong_display }}</strong></td>
                     <td>
-                        {% if bd.chu_moi %}<div><i class="fas fa-arrow-right" style="font-size:10px; color:#10b981;"></i> {{ bd.chu_moi.ho_ten }}</div>{% endif %}
+                        {% if user.is_superuser or is_owner %}
+                            {% if bd.chu_moi %}<div><i class="fas fa-arrow-right" style="font-size:10px; color:#10b981;"></i> {{ bd.chu_moi.ho_ten }}</div>{% endif %}
+                        {% else %}
+                            <div><i class="fas fa-user-shield" style="font-size:10px; color:#94a3b8;"></i> Thông tin bảo mật</div>
+                        {% endif %}
                         <div style="font-size: 12px; color: #64748b;">{{ bd.mo_ta|truncatechars:100 }}</div>
                     </td>
                     <td>{{ bd.ngay_bien_dong|date:"d/m/Y" }}</td>
@@ -325,7 +356,9 @@
                 <div class="map-toolbar">
                     <button class="map-btn" title="Phóng đến thửa đất" onclick="zoomToExtents()"><i class="fas fa-expand-arrows-alt"></i></button>
                     <button class="map-btn" title="Toàn màn hình" onclick="toggleFullscreen()"><i class="fas fa-expand"></i></button>
+                    {% if user.is_superuser %}
                     <a href="{% url 'hs_chinh_sua' thua.pk %}" class="map-btn" title="Chỉnh sửa ranh giới" style="color:#f59e0b;"><i class="fas fa-draw-polygon"></i></a>
+                    {% endif %}
                     
                     <div class="gis-legend">
                         <div style="font-weight:700; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom:5px; color:var(--mau-chinh);">Chú giải bản đồ</div>

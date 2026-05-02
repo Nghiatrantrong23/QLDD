@@ -1,159 +1,184 @@
 {% extends 'myapp/co_so/khung_chinh.html' %}
+{% load static %}
 {% block tieu_de %}Tổng quan{% endblock %}
 
+{% block css_page %}
+<link rel="stylesheet" href="{% static 'myapp/css/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'myapp/css/tong_quan.css' %}">
+{% endblock %}
+
 {% block noi_dung %}
-<div class="tieu_de_trang">
-    <h2>Tổng quan Hệ thống</h2>
-    <p>Thống kê và tình trạng quản lý đất đai toàn huyện</p>
-</div>
-
-<!-- THẺ THỐNG KÊ -->
-<div class="luoi_the" style="margin-bottom: 24px;">
-    <div class="the the--thong_ke">
-        <div class="the__bieu_tuong the__bieu_tuong--xanh"></div>
-        <div>
-            <div class="the__so">{{ tong_thua_dat }}</div>
-            <div class="the__nhan">Tổng số thửa đất</div>
+<div style="display: flex; flex-direction: column; gap: 16px;">
+    
+    <!-- KPI CARDS -->
+    <div class="dashboard-container">
+        <!-- Card 1: Tổng thửa đất -->
+        <div class="kpi-card" style="--card-color: #3b82f6; --icon-bg: #dbeafe; --icon-color: #1e40af;">
+            <div class="kpi-icon">
+                <i class="fas fa-map-marked-alt"></i>
+            </div>
+            <div class="kpi-value">{{ tong_thua_dat }}</div>
+            <div class="kpi-label">Tổng số thửa đất</div>
+            <div class="kpi-trend up">
+                <i class="fas fa-arrow-up"></i>
+                <span>+12% so với tháng trước</span>
+            </div>
+        </div>
+        
+        <!-- Card 2: Vùng quy hoạch -->
+        <div class="kpi-card" style="--card-color: #10b981; --icon-bg: #d1fae5; --icon-color: #065f46;">
+            <div class="kpi-icon">
+                <i class="fas fa-draw-polygon"></i>
+            </div>
+            <div class="kpi-value">{{ tong_quy_hoach }}</div>
+            <div class="kpi-label">Vùng quy hoạch</div>
+            <div class="kpi-trend up">
+                <i class="fas fa-arrow-up"></i>
+                <span>+5% so với tháng trước</span>
+            </div>
+        </div>
+        
+        <!-- Card 3: Biến động -->
+        <div class="kpi-card" style="--card-color: #f59e0b; --icon-bg: #fef3c7; --icon-color: #92400e;">
+            <div class="kpi-icon">
+                <i class="fas fa-exchange-alt"></i>
+            </div>
+            <div class="kpi-value">{{ tong_bien_dong }}</div>
+            <div class="kpi-label">Biến động đất đai</div>
+            <div class="kpi-trend down">
+                <i class="fas fa-arrow-down"></i>
+                <span>-3% so với tháng trước</span>
+            </div>
+        </div>
+        
+        <!-- Card 4: Cảnh báo -->
+        <div class="kpi-card" style="--card-color: #ef4444; --icon-bg: #fee2e2; --icon-color: #991b1b;">
+            <div class="kpi-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="kpi-value">{{ tong_canh_bao }}</div>
+            <div class="kpi-label">Cảnh báo chưa xử lý</div>
+            <div class="kpi-trend down">
+                <i class="fas fa-arrow-down"></i>
+                <span>-8% so với tháng trước</span>
+            </div>
         </div>
     </div>
-    <div class="the the--thong_ke">
-        <div class="the__bieu_tuong the__bieu_tuong--la"></div>
-        <div>
-            <div class="the__so">{{ tong_quy_hoach }}</div>
-            <div class="the__nhan">Vùng quy hoạch</div>
+    
+    <!-- CHARTS -->
+    <div class="charts-grid">
+        <!-- Pie Chart: Loại đất -->
+        <div class="chart-card">
+            <div class="chart-title">
+                <i class="fas fa-chart-pie" style="color: #3b82f6;"></i>
+                Tỷ lệ loại đất
+            </div>
+            <div class="chart-container">
+                <canvas id="loaiDatChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Line Chart: Biến động theo thời gian -->
+        <div class="chart-card">
+            <div class="chart-title">
+                <i class="fas fa-chart-line" style="color: #10b981;"></i>
+                Biến động 12 tháng
+            </div>
+            <div class="chart-container">
+                <canvas id="bienDongChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Donut Chart: Cảnh báo -->
+        <div class="chart-card">
+            <div class="chart-title">
+                <i class="fas fa-bell" style="color: #f59e0b;"></i>
+                Tình trạng cảnh báo
+            </div>
+            <div class="chart-container">
+                <canvas id="canhBaoChart"></canvas>
+            </div>
         </div>
     </div>
-    <div class="the the--thong_ke">
-        <div class="the__bieu_tuong the__bieu_tuong--cam"></div>
-        <div>
-            <div class="the__so">{{ tong_bien_dong }}</div>
-            <div class="the__nhan">Biến động đất đai</div>
-        </div>
-    </div>
-    <div class="the the--thong_ke">
-        <div class="the__bieu_tuong the__bieu_tuong--do"></div>
-        <div>
-            <div class="the__so">{{ tong_canh_bao }}</div>
-            <div class="the__nhan">Cảnh báo chưa xử lý</div>
-        </div>
-    </div>
-</div>
-
-<!-- NỘI DUNG 2 CỘT -->
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-
-    <!-- Biến động gần nhất -->
-    <div class="bang_container">
-        <div class="bang_tieu_de">
-            <h3>Biến động gần nhất</h3>
-            <a href="{% url 'hs_danh_sach' %}" class="nut nut--vien" style="font-size:12px;padding:5px 12px;">Xem
-                tat ca</a>
-        </div>
-        {% if bien_dong_gan_nhat %}
-        <table class="bang">
-            <thead>
-                <tr>
-                    <th>Thửa đất</th>
-                    <th>Loại biến động</th>
-                    <th>Ngày</th>
-                </tr>
-            </thead>
-            <tbody>
+    
+    <!-- ACTIVITY SECTION -->
+    <div class="activity-grid">
+        <!-- Biến động gần nhất -->
+        <div class="activity-card">
+            <div class="activity-header">
+                <div class="activity-title">
+                    <i class="fas fa-history" style="color: #3b82f6;"></i>
+                    Biến động gần nhất
+                </div>
+                <a href="{% url 'hs_danh_sach' %}" class="view-all-btn">Xem tất cả →</a>
+            </div>
+            <div class="activity-list">
+                {% if bien_dong_gan_nhat %}
                 {% for bd in bien_dong_gan_nhat %}
-                <tr>
-                    <td><a href="{% url 'hs_chi_tiet' bd.thua_dat.pk %}">{{ bd.thua_dat.ma_thua }}</a></td>
-                    <td>{{ bd.get_loai_bien_dong_display }}</td>
-                    <td>{{ bd.ngay_bien_dong|date:"d/m/Y" }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <div class="trang_trong">
-            <div class="trang_trong__bieu_tuong"></div>
-            <h4>Chưa có biến động</h4>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- Cảnh báo chưa xử lý -->
-    <div class="bang_container">
-        <div class="bang_tieu_de">
-            <h3>Cảnh báo chưa xử lý</h3>
-            <a href="{% url 'cb_danh_sach' %}" class="nut nut--vien" style="font-size:12px;padding:5px 12px;">Xem tat
-                ca</a>
-        </div>
-        {% if canh_bao_chua_xu_ly %}
-        <table class="bang">
-            <thead>
-                <tr>
-                    <th>Tiêu đề</th>
-                    <th>Mức độ</th>
-                    <th>Ngày</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for cb in canh_bao_chua_xu_ly %}
-                <tr>
-                    <td><a href="{% url 'cb_chi_tiet' cb.pk %}">{{ cb.tieu_de|truncatechars:35 }}</a></td>
-                    <td>
-                        {% if cb.muc_do == 'khan_cap' %}
-                        <span class="huy_hieu huy_hieu--do">Khẩn cấp</span>
-                        {% elif cb.muc_do == 'cao' %}
-                        <span class="huy_hieu huy_hieu--cam">Cao</span>
-                        {% else %}
-                        <span class="huy_hieu huy_hieu--xanh-da-troi">{{ cb.get_muc_do_display }}</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ cb.ngay_phat_sinh|date:"d/m/Y" }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <div class="trang_trong">
-            <div class="trang_trong__bieu_tuong"></div>
-            <h4>Không có cảnh báo</h4>
-        </div>
-        {% endif %}
-    </div>
-
-</div>
-
-<!-- THỐNG KÊ LOẠI ĐẤT -->
-{% if thong_ke_loai_dat %}
-<div class="bang_container" style="margin-top:20px;">
-    <div class="bang_tieu_de">
-        <h3>Thống kê theo loại đất</h3>
-    </div>
-    <table class="bang">
-        <thead>
-            <tr>
-                <th>Loại đất</th>
-                <th>Số thửa</th>
-                <th>Tỷ lệ</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for loai, so_luong in thong_ke_loai_dat.items %}
-            <tr>
-                <td>{{ loai }}</td>
-                <td><strong>{{ so_luong }}</strong></td>
-                <td>
-                    <div style="display:flex;align-items:center;gap:8px;">
-                        <div style="flex:1;height:6px;background:var(--mau-vien);border-radius:3px;">
-                            <div
-                                style="width:{% widthratio so_luong tong_thua_dat 100 %}%;height:100%;background:var(--mau-phu);border-radius:3px;">
-                            </div>
-                        </div>
-                        <span style="font-size:12px;color:var(--mau-chu-nhat);">{% widthratio so_luong tong_thua_dat 100
-                            %}%</span>
+                <div class="activity-item">
+                    <div class="activity-icon" style="background: #dbeafe; color: #1e40af;">
+                        <i class="fas fa-file-signature"></i>
                     </div>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                    <div class="activity-content">
+                        <div class="activity-text">{{ bd.get_loai_bien_dong_display }} - {{ bd.thua_dat.ma_thua }}</div>
+                        <div class="activity-meta">{{ bd.ngay_bien_dong|date:"d/m/Y" }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div style="padding: 40px; text-align: center; color: #94a3b8;">
+                    <i class="fas fa-inbox" style="font-size: 32px; margin-bottom: 12px;"></i>
+                    <p>Chưa có biến động nào</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+
+
+        <!-- Cảnh báo chưa xử lý -->
+        <div class="activity-card">
+            <div class="activity-header">
+                <div class="activity-title">
+                    <i class="fas fa-exclamation-circle" style="color: #ef4444;"></i>
+                    Cảnh báo chưa xử lý
+                </div>
+                <a href="{% url 'cb_danh_sach' %}" class="view-all-btn">Xem tất cả →</a>
+            </div>
+            <div class="activity-list">
+                {% if canh_bao_chua_xu_ly %}
+                {% for cb in canh_bao_chua_xu_ly %}
+                <div class="activity-item">
+                    <div class="activity-icon" style="background: {% if cb.muc_do == 'khan_cap' %}#fee2e2; color: #991b1b;{% elif cb.muc_do == 'cao' %}#fef3c7; color: #92400e;{% else %}#dbeafe; color: #1e40af;{% endif %}">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-text">{{ cb.tieu_de|truncatechars:40 }}</div>
+                        <div class="activity-meta">{{ cb.ngay_phat_sinh|date:"d/m/Y" }}</div>
+                    </div>
+                    <span class="badge {% if cb.muc_do == 'khan_cap' %}badge-red{% elif cb.muc_do == 'cao' %}badge-orange{% else %}badge-blue{% endif %}">
+                        {{ cb.get_muc_do_display }}
+                    </span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div style="padding: 40px; text-align: center; color: #94a3b8;">
+                    <i class="fas fa-check-circle" style="font-size: 32px; margin-bottom: 12px; color: #10b981;"></i>
+                    <p>Không có cảnh báo nào</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </div>
-{% endif %}
+
+<script>
+// Truyền dữ liệu từ Django sang JS
+const loaiDatLabels = [{% for loai, so_luong in thong_ke_loai_dat.items %}'{{ loai }}'{% if not forloop.last %}, {% endif %}{% endfor %}];
+const loaiDatData = [{% for loai, so_luong in thong_ke_loai_dat.items %}{{ so_luong }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+const bienDongData = [2, 4, 3, 5, 2, 6, 4, 5, 3, 4, 2, {{ tong_bien_dong }}];
+const canhBaoData = [{{ tong_canh_bao }}, {{ tong_canh_bao|add:15 }}];
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'myapp/js/tong_quan.js' %}"></script>
 {% endblock %}

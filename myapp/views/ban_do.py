@@ -6,7 +6,6 @@ from django.contrib.auth.decorators import login_required
 from myapp.models import ThuaDat, VungQuyHoach
 
 @login_required
-
 def ban_do(request):
     """Trang Bản đồ tương tác Leaflet"""
     context = {
@@ -19,39 +18,58 @@ def ban_do(request):
 @login_required
 def api_danh_sach_thua_dat(request):
     """API trả về GeoJSON của tất cả thửa đất để Leaflet vẽ lên bản đồ"""
+    is_admin_staff = request.user.is_superuser or request.user.is_staff
+    user_cccd = request.user.username
+    
     features = []
-    # Dùng .defer() để không tải toàn bộ WKB/GeoJSON lớn trừ khi thật cần thiết
+    # Dùng .prefetch_related để tối ưu hóa truy vấn M2M
     for thua in ThuaDat.objects.prefetch_related('danh_sach_chu_su_dung').all():
-        # Nếu có ranh giới Polygon thì thêm Feature ranh giới
         if thua.mpoly:
             try:
                 geometry = json.loads(thua.mpoly.geojson)
+                
+                # Kiểm tra quyền xem thông tin riêng tư (Admin/Cán bộ hoặc chính chủ)
+                can_see_private = is_admin_staff or thua.danh_sach_chu_su_dung.filter(so_giay_to=user_cccd).exists()
 
                 if geometry:
+                    props = {
+                        "id": thua.id,
+                        "ma_thua": thua.ma_thua,
+                        "loai_hien_thi": "ranh_gioi",
+                        "so_to": thua.so_to,
+                        "so_thua": thua.so_thua,
+                        "dien_tich": thua.dien_tich,
+                        "loai_dat": thua.get_loai_dat_hien_trang_display(),
+                        "centroid": {"coordinates": [thua.centroid.x, thua.centroid.y]} if thua.centroid else None,
+                        "muc_dich_su_dung": thua.muc_dich_su_dung or "",
+                        "dia_chi": thua.dia_chi_thua or "",
+                    }
+
+                    # Xử lý bảo mật thông tin
+                    if can_see_private:
+                        props.update({
+                            "chu_su_dung": ", ".join([c.ho_ten for c in thua.danh_sach_chu_su_dung.all()]) if thua.danh_sach_chu_su_dung.exists() else "Chưa có",
+                            "so_gcn": thua.so_gcn or "",
+                            "ngay_cap_gcn": thua.ngay_cap_gcn.strftime('%d/%m/%Y') if thua.ngay_cap_gcn else "",
+                            "thoi_han_su_dung": thua.thoi_han_su_dung.strftime('%d/%m/%Y') if thua.thoi_han_su_dung else "",
+                            "ghi_chu": thua.ghi_chu or "",
+                        })
+                    else:
+                        props.update({
+                            "chu_su_dung": "Thông tin bảo mật",
+                            "so_gcn": "********",
+                            "ngay_cap_gcn": "--/--/----",
+                            "thoi_han_su_dung": "--/--/----",
+                            "ghi_chu": "Bị hạn chế truy cập",
+                        })
+
                     features.append({
                         "type": "Feature",
                         "id": thua.id,
                         "geometry": geometry,
-                        "properties": {
-                            "id": thua.id,
-                            "ma_thua": thua.ma_thua,
-                            "loai_hien_thi": "ranh_gioi",
-                            "so_to": thua.so_to,
-                            "so_thua": thua.so_thua,
-                            "dien_tich": thua.dien_tich,
-                            "loai_dat": thua.get_loai_dat_hien_trang_display(),
-                            "chu_su_dung": ", ".join([c.ho_ten for c in thua.danh_sach_chu_su_dung.all()]) if thua.danh_sach_chu_su_dung.exists() else "Chưa có",
-                            "centroid": {"coordinates": [thua.centroid.x, thua.centroid.y]} if thua.centroid else None,
-                            "so_gcn": thua.so_gcn or "",
-                            "ngay_cap_gcn": thua.ngay_cap_gcn.strftime('%d/%m/%Y') if thua.ngay_cap_gcn else "",
-                            "thoi_han_su_dung": thua.thoi_han_su_dung.strftime('%d/%m/%Y') if thua.thoi_han_su_dung else "",
-                            "that_nghiep_lau": thua.co_tranh_chap,
-                            "muc_dich_su_dung": thua.muc_dich_su_dung or "",
-                            "ghi_chu": thua.ghi_chu or "",
-                            "dia_chi": thua.dia_chi_thua or "",
-                        }
+                        "properties": props
                     })
-            except (json.JSONDecodeError, KeyError):
+            except Exception:
                 pass
 
     return JsonResponse({"type": "FeatureCollection", "features": features})
@@ -159,3 +177,86 @@ def api_cap_nhat_thua_dat(request, thua_id):
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
     return JsonResponse({"status": "error", "message": "Method not allowed"}, status=405)
+
+@login_required
+def api_check_planning(request):
+    """API kiểm tra tỷ lệ giao cắt giữa Thửa đất và Vùng quy hoạch"""
+    thua_id = request.GET.get('thua_id')
+    if not thua_id:
+        return JsonResponse({"error": "Thiếu thua_id"}, status=400)
+    
+    try:
+        thua = ThuaDat.objects.get(id=thua_id)
+        if not thua.mpoly:
+            return JsonResponse({"vi_pham": False, "chi_tiet": []})
+
+        vung_vi_pham = []
+        
+        # Lấy tất cả vùng quy hoạch giao cắt với thửa đất
+        vung_queryset = VungQuyHoach.objects.filter(geom__intersects=thua.mpoly)
+        
+        for vung in vung_queryset:
+            # Tính phần bị giao cắt
+            tuong_giao = thua.mpoly.intersection(vung.geom)
+            
+            from myapp.services import phan_tich_gis
+            dien_tich_giao = phan_tich_gis.compute_area_m2(tuong_giao)
+            dien_tich_thua = phan_tich_gis.compute_area_m2(thua.mpoly) or 1
+            phan_tram = (dien_tich_giao / dien_tich_thua) * 100
+            
+            vung_vi_pham.append({
+                "vung_id": vung.id,
+                "vung_ten": vung.ten_vung,
+                "loai_quy_hoach": vung.get_loai_quy_hoach_display(),
+                "phan_tram": float(phan_tram),
+                "dien_tich_giao": float(dien_tich_giao),
+                "muc_do": vung.muc_do_nghiem_trong
+            })
+            
+        return JsonResponse({
+            "vi_pham": len(vung_vi_pham) > 0,
+            "chi_tiet": vung_vi_pham
+        })
+    except ThuaDat.DoesNotExist:
+        return JsonResponse({"error": "Không tìm thấy thửa đất"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+def api_lich_su(request):
+    """API lấy lịch sử biến động của thửa đất"""
+    thua_id = request.GET.get('thua_id')
+    if not thua_id:
+        return JsonResponse({"error": "Thiếu thua_id"}, status=400)
+    
+    try:
+        thua = ThuaDat.objects.get(id=thua_id)
+        is_admin_staff = request.user.is_superuser or request.user.is_staff
+        can_see_private = is_admin_staff or thua.danh_sach_chu_su_dung.filter(so_giay_to=request.user.username).exists()
+
+        from myapp.models import BienDongDat
+        biendongs = BienDongDat.objects.filter(thua_dat_id=thua_id).order_by('-ngay_bien_dong')
+        
+        lich_su = []
+        for bd in biendongs:
+            item = {
+                "ngay": bd.ngay_bien_dong.strftime('%d/%m/%Y'),
+                "loai": bd.get_loai_bien_dong_display(),
+                "so_van_ban": bd.so_van_ban,
+                "mo_ta": bd.mo_ta
+            }
+            
+            # Chỉ hiển thị danh tính chủ sở hữu cũ/mới nếu có quyền
+            if can_see_private:
+                item["chu_cu"] = str(bd.chu_cu) if bd.chu_cu else ""
+                item["chu_moi"] = str(bd.chu_moi) if bd.chu_moi else ""
+            else:
+                item["chu_cu"] = "Cá nhân (Bảo mật)"
+                item["chu_moi"] = "Cá nhân (Bảo mật)"
+                
+            lich_su.append(item)
+            
+        return JsonResponse({"lich_su": lich_su})
+    except ThuaDat.DoesNotExist:
+        return JsonResponse({"error": "Không tìm thấy thửa đất"}, status=404)

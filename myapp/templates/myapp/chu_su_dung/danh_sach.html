@@ -46,8 +46,8 @@
                 <td>{{ chu.so_dien_thoai|default:"-" }}</td>
                 <td>{{ chu.dia_chi|truncatechars:30 }}</td>
                 <td style="text-align:right;">
-                    <a href="{% url 'chu_chinh_sua' chu.pk %}" class="nut_phu nut_phu--sua" title="Sửa">Sửa</a>
-                    <a href="{% url 'chu_xoa' chu.pk %}" class="nut_phu nut_phu--xoa"
+                    <a href="{% url 'chu_chinh_sua' chu.pk %}" class="nut nut--cam" style="font-size:12px;padding:4px 10px;" title="Sửa">Sửa</a>
+                    <a href="{% url 'chu_xoa' chu.pk %}" class="nut nut--do" style="font-size:12px;padding:4px 10px;"
                         onclick="return confirm('Xác nhận xoá chủ sử dụng này?')" title="Xoá">Xoá</a>
                 </td>
             </tr>
@@ -62,4 +62,7 @@
     </div>
     {% endif %}
 </div>
+
+<!-- PHÂN TRANG -->
+{% include 'myapp/co_so/phan_trang.html' %}
 {% endblock %}

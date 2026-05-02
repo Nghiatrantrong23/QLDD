@@ -32,8 +32,7 @@
         <div class="hang_chi_tiet">
             <div class="hang_chi_tiet__nhan">Trạng thái</div>
             <div class="hang_chi_tiet__gia_tri">
-                {% if canh_bao.da_xu_ly %}<span class="huy_hieu huy_hieu--xanh">Đã xử lý ({{
-                    canh_bao.ngay_xu_ly|date:"d/m/Y H:i" }})</span>
+                {% if canh_bao.trang_thai == 'da_hoan_tat' %}<span class="huy_hieu huy_hieu--xanh">Đã xử lý ({{ canh_bao.ngay_xu_ly|date:"d/m/Y H:i" }})</span>
                 {% else %}<span class="huy_hieu huy_hieu--do">Chưa xử lý</span>{% endif %}
             </div>
         </div>
@@ -58,7 +57,7 @@
     </div>
 
     <div>
-        {% if not canh_bao.da_xu_ly %}
+        {% if canh_bao.trang_thai != 'da_hoan_tat' %}
         <div class="panel" style="border-top: 3px solid var(--mau-do);">
             <div class="panel__tieu_de">Xử lý Cảnh báo</div>
             <p style="font-size:13px;color:var(--mau-chu-nhat);margin-bottom:16px;">Sau khi đã kiểm tra và xử lý xong,
@@ -71,8 +70,17 @@
         {% else %}
         <div class="panel" style="border-top: 3px solid var(--mau-xanh-la);">
             <div class="panel__tieu_de">Đã hoàn thành xử lý</div>
-            <p style="font-size:13px;color:var(--mau-chu-nhat);">Cảnh báo này đã được xử lý vào {{
-                canh_bao.ngay_xu_ly|date:"d/m/Y H:i" }}</p>
+            <p style="font-size:13px;color:var(--mau-chu-nhat);">Cảnh báo này đã được xử lý vào {{ canh_bao.ngay_xu_ly|date:"d/m/Y H:i" }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Nút tìm đường đến thửa đất vi phạm -->
+        {% if canh_bao.thua_dat_lien_quan %}
+        <div style="margin-top: 16px;">
+            <a href="{% url 'ban_do' %}?route_to={{ canh_bao.thua_dat_lien_quan.pk }}" 
+               class="nut nut--chinh" style="display:flex;align-items:center;gap:8px;justify-content:center;">
+                <i class="fas fa-route"></i> Tìm đường đến thửa đất này
+            </a>
         </div>
         {% endif %}
     </div>

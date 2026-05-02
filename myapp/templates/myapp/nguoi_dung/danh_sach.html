@@ -1,0 +1,337 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% block tieu_de %}Quản lý tài khoản | Admin GIS{% endblock %}
+
+{% block header_nut %}
+{% if user.is_superuser %}
+<button class="nut_header nut_header--chinh" onclick="openAddUserModal()">+ Thêm người dùng</button>
+{% endif %}
+{% endblock %}
+
+{% block css_page %}
+<style>
+    .admin-container { padding: 24px; background: #f8fafc; min-height: 100vh; }
+    .card-glass {
+        background: white; border-radius: 16px; padding: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+    .status-active { background: #dcfce7; color: #15803d; }
+    .status-locked { background: #fee2e2; color: #b91c1c; }
+    .role-admin { background: #fef9c3; color: #854d0e; }
+    .role-staff { background: #dbeafe; color: #1e40af; }
+    .role-user { background: #f1f5f9; color: #475569; }
+</style>
+{% endblock %}
+
+{% block noi_dung %}
+<div class="admin-container" x-data="adminApp()">
+    <!-- Dashboard Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="card-glass flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-slate-500">Tổng tài khoản</p>
+                <h3 class="text-2xl font-bold text-slate-800">{{ stats.total }}</h3>
+            </div>
+            <div class="p-3 bg-blue-100 text-blue-600 rounded-xl"><i class="fas fa-users text-xl"></i></div>
+        </div>
+        <div class="card-glass flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-slate-500">Đang hoạt động</p>
+                <h3 class="text-2xl font-bold text-green-600">{{ stats.active }}</h3>
+            </div>
+            <div class="p-3 bg-green-100 text-green-600 rounded-xl"><i class="fas fa-user-check text-xl"></i></div>
+        </div>
+        <div class="card-glass flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-slate-500">Bị khóa</p>
+                <h3 class="text-2xl font-bold text-red-600">{{ stats.locked }}</h3>
+            </div>
+            <div class="p-3 bg-red-100 text-red-600 rounded-xl"><i class="fas fa-user-lock text-xl"></i></div>
+        </div>
+        <div class="card-glass flex items-center justify-between">
+            <div>
+                <p class="text-sm font-medium text-slate-500">Cán bộ / Admin</p>
+                <h3 class="text-2xl font-bold text-blue-800">{{ stats.admin|add:stats.can_bo }}</h3>
+            </div>
+            <div class="p-3 bg-slate-100 text-slate-600 rounded-xl"><i class="fas fa-user-shield text-xl"></i></div>
+        </div>
+    </div>
+
+    <!-- Toolbar: Search & Action -->
+    <div class="card-glass mb-6 flex flex-wrap items-center justify-between gap-4">
+        <form method="GET" class="flex gap-4 flex-1 max-w-2xl">
+            <div class="relative flex-1">
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" name="q" value="{{ query }}" placeholder="Tìm theo tên, username, email..." 
+                       class="w-full pl-10 pr-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition">
+            </div>
+            <select name="role" class="px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">-- Tất cả vai trò --</option>
+                <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Admin</option>
+                <option value="can_bo" {% if role_filter == 'can_bo' %}selected{% endif %}>Cán bộ</option>
+                <option value="nguoi_dung" {% if role_filter == 'nguoi_dung' %}selected{% endif %}>Người dùng</option>
+            </select>
+            <select name="status" class="px-4 py-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">-- Tình trạng --</option>
+                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Hoạt động</option>
+                <option value="locked" {% if status_filter == 'locked' %}selected{% endif %}>Đang khóa</option>
+            </select>
+            <button type="submit" class="bg-slate-800 text-white px-6 py-2 rounded-xl hover:bg-slate-900 transition">Lọc</button>
+        </form>
+        <button @click="openAddModal()" class="bg-blue-600 text-white px-6 py-2 rounded-xl hover:bg-blue-700 transition flex items-center shadow-lg">
+            <i class="fas fa-plus mr-2"></i> Thêm tài khoản
+        </button>
+    </div>
+
+    <!-- Data Table -->
+    <div class="card-glass p-0 overflow-hidden">
+        <table class="w-full text-left">
+            <thead class="bg-slate-50 border-b">
+                <tr>
+                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Họ tên / Username</th>
+                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Liên hệ</th>
+                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Vai trò</th>
+                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Phụ trách</th>
+                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Trạng thái</th>
+                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for u in danh_sach %}
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-slate-800">{{ u.get_full_name|default:u.username }}</div>
+                        <div class="text-xs text-slate-500">@{{ u.username }}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm text-slate-700"><i class="far fa-envelope mr-2"></i>{{ u.email }}</div>
+                        <div class="text-sm text-slate-700"><i class="fas fa-phone mr-2"></i>{{ u.system_profile.so_dien_thoai|default:"-" }}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full text-[11px] font-bold uppercase 
+                            {% if u.system_profile.vai_tro == 'admin' %}role-admin{% elif u.system_profile.vai_tro == 'can_bo' %}role-staff{% else %}role-user{% endif %}">
+                            {{ u.system_profile.get_vai_tro_display }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-sm text-slate-600 font-medium">{{ u.system_profile.khu_vuc_phu_trach|default:"-" }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if u.system_profile.is_locked %}
+                        <span class="px-3 py-1 rounded-full text-[11px] font-bold uppercase status-locked">Đang khóa</span>
+                        {% else %}
+                        <span class="px-3 py-1 rounded-full text-[11px] font-bold uppercase status-active">Hoạt động</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="flex justify-end gap-2">
+                            <button @click="openEditModal({{ u.id }}, '{{ u.get_full_name|escapejs }}', '{{ u.email|escapejs }}', '{{ u.system_profile.so_dien_thoai|escapejs }}', '{{ u.system_profile.vai_tro|escapejs }}', '{{ u.system_profile.khu_vuc_phu_trach|default:''|escapejs }}')" 
+                                    class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Sửa">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button @click="toggleLock({{ u.id }})" 
+                                    class="p-2 rounded-lg transition" 
+                                    :class="getLockClass({{ u.id }}, {{ u.system_profile.is_locked|yesno:'true,false' }})"
+                                    title="Khóa/Mở khóa">
+                                <i class="fas" :class="getLockIcon({{ u.id }}, {{ u.system_profile.is_locked|yesno:'true,false' }})"></i>
+                            </button>
+                            <button @click="openResetModal({{ u.id }})" 
+                                    class="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition" title="Reset mật khẩu">
+                                <i class="fas fa-key"></i>
+                            </button>
+                            <form action="{% url 'nd_xoa' u.id %}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn xóa tài khoản này?')" class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition" title="Xóa">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="px-6 py-20 text-center text-slate-400 italic">Không tìm thấy tài khoản nào phù hợp.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <!-- PHÂN TRANG -->
+        {% include 'myapp/co_so/phan_trang.html' %}
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- Add/Edit Modal -->
+    <div x-show="showModal" class="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 p-4" x-cloak>
+        <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden" @click.away="showModal = false">
+            <div class="bg-slate-800 text-white px-6 py-4 flex justify-between items-center">
+                <h3 class="font-bold text-lg" x-text="modalMode === 'add' ? 'Thêm tài khoản mới' : 'Cập nhật tài khoản'"></h3>
+                <button @click="showModal = false"><i class="fas fa-times"></i></button>
+            </div>
+            <form :action="modalAction" method="POST" class="p-6 space-y-4">
+                {% csrf_token %}
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Username</label>
+                    <input type="text" name="username" x-model="formData.username" :disabled="modalMode === 'edit'" required
+                           class="w-full px-4 py-2 border rounded-xl bg-slate-50 focus:bg-white transition focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Họ và tên</label>
+                    <input type="text" name="fullname" x-model="formData.fullname" required
+                           class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
+                        <input type="email" name="email" x-model="formData.email"
+                               class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Số điện thoại</label>
+                        <input type="text" name="phone" x-model="formData.phone"
+                               class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+                    </div>
+                </div>
+                <div x-show="modalMode === 'add'">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Mật khẩu</label>
+                    <input type="password" name="password" :required="modalMode === 'add'"
+                           class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Vai trò</label>
+                        <select name="role" x-model="formData.role" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="nguoi_dung">Người dùng</option>
+                            <option value="can_bo">Cán bộ</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div x-show="modalMode === 'add'">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Trạng thái</label>
+                        <select name="status" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="active">Hoạt động</option>
+                            <option value="locked">Khóa ngay</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Khu vực phụ trách</label>
+                    <input type="text" name="khu_vuc" x-model="formData.khu_vuc" placeholder="Ví dụ: Quận Hải Châu, Phường Hòa Cường..."
+                           class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" @click="showModal = false" class="flex-1 bg-slate-100 py-3 rounded-xl font-bold hover:bg-slate-200 transition">Hủy</button>
+                    <button type="submit" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition">Xác nhận</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Reset Password Modal -->
+    <div x-show="showResetModal" class="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 p-4" x-cloak>
+        <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6" @click.away="showResetModal = false">
+            <h3 class="text-lg font-bold mb-4">Reset Mật khẩu</h3>
+            <p class="text-sm text-slate-500 mb-4">Bạn đang thực hiện cấp lại mật khẩu cho tài khoản. Vui lòng nhập mật khẩu mới:</p>
+            <input type="password" x-model="newPassword" placeholder="Nhập ít nhất 6 ký tự..." 
+                   class="w-full px-4 py-2 border rounded-xl mb-6 focus:ring-2 focus:ring-blue-500 outline-none">
+            <div class="flex gap-3">
+                <button @click="showResetModal = false" class="flex-1 bg-slate-100 py-2 rounded-lg">Hủy</button>
+                <button @click="resetPassword()" class="flex-1 bg-orange-600 text-white py-2 rounded-lg font-bold">Cập nhật</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block js_them %}
+<script>
+    function adminApp() {
+        return {
+            showModal: false,
+            showResetModal: false,
+            modalMode: 'add',
+            modalAction: '{% url "nd_them_moi" %}',
+            lockStates: {}, // Cache trạng thái khóa local
+            formData: { username: '', fullname: '', email: '', phone: '', role: 'nguoi_dung', khu_vuc: '' },
+            currentUserId: null,
+            newPassword: '',
+
+            openAddModal() {
+                this.modalMode = 'add';
+                this.modalAction = '{% url "nd_them_moi" %}';
+                this.formData = { username: '', fullname: '', email: '', phone: '', role: 'nguoi_dung', khu_vuc: '' };
+                this.showModal = true;
+            },
+
+            openEditModal(id, fullname, email, phone, role, khu_vuc) {
+                this.modalMode = 'edit';
+                this.modalAction = `/nguoi-dung/${id}/chinh-sua/`;
+                this.formData = { username: 'Hidden', fullname, email, phone, role, khu_vuc };
+                this.showModal = true;
+            },
+
+            openResetModal(id) {
+                this.currentUserId = id;
+                this.newPassword = '';
+                this.showResetModal = true;
+            },
+
+            async toggleLock(id) {
+                try {
+                    const res = await fetch('{% url "api_user_actions" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({ action: 'toggle_lock', user_id: id })
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        this.lockStates[id] = data.is_locked;
+                        window.location.reload(); // Reload để cập nhật UI & Badge
+                    }
+                } catch (e) { alert('Lỗi kết nối máy chủ'); }
+            },
+
+            async resetPassword() {
+                if (!this.newPassword || this.newPassword.length < 6) {
+                    alert('Mật khẩu phải từ 6 ký tự trở lên');
+                    return;
+                }
+                try {
+                    const res = await fetch('{% url "api_user_actions" %}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({ 
+                            action: 'reset_password', 
+                            user_id: this.currentUserId,
+                            password: this.newPassword
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.status === 'success') {
+                        alert(data.message);
+                        this.showResetModal = false;
+                    } else {
+                        alert(data.message);
+                    }
+                } catch (e) { alert('Lỗi: ' + e); }
+            },
+
+            getLockIcon(id, initial) {
+                const locked = this.lockStates[id] !== undefined ? this.lockStates[id] : initial;
+                return locked ? 'fa-unlock text-green-600' : 'fa-lock text-red-600';
+            },
+
+            getLockClass(id, initial) {
+                const locked = this.lockStates[id] !== undefined ? this.lockStates[id] : initial;
+                return locked ? 'hover:bg-green-50' : 'hover:bg-red-50';
+            }
+        }
+    }
+</script>
+{% endblock %}

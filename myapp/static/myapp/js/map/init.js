@@ -2,8 +2,11 @@
  * Map Init Module — Khởi tạo ứng dụng bản đồ
  */
 
+console.log('✅ init.js loaded!');
+
 (function() {
     MapApp.init = function() {
+        console.log('🚀 MapApp.init() called');
         MapApp.debug.log('🚀 Khởi tạo MapApp...', 'info');
         MapApp.loading.show('Đang khởi tạo bản đồ...');
 
@@ -23,6 +26,18 @@
 
         // Scale bar
         L.control.scale({ imperial: false, position: 'bottomright' }).addTo(MapApp.state.map);
+
+        // Khởi tạo Marker Tracker (Chỉ đường hướng thửa đất khi off-screen)
+        if (typeof MarkerTracker !== 'undefined') {
+            MapApp.tracker = new MarkerTracker(MapApp.state.map, {
+                paddingTop: 80,
+                paddingRight: 420, // Chừa chỗ cho Sidebar bên phải
+                paddingBottom: 40,
+                paddingLeft: 80
+            });
+        }
+
+
 
         // Layer control
         setTimeout(() => {

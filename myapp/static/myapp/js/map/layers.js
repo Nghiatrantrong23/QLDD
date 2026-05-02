@@ -35,9 +35,7 @@ MapApp.layers = {
     // BASE LAYERS — LAYER ĐÁY
     // ====================================================================
     initBaseLayers: function() {
-        MapApp.state.layers.baseOSM = L.tileLayer('https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}{r}.png', {
-            maxZoom: 20, attribution: '© Stadia Maps © OpenStreetMap', subdomains: 'abcd'
-        });
+
         MapApp.state.layers.baseVoyager = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             maxZoom: 20, attribution: '© CartoDB © OpenStreetMap', subdomains: 'abcd'
         });
@@ -61,28 +59,33 @@ MapApp.layers = {
             maxZoom: 20, attribution: '© CartoDB', subdomains: 'abcd'
         });
         MapApp.state.layers.overlayPOI = L.layerGroup();
+        
+        // Cố định các layer group để Layer Control không bị mất tham chiếu khi re-render
+        MapApp.state.layers.zonesGroup = L.layerGroup().addTo(MapApp.state.map);
+        MapApp.state.layers.parcelsGroup = L.layerGroup().addTo(MapApp.state.map);
+        MapApp.state.layers.clusterGroup = L.markerClusterGroup();
+        
         MapApp.debug.log('✅ Overlay layers đã khởi tạo', 'info');
     },
 
     addLayerControl: function() {
         const baseLayers = {
             '🌐 CartoDB Voyager': MapApp.state.layers.baseVoyager,
-            '🗺️ OSM Bright': MapApp.state.layers.baseOSM,
             '☀️ CartoDB Light': MapApp.state.layers.baseLight,
             '🌑 CartoDB Dark': MapApp.state.layers.baseDark,
             '⛰️ OpenTopoMap': MapApp.state.layers.baseTopo,
             '🛰️ ESRI Vệ tinh': MapApp.state.layers.baseEsri,
         };
         const overlays = {
-            '📍 Thửa đất': MapApp.state.layers.parcels || L.layerGroup(),
-            '📐 Vùng quy hoạch': MapApp.state.layers.zones || L.layerGroup(),
             '🏷️ Nhãn địa danh': MapApp.state.layers.overlayLabels,
+            '<span style="color:#ef4444;"><i class="fas fa-map-marked-alt mr-2"></i>Quy hoạch</span>': MapApp.state.layers.zonesGroup,
+            '<span style="color:#3b82f6;"><i class="fas fa-th-large mr-2"></i>Thửa đất</span>': MapApp.state.layers.parcelsGroup,
         };
         if (MapApp.state.layers.control) {
             MapApp.state.map.removeControl(MapApp.state.layers.control);
         }
         MapApp.state.layers.control = L.control.layers(baseLayers, overlays, {
-            position: 'topright', collapsed: true, autoZIndex: true
+            position: 'topright', collapsed: false, autoZIndex: true
         }).addTo(MapApp.state.map);
         MapApp.debug.log('✅ Layer Control đã thêm', 'info');
     },
@@ -102,31 +105,39 @@ MapApp.layers = {
     // Thứ tự: Bản đồ nền → Vùng QH (40%) → Thửa đất (đậm) → Labels
     // ====================================================================
     renderZones: function(geojson) {
-        // Xóa zone layer cũ
-        if (MapApp.state.layers.zones) {
-            MapApp.state.map.removeLayer(MapApp.state.layers.zones);
+        // Xóa nội dung cũ trong group
+        if (MapApp.state.layers.zonesGroup) {
+            MapApp.state.layers.zonesGroup.clearLayers();
+        } else {
+            MapApp.state.layers.zonesGroup = L.layerGroup().addTo(MapApp.state.map);
         }
-        // Vùng quy hoạch: trong suốt 40%, dashArray, thêm TRƯỚC thửa đất
-        MapApp.state.layers.zones = L.geoJSON(geojson, {
+
+        // Vùng quy hoạch
+        const zonesLayer = L.geoJSON(geojson, {
+            filter: function() {
+                if (MapApp.state.filters && MapApp.state.filters.hideZones) return false;
+                return true;
+            },
             style: function(feature) {
                 const colors = {
-                    'dat_o': '#f97316',
-                    'dat_thuong_mai': '#a855f7',
-                    'dat_cong_nghiep': '#64748b',
-                    'dat_cong_cong': '#06b6d4',
-                    'dat_giao_thong': '#6b7280',
-                    'dat_cay_xanh': '#22c55e',
-                    'dat_nong_nghiep': '#84cc16',
-                    'dat_du_lich': '#f59e0b',
+                    'dat_o': '#ef4444',            
+                    'dat_thuong_mai': '#ec4899',   
+                    'dat_cong_nghiep': '#64748b',  
+                    'dat_cong_cong': '#3b82f6',    
+                    'dat_giao_thong': '#f59e0b',   
+                    'dat_cay_xanh': '#22c55e',     
+                    'dat_nong_nghiep': '#84cc16',  
+                    'dat_du_lich': '#8b5cf6',      
+                    'khac': '#9ca3af'              
                 };
-                const code = feature.properties?.loai_qh_code || '';
-                const color = colors[code] || '#94a3b8';
+                const code = feature.properties?.loai_qh_code || 'khac';
+                const color = colors[code] || colors['khac'];
                 return {
                     fillColor: color,
-                    fillOpacity: 0.35,   // 35% trong suốt — lớp dưới
-                    color: color,
+                    fillOpacity: 0.2,    
+                    color: color,     
                     weight: 2,
-                    dashArray: '8, 5',
+                    dashArray: '8, 5',    
                     opacity: 0.8
                 };
             },
@@ -136,95 +147,95 @@ MapApp.layers = {
                     sticky: true, opacity: 0.9
                 });
             }
-        }).addTo(MapApp.state.map);  // Thêm VÀO MAP trước
+        });
 
-        MapApp.debug.log('✅ Vùng quy hoạch đã render (layer dưới)', 'info');
+        MapApp.state.layers.zonesGroup.addLayer(zonesLayer);
+        MapApp.state.layers.zones = zonesLayer; // Giữ ref cho các hàm fitBounds/tooltip
+
+        MapApp.debug.log('✅ Vùng quy hoạch đã render', 'info');
     },
 
-    renderParcels: function(geojson) {
-        // Xóa layer cũ
-        if (MapApp.state.layers.parcels) {
-            MapApp.state.map.removeLayer(MapApp.state.layers.parcels);
+    renderParcels: function(geojson, useCluster = true) {
+        // 1. Khởi tạo/Xóa các Layer Group
+        if (!MapApp.state.layers.parcelsGroup) {
+            MapApp.state.layers.parcelsGroup = L.layerGroup().addTo(MapApp.state.map);
         }
-        if (MapApp.state.layers.clusterGroup) {
-            MapApp.state.map.removeLayer(MapApp.state.layers.clusterGroup);
+        MapApp.state.layers.parcelsGroup.clearLayers();
+        
+        if (!MapApp.state.layers.clusterGroup) {
+            MapApp.state.layers.clusterGroup = L.markerClusterGroup();
         }
+        MapApp.state.layers.clusterGroup.clearLayers();
 
         const self = this;
-        const totalFeatures = geojson.features?.length || 0;
+        const total = geojson.features?.length || 0;
+        MapApp.state.data.parcels = geojson;
 
-        // Giai đoạn 6: Marker Clustering khi zoom thấp
-        const useCluster = (typeof L.markerClusterGroup === 'function');
-        if (useCluster) {
-            MapApp.state.layers.clusterGroup = L.markerClusterGroup({
-                maxClusterRadius: 60,
-                spiderfyOnMaxZoom: true,
-                showCoverageOnHover: false,
-                iconCreateFunction: function(cluster) {
-                    const count = cluster.getChildCount();
-                    const size = count > 100 ? 'large' : count > 30 ? 'medium' : 'small';
-                    return L.divIcon({
-                        html: `<div class="cluster-icon cluster-${size}"><span>${count}</span></div>`,
-                        className: '', iconSize: [40, 40]
-                    });
+        // 2. Tạo Layer Polygon cho các thửa đất
+        const parcelsLayer = L.geoJSON(geojson, {
+            filter: function(feature) {
+                if (MapApp.state.filters && MapApp.state.filters.hiddenTypes) {
+                    const type = feature.properties?.loai_dat || 'DDT';
+                    if (MapApp.state.filters.hiddenTypes[type]) return false;
                 }
-            });
-            // Thêm centroid markers cho clustering
-            geojson.features.forEach(feature => {
-                const p = feature.properties;
-                const centroid = p.centroid;
-                if (centroid && centroid.coordinates) {
-                    const [lng, lat] = centroid.coordinates;
-                    const color = self.colors[p.loai_dat] || '#94a3b8';
-                    const marker = L.circleMarker([lat, lng], {
-                        radius: 5, fillColor: color, color: '#fff',
-                        weight: 1.5, fillOpacity: 0.9
-                    });
-                    marker.feature = feature;
-                    marker.on('click', () => {
-                        if (MapApp.sidebar) MapApp.sidebar.open(feature, marker);
-                    });
-                    MapApp.state.layers.clusterGroup.addLayer(marker);
-                }
-            });
-        }
-
-        // Polygon layer — LUÔN hiển thị, thêm SAU zones (lớp trên)
-        MapApp.state.layers.parcels = L.geoJSON(geojson, {
+                return true;
+            },
             style: (feature) => self.styleParcel(feature),
             onEachFeature: (feature, layer) => self.onEachParcel(feature, layer)
-        }).addTo(MapApp.state.map);   // Thêm DESPUÉS zones → hiển thị trên zones
+        });
 
-        // Thêm cluster layer (chỉ active khi zoom ra xa)
-        if (useCluster && MapApp.state.layers.clusterGroup) {
-            // Fix 🔴 Item 4: Tránh duplicate listener gây lag
-            if (MapApp.state._zoomListener) {
-                MapApp.state.map.off('zoomend', MapApp.state._zoomListener);
+        // 3. Nạp ghim tâm vào Cluster Group
+        geojson.features.forEach(f => {
+            const p = f.properties;
+            if (MapApp.state.filters && MapApp.state.filters.hiddenTypes) {
+                const type = p.loai_dat || 'DDT';
+                if (MapApp.state.filters.hiddenTypes[type]) return;
             }
-            MapApp.state._zoomListener = function() {
-                const zoom = MapApp.state.map.getZoom();
-                if (zoom < 14) {
-                    if (!MapApp.state.map.hasLayer(MapApp.state.layers.clusterGroup)) {
-                        MapApp.state.map.addLayer(MapApp.state.layers.clusterGroup);
-                    }
-                } else {
-                    if (MapApp.state.map.hasLayer(MapApp.state.layers.clusterGroup)) {
-                        MapApp.state.map.removeLayer(MapApp.state.layers.clusterGroup);
-                    }
-                }
-                // Luôn giữ parcels hiển thị trừ khi bộ nhớ quá tải
-                if (!MapApp.state.map.hasLayer(MapApp.state.layers.parcels)) {
-                    MapApp.state.map.addLayer(MapApp.state.layers.parcels);
-                }
-                
-                if (MapApp.stats) MapApp.stats.updateVisibleStats();
-            };
-            MapApp.state.map.on('zoomend', MapApp.state._zoomListener);
-            // Kích hoạt listener ngay lập tức
-            MapApp.state._zoomListener();
+            const centroid = p.centroid;
+            if (centroid && centroid.coordinates) {
+                const [lng, lat] = centroid.coordinates;
+                const marker = L.marker([lat, lng], {
+                    icon: L.divIcon({
+                        className: 'parcel-center-pin',
+                        html: `<i class="fas fa-map-marker-alt" style="color:#0ea5e9; font-size:16px; text-shadow: 0 1px 2px rgba(0,0,0,0.3);"></i>`,
+                        iconSize: [16, 16],
+                        iconAnchor: [8, 16]
+                    })
+                });
+                marker.on('click', () => {
+                    if (MapApp.sidebar) MapApp.sidebar.open(f, marker);
+                });
+                MapApp.state.layers.clusterGroup.addLayer(marker);
+            }
+        });
+
+        // 4. Logic hiển thị theo Zoom
+        if (MapApp.state._zoomListener) {
+            MapApp.state.map.off('zoomend', MapApp.state._zoomListener);
         }
 
-        MapApp.debug.log(`✅ ${totalFeatures} thửa đất đã render`, 'info');
+        MapApp.state._zoomListener = function() {
+            const zoom = MapApp.state.map.getZoom();
+            const group = MapApp.state.layers.parcelsGroup;
+            if (!group) return;
+
+            // Chế độ gom cụm cho ghim và hiển thị ranh giới
+            if (zoom < 14) {
+                if (!group.hasLayer(MapApp.state.layers.clusterGroup)) group.addLayer(MapApp.state.layers.clusterGroup);
+                if (group.hasLayer(parcelsLayer)) group.removeLayer(parcelsLayer);
+            } else {
+                // Zoom sâu: Hiện cả ranh giới và ghim (ghim tự tách ra)
+                if (!group.hasLayer(MapApp.state.layers.clusterGroup)) group.addLayer(MapApp.state.layers.clusterGroup);
+                if (!group.hasLayer(parcelsLayer)) group.addLayer(parcelsLayer);
+            }
+            if (MapApp.stats) MapApp.stats.updateVisibleStats();
+        };
+
+        MapApp.state.map.on('zoomend', MapApp.state._zoomListener);
+        MapApp.state._zoomListener(); // Gọi ngay lần đầu để hiển thị
+
+        MapApp.state.layers.parcels = parcelsLayer;
+        MapApp.debug.log(`✅ ${total} thửa đất đã render`, 'info');
     },
 
     styleParcel: function(feature) {

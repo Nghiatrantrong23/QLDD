@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Báo cáo GIS</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+            line-height: 1.6;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #1a3a5c;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #1a3a5c;
+            margin: 0;
+            font-size: 24px;
+        }
+        .info-table {
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        .info-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+        }
+        .label {
+            font-weight: bold;
+            background-color: #f9fafb;
+            width: 40%;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1a3a5c;
+            margin: 20px 0 10px 0;
+            border-left: 4px solid #1a3a5c;
+            padding-left: 10px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .data-table th {
+            background-color: #1a3a5c;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-size: 12px;
+        }
+        .data-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            font-size: 11px;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: right;
+            font-size: 12px;
+            font-style: italic;
+        }
+        .badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            color: white;
+        }
+        .badge-red { background-color: #dc2626; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>BÁO CÁO TỔNG HỢP QUẢN LÝ ĐẤT ĐAI & GIS</h1>
+        <p>Ngày xuất báo cáo: {{ tk.ngay_xuat }}</p>
+    </div>
+
+    <div class="section-title">1. Chỉ số tổng hợp</div>
+    <table class="info-table">
+        <tr>
+            <td class="label">Tổng số thửa đất</td>
+            <td>{{ tk.tong_thua }} thửa</td>
+        </tr>
+        <tr>
+            <td class="label">Tổng diện tích quản lý</td>
+            <td>{{ tk.tong_dien_tich|floatformat:2 }} m²</td>
+        </tr>
+        <tr>
+            <td class="label">Tổng số chủ sử dụng</td>
+            <td>{{ tk.tong_chu }} cá nhân/tổ chức</td>
+        </tr>
+        <tr>
+            <td class="label">Cảnh báo chưa xử lý</td>
+            <td style="color: #dc2626; font-weight: bold;">{{ tk.canh_bao }} vi phạm</td>
+        </tr>
+    </table>
+
+    <div class="section-title">2. Danh sách vi phạm GIS mới nhất (Top 10)</div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Ngày</th>
+                <th>Thửa đất</th>
+                <th>Mức độ</th>
+                <th>Nội dung vi phạm</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in tk.danh_sach_vipham %}
+            <tr>
+                <td>{{ c.ngay_phat_sinh|date:"d/m/Y" }}</td>
+                <td>{{ c.thua_dat_lien_quan.ma_thua|default:"-" }}</td>
+                <td>{{ c.get_muc_do_display }}</td>
+                <td>{{ c.tieu_de }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="text-align: center;">Không có vi phạm chưa xử lý</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        <p>Hệ thống Quản lý Đất đai & GIS - Đà Nẵng</p>
+        <p>Người tạo: Hệ thống tự động</p>
+    </div>
+</body>
+</html>

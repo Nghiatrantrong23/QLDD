@@ -1,0 +1,539 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% load static %}
+{% block tieu_de %}Quản lý Chủ sử dụng đất{% endblock %}
+{% block css_page %}
+<style>
+    /* Modern Owners Management */
+    .owners-container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+    
+    /* Header */
+    .owners-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+    .owners-title { font-size: 24px; font-weight: 700; color: #1e293b; }
+    
+    /* Toolbar */
+    .owners-toolbar {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        background: white;
+        padding: 16px;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+    .search-box {
+        position: relative;
+        flex: 1;
+        min-width: 280px;
+    }
+    .search-box input {
+        width: 100%;
+        padding: 10px 40px 10px 16px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+    .search-box input:focus {
+        outline: none;
+        border-color: #1a3a5c;
+        box-shadow: 0 0 0 3px rgba(26,58,92,0.1);
+    }
+    .search-box i {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+    }
+    .filter-select {
+        padding: 10px 16px;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: white;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    .view-toggle {
+        display: flex;
+        gap: 4px;
+        background: #f1f5f9;
+        padding: 4px;
+        border-radius: 8px;
+    }
+    .view-btn {
+        padding: 8px 12px;
+        border: none;
+        background: transparent;
+        border-radius: 6px;
+        cursor: pointer;
+        color: #64748b;
+        transition: all 0.2s;
+    }
+    .view-btn.active {
+        background: white;
+        color: #1a3a5c;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .btn-add {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: #1a3a5c;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .btn-add:hover { background: #2d3748; transform: translateY(-1px); }
+    
+    /* Table View */
+    .table-view {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .data-table th {
+        background: #f8fafc;
+        padding: 14px 16px;
+        text-align: left;
+        font-weight: 600;
+        color: #475569;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .data-table td {
+        padding: 16px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+    .data-table tr:hover { background: #f8fafc; }
+    .data-table tr:last-child td { border-bottom: none; }
+    
+    /* Avatar */
+    .owner-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1a3a5c 0%, #2d3748 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 16px;
+    }
+    .owner-avatar img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    
+    /* Owner Info */
+    .owner-name {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 2px;
+    }
+    .owner-id {
+        font-size: 13px;
+        color: #64748b;
+    }
+    .owner-type {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    .type-ca-nhan { background: #dbeafe; color: #1d4ed8; }
+    .type-to-chuc { background: #d1fae5; color: #059669; }
+    .type-ho-gd { background: #fef3c7; color: #d97706; }
+    
+    /* Contact */
+    .owner-contact {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #475569;
+        font-size: 14px;
+    }
+    
+    /* Actions */
+    .action-btns {
+        display: flex;
+        gap: 8px;
+    }
+    .action-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: transparent;
+        color: #94a3b8;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .action-btn:hover { background: #f1f5f9; color: #475569; }
+    .action-btn.delete:hover { background: #fee2e2; color: #dc2626; }
+    
+    /* Card View */
+    .card-view {
+        display: none;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+    }
+    .card-view.active { display: grid; }
+    .owner-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        transition: all 0.2s;
+        position: relative;
+    }
+    .owner-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transform: translateY(-2px);
+    }
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+    }
+    .card-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1a3a5c 0%, #2d3748 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 24px;
+        margin-bottom: 12px;
+    }
+    .card-actions {
+        display: flex;
+        gap: 4px;
+    }
+    .card-body {
+        text-align: center;
+    }
+    .card-name {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 4px;
+    }
+    .card-id {
+        font-size: 13px;
+        color: #64748b;
+        margin-bottom: 12px;
+    }
+    .card-info {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        font-size: 14px;
+        color: #475569;
+    }
+    .card-info-item {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #94a3b8;
+    }
+    .empty-state i {
+        font-size: 48px;
+        margin-bottom: 16px;
+        color: #cbd5e1;
+    }
+    .empty-state h3 {
+        font-size: 18px;
+        color: #475569;
+        margin-bottom: 8px;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .owners-toolbar { flex-direction: column; align-items: stretch; }
+        .search-box { min-width: auto; }
+        .table-view { display: none; }
+        .card-view.active { display: grid; }
+        .view-toggle { display: none; }
+    }
+</style>
+{% endblock %}
+
+{% block noi_dung %}
+<div class="owners-container" x-data="ownersApp()">
+    <!-- Header -->
+    <div class="owners-header">
+        <h1 class="owners-title">
+            <i class="fas fa-users mr-2"></i>Quản lý Chủ sử dụng đất
+        </h1>
+        <span class="text-sm text-gray-500">Tổng: <strong x-text="totalOwners"></strong> chủ sử dụng</span>
+    </div>
+    
+    <!-- Toolbar -->
+    <div class="owners-toolbar">
+        <div class="search-box">
+            <input type="text" x-model="searchQuery" placeholder="Tìm theo tên, số CM/CCCD...">
+            <i class="fas fa-search"></i>
+        </div>
+        
+        <select class="filter-select" x-model="filterType">
+            <option value="">Tất cả loại</option>
+            <option value="ca_nhan">Cá nhân</option>
+            <option value="ho_gia_dinh">Hộ gia đình</option>
+            <option value="to_chuc">Tổ chức</option>
+        </select>
+        
+        <div class="view-toggle">
+            <button class="view-btn" :class="{'active': viewMode === 'table'}" @click="viewMode = 'table'">
+                <i class="fas fa-list"></i>
+            </button>
+            <button class="view-btn" :class="{'active': viewMode === 'card'}" @click="viewMode = 'card'">
+                <i class="fas fa-th-large"></i>
+            </button>
+        </div>
+        
+        <button class="btn-add" @click="openAddModal()">
+            <i class="fas fa-plus"></i>Thêm mới
+        </button>
+    </div>
+    
+    <!-- Table View -->
+    <div class="table-view" :class="{'hidden': viewMode !== 'table'}">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Chủ sử dụng</th>
+                    <th>Loại đối tượng</th>
+                    <th>Số giấy tờ</th>
+                    <th>Liên hệ</th>
+                    <th>Số thửa đất</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                <template x-for="owner in filteredOwners" :key="owner.id">
+                    <tr>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <div class="owner-avatar" x-text="getInitials(owner.ho_ten)"></div>
+                                <div>
+                                    <div class="owner-name" x-text="owner.ho_ten"></div>
+                                    <div class="owner-id" x-text="owner.dia_chi"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="owner-type" :class="'type-' + owner.loai_doi_tuong.replace('_', '-')" 
+                                  x-text="getTypeLabel(owner.loai_doi_tuong)">
+                            </span>
+                        </td>
+                        <td x-text="owner.so_giay_to"></td>
+                        <td>
+                            <div class="owner-contact">
+                                <i class="fas fa-phone"></i>
+                                <span x-text="owner.so_dien_thoai || 'Chưa có'"></span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold"
+                                  x-text="owner.so_thua_dat + ' thửa'"></span>
+                        </td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="action-btn" @click="viewOwner(owner.id)" title="Xem chi tiết">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="action-btn" @click="editOwner(owner.id)" title="Chỉnh sửa">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="action-btn delete" @click="deleteOwner(owner.id)" title="Xóa">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+        
+        <div class="empty-state" x-show="filteredOwners.length === 0">
+            <i class="fas fa-users-slash"></i>
+            <h3>Không tìm thấy chủ sử dụng</h3>
+            <p>Thử tìm kiếm với từ khóa khác hoặc thêm mới</p>
+        </div>
+    </div>
+    
+    <!-- Card View -->
+    <div class="card-view" :class="{'active': viewMode === 'card'}">
+        <template x-for="owner in filteredOwners" :key="owner.id">
+            <div class="owner-card">
+                <div class="card-header">
+                    <span class="owner-type" :class="'type-' + owner.loai_doi_tuong.replace('_', '-')" 
+                          x-text="getTypeLabel(owner.loai_doi_tuong)"></span>
+                    <div class="card-actions">
+                        <button class="action-btn" @click="editOwner(owner.id)">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn delete" @click="deleteOwner(owner.id)">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="card-avatar" x-text="getInitials(owner.ho_ten)"></div>
+                    <div class="card-name" x-text="owner.ho_ten"></div>
+                    <div class="card-id" x-text="owner.so_giay_to"></div>
+                    <div class="card-info">
+                        <div class="card-info-item">
+                            <i class="fas fa-map-marker-alt text-gray-400"></i>
+                            <span x-text="owner.dia_chi"></span>
+                        </div>
+                        <div class="card-info-item">
+                            <i class="fas fa-phone text-gray-400"></i>
+                            <span x-text="owner.so_dien_thoai || 'Chưa có'"></span>
+                        </div>
+                        <div class="card-info-item">
+                            <i class="fas fa-home text-blue-500"></i>
+                            <strong x-text="owner.so_thua_dat + ' thửa đất'"></strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+    
+    <!-- Pagination -->
+    <div class="flex justify-between items-center mt-6" x-show="totalPages > 1">
+        <span class="text-sm text-gray-500">Hiển thị <strong x-text="(currentPage-1)*perPage + 1"></strong> - <strong x-text="Math.min(currentPage*perPage, totalOwners)"></strong> / <strong x-text="totalOwners"></strong></span>
+        <div class="flex gap-2">
+            <button class="px-3 py-1 rounded-lg border hover:bg-gray-50" :disabled="currentPage === 1" @click="currentPage--">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <template x-for="page in totalPages" :key="page">
+                <button class="px-3 py-1 rounded-lg" 
+                        :class="page === currentPage ? 'bg-blue-600 text-white' : 'border hover:bg-gray-50'"
+                        @click="currentPage = page" x-text="page"></button>
+            </template>
+            <button class="px-3 py-1 rounded-lg border hover:bg-gray-50" :disabled="currentPage === totalPages" @click="currentPage++">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Data from Django
+const OWNERS_DATA = {{ danh_sach_chu|safe|default:'[]' }};
+const TOTAL_OWNERS = {{ danh_sach_chu|length }};
+
+function ownersApp() {
+    return {
+        viewMode: 'table',
+        searchQuery: '',
+        filterType: '',
+        currentPage: 1,
+        perPage: 10,
+        totalOwners: TOTAL_OWNERS,
+        owners: OWNERS_DATA,
+        
+        get filteredOwners() {
+            let filtered = this.owners.filter(o => {
+                const matchSearch = !this.searchQuery || 
+                    o.ho_ten.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+                    o.so_giay_to.includes(this.searchQuery);
+                const matchType = !this.filterType || o.loai_doi_tuong === this.filterType;
+                return matchSearch && matchType;
+            });
+            
+            // Pagination
+            const start = (this.currentPage - 1) * this.perPage;
+            return filtered.slice(start, start + this.perPage);
+        },
+        
+        get totalPages() {
+            return Math.ceil(this.owners.filter(o => {
+                const matchSearch = !this.searchQuery || 
+                    o.ho_ten.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+                    o.so_giay_to.includes(this.searchQuery);
+                const matchType = !this.filterType || o.loai_doi_tuong === this.filterType;
+                return matchSearch && matchType;
+            }).length / this.perPage);
+        },
+        
+        getInitials(name) {
+            if (!name) return '?';
+            return name.split(' ').map(n => n[0]).slice(-2).join('').toUpperCase();
+        },
+        
+        getTypeLabel(type) {
+            const labels = {
+                'ca_nhan': 'Cá nhân',
+                'ho_gia_dinh': 'Hộ gia đình',
+                'to_chuc': 'Tổ chức'
+            };
+            return labels[type] || type;
+        },
+        
+        viewOwner(id) {
+            window.location.href = `/chu-su-dung/${id}/`;
+        },
+        
+        editOwner(id) {
+            window.location.href = `/chu-su-dung/${id}/chinh-sua/`;
+        },
+        
+        deleteOwner(id) {
+            if (confirm('Bạn có chắc muốn xóa chủ sử dụng này?')) {
+                // TODO: Gọi API xóa
+                alert('Đã xóa (demo)');
+            }
+        },
+        
+        openAddModal() {
+            window.location.href = '/chu-su-dung/them-moi/';
+        }
+    }
+}
+</script>
+{% endblock %}
+</html>

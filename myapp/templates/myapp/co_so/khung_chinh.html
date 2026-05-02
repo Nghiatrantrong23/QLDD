@@ -6,9 +6,186 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block tieu_de %}QLĐĐ GIS{% endblock %} - Quản lý Đất đai</title>
-    <link rel="stylesheet" href="{% static 'myapp/css/giao_dien.css' %}">
+    <link rel="stylesheet" href="{% static 'myapp/css/base.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    {% block css_page %}{% endblock %}
     {% block css_them %}{% endblock %}
+    <style>
+        /* ===== LAYOUT FLEXBOX TỐI ƯU - KHÔNG KHOẢNG TRẮNG ===== */
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .bo_cuc {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        /* Sidebar cố định */
+        .sidebar {
+            width: 260px;
+            flex-shrink: 0;
+            height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        /* Main content area */
+        .main-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            flex-shrink: 0;
+            height: 64px;
+            position: static;
+            width: 100%;
+        }
+
+        /* Content scrollable */
+        .noi_dung_chinh {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column; /* Để footer luôn ở dưới cùng của content flow */
+            background: var(--mau-nen);
+            margin: 0;
+        }
+
+        /* Container của nội dung block */
+        .noi_dung_khoi {
+            flex: 1;
+            padding: 12px;
+        }
+
+        /* Footer Nâng cao - Giai đoạn 4 */
+        .footer_chinh {
+            flex-shrink: 0;
+            background: #1e293b;
+            color: #94a3b8;
+            padding: 40px 24px 20px 24px;
+            border-top: 1px solid #334155;
+            font-size: 13px;
+        }
+
+        .footer__noi_dung {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1.5fr;
+            gap: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .footer__cot-tieu-de {
+            color: white;
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .footer__links {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .footer__link-item {
+            margin-bottom: 10px;
+        }
+
+        .footer__link-item a {
+            color: #94a3b8;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .footer__link-item a:hover {
+            color: white;
+            padding-left: 5px;
+        }
+
+        .footer__contact-item {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .footer__contact-icon {
+            color: var(--mau-chinh);
+            width: 20px;
+            text-align: center;
+        }
+
+        .footer__day-chuyen {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        .footer__socials {
+            display: flex;
+            gap: 16px;
+        }
+
+        .footer__social-link {
+            width: 32px;
+            height: 32px;
+            background: #334155;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .footer__social-link:hover {
+            background: var(--mau-chinh);
+            transform: translateY(-3px);
+        }
+
+        @media (max-width: 1024px) {
+            .footer__noi_dung {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .footer__noi_dung {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .footer__day-chuyen {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -28,15 +205,18 @@
                 <div class="sidebar__nhom">
                     <span class="sidebar__nhom-ten">Bàn làm việc</span>
                 </div>
+                {% if user.is_superuser %}
                 <a href="{% url 'tong_quan' %}"
                     class="sidebar__item {% if request.resolver_match.url_name == 'tong_quan' %}active{% endif %}">
                     Tổng quan
                 </a>
+                {% endif %}
                 <a href="{% url 'ban_do' %}"
                     class="sidebar__item {% if request.resolver_match.url_name == 'ban_do' %}active{% endif %}">
                     Bản đồ
                 </a>
 
+                {% if user.is_superuser %}
                 <div class="sidebar__nhom">
                     <span class="sidebar__nhom-ten">Quản lý</span>
                 </div>
@@ -52,7 +232,13 @@
                     class="sidebar__item {% if 'qh_' in request.resolver_match.url_name %}active{% endif %}">
                     Quy hoạch
                 </a>
+                <a href="{% url 'nd_danh_sach' %}"
+                    class="sidebar__item {% if 'nd_' in request.resolver_match.url_name %}active{% endif %}">
+                    Quản lý người dùng
+                </a>
+                {% endif %}
 
+                {% if user.is_superuser %}
                 <div class="sidebar__nhom">
                     <span class="sidebar__nhom-ten">Phân tích</span>
                 </div>
@@ -64,45 +250,147 @@
                     class="sidebar__item {% if 'cb_' in request.resolver_match.url_name %}active{% endif %}">
                     Cảnh báo
                 </a>
+                {% endif %}
+                {% if user.is_superuser %}
+                <div class="sidebar__nhom">
+                    <span class="sidebar__nhom-ten">Báo cáo</span>
+                </div>
                 <a href="{% url 'bc_danh_sach' %}"
                     class="sidebar__item {% if 'bc_' in request.resolver_match.url_name %}active{% endif %}">
-                    Báo cáo
+                    <i class="fas fa-chart-line mr-2"></i> Báo cáo thống kê
                 </a>
+                {% else %}
+                <div class="sidebar__nhom">
+                    <span class="sidebar__nhom-ten">Cá nhân</span>
+                </div>
+                <a href="{% url 'profile_dashboard' %}"
+                    class="sidebar__item {% if request.resolver_match.url_name == 'profile_dashboard' %}active{% endif %}">
+                    <i class="fas fa-user-circle mr-2"></i> Hồ sơ của tôi
+                </a>
+                {% endif %}
+
+                <div class="mt-auto pt-4 border-t border-gray-100 mx-4 mb-4">
+                    <form action="{% url 'dang_xuat' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit"
+                            class="flex items-center w-full px-3 py-2 text-sm font-medium text-red-600 transition-colors rounded-lg hover:bg-red-50 hover:text-red-700">
+                            <i class="fas fa-sign-out-alt mr-3 text-lg"></i>
+                            Đăng xuất
+                        </button>
+                    </form>
+                </div>
             </nav>
 
-            <div
-                style="padding: 16px 20px; border-top: 1px solid rgba(255,255,255,.1); font-size: 11px; color: rgba(255,255,255,.4);">
-                © 2026 Hệ thống QLĐD GIS
+            <div class="sidebar__footer">
+                2026 Hệ thống QLĐĐ GIS
             </div>
         </aside>
 
-        <!-- HEADER -->
-        <header class="header">
-            <div>
-                <div class="header__tieu_de">{% block header_tieu_de %}{{ tieu_de_trang }}{% endblock %}</div>
-                <div class="header__phu">{% block header_phu %}Hệ thống Quản lý Đất đai & GIS{% endblock %}</div>
-            </div>
-            <div class="header__phai">
-                {% block header_nut %}{% endblock %}
-                <a href="{% url 'hs_them_moi' %}" class="nut_header nut_header--chinh">+ Thêm hồ sơ</a>
-            </div>
-        </header>
+        <!-- MAIN WRAPPER -->
+        <div class="main-wrapper">
 
-        <!-- NỘI DUNG CHÍNH -->
-        <main class="noi_dung_chinh">
+            <!-- HEADER -->
+            <header class="header">
+                <div>
+                    <div class="header__tieu_de">{% block header_tieu_de %}{{ tieu_de_trang }}{% endblock %}</div>
+                    <div class="header__phu">{% block header_phu %}Hệ thống Quản lý Đất đai & GIS{% endblock %}</div>
+                </div>
+                <div class="header__phai">
+                    {% block header_nut %}{% endblock %}
+                    {% if user.is_superuser %}
+                    <a href="{% url 'hs_them_moi' %}" class="nut_header nut_header--chinh">+ Thêm hồ sơ</a>
+                    {% endif %}
+                </div>
+            </header>
 
-            {% if messages %}
-            {% for msg in messages %}
-            <div
-                class="thong_bao {% if msg.tags == 'success' %}thong_bao--thanh_cong{% elif msg.tags == 'error' %}thong_bao--loi{% else %}thong_bao--canh_bao{% endif %}">
-                {{ msg }}
-            </div>
-            {% endfor %}
-            {% endif %}
+            <!-- NỘI DUNG CHÍNH -->
+            <main class="noi_dung_chinh">
+                <div class="noi_dung_khoi">
+                    {% if messages %}
+                    {% for msg in messages %}
+                    <div
+                        class="thong_bao {% if msg.tags == 'success' %}thong_bao--thanh_cong{% elif msg.tags == 'error' %}thong_bao--loi{% else %}thong_bao--canh_bao{% endif %}">
+                        {{ msg }}
+                    </div>
+                    {% endfor %}
+                    {% endif %}
 
-            {% block noi_dung %}{% endblock %}
+                    {% block noi_dung %}{% endblock %}
+                </div>
 
-        </main>
+                <!-- FOOTER NÂNG CAO (Di chuyển vào trong main để fix scroll) -->
+                <footer class="footer_chinh">
+                    <div class="footer__noi_dung">
+                        <!-- Cột 1: Giới thiệu -->
+                        <div class="footer__cot">
+                            <div class="footer__cot-tieu-de">
+                                <i class="fas fa-layer-group text-blue-500"></i> QLĐĐ GIS 2026
+                            </div>
+                            <p class="leading-relaxed mb-6">
+                                Nền tảng Quản lý Đất đai tích hợp GIS hiện đại, giải pháp số hóa toàn diện dữ liệu địa
+                                chính
+                                và quy hoạch đô thị.
+                            </p>
+                            <div class="footer__socials">
+                                <a href="#" class="footer__social-link"><i class="fab fa-facebook-f"></i></a>
+                                <a href="#" class="footer__social-link"><i class="fab fa-youtube"></i></a>
+                                <a href="#" class="footer__social-link"><i class="fab fa-linkedin-in"></i></a>
+                            </div>
+                        </div>
+
+                        <!-- Cột 2: Liên kết nhanh -->
+                        <div class="footer__cot">
+                            <div class="footer__cot-tieu-de">Liên kết nhanh</div>
+                            <ul class="footer__links">
+                                <li class="footer__link-item"><a href="{% url 'ban_do' %}">Bản đồ địa chính</a></li>
+                                <li class="footer__link-item"><a href="{% url 'qh_ban_do' %}">Tra cứu quy hoạch</a></li>
+                                <li class="footer__link-item"><a href="{% url 'hs_danh_sach' %}">Hồ sơ đất đai</a></li>
+                                <li class="footer__link-item"><a href="{% url 'profile_dashboard' %}">Cổng thông tin cư
+                                        dân</a></li>
+                            </ul>
+                        </div>
+
+                        <!-- Cột 3: Hỗ trợ -->
+                        <div class="footer__cot">
+                            <div class="footer__cot-tieu-de">Hỗ trợ & Pháp lý</div>
+                            <ul class="footer__links">
+                                <li class="footer__link-item"><a href="#">Hướng dẫn sử dụng</a></li>
+                                <li class="footer__link-item"><a href="#">Chính sách bảo mật</a></li>
+                                <li class="footer__link-item"><a href="#">Điều khoản dịch vụ</a></li>
+                                <li class="footer__link-item"><a href="#">Câu hỏi thường gặp</a></li>
+                            </ul>
+                        </div>
+
+                        <!-- Cột 4: Liên hệ -->
+                        <div class="footer__cot">
+                            <div class="footer__cot-tieu-de">Thông tin liên hệ</div>
+                            <div class="footer__contact-item">
+                                <i class="fas fa-map-marker-alt footer__contact-icon"></i>
+                                <span>425 Nguyễn Hữu Thọ, Q. Hải Châu, TP. Đà Nẵng</span>
+                            </div>
+                            <div class="footer__contact-item">
+                                <i class="fas fa-phone-alt footer__contact-icon"></i>
+                                <span>Hotline: 1900 88 99 (24/7)</span>
+                            </div>
+                            <div class="footer__contact-item">
+                                <i class="fas fa-envelope footer__contact-icon"></i>
+                                <span>Email: support@qldd-gis.vn</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dòng chân cuối -->
+                    <div class="footer__day-chuyen">
+                        <div>
+                            &copy; 2026 Bản quyền thuộc về <strong>Hệ thống QLĐĐ GIS</strong>. Bảo lưu mọi quyền.
+                        </div>
+                        <div>
+                            Thiết kế bởi <span class="text-blue-400 font-bold"></span>
+                        </div>
+                    </div>
+                </footer>
+            </main>
+        </div>
     </div>
 
     {% block js_them %}{% endblock %}

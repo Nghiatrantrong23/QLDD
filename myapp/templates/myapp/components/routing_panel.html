@@ -1,0 +1,398 @@
+{% load static %}
+{# ================================================================
+   PANEL TÌM ĐƯỜNG - Routing Panel
+   OSM + OSRM + Nominatim, không dùng Google Maps
+   Vị trí: góc trên phải, dưới legend
+   ================================================================ #}
+
+<style>
+/* ── Panel Container ────────────────────────────────────────── */
+#routingPanel {
+    position: absolute;
+    top: 240px;
+    right: 20px;
+    z-index: 1050;
+    width: 340px;
+    background: linear-gradient(160deg, #0f1e33 0%, #1a3a5c 100%);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+}
+#routingPanel.rp-collapsed { height: 56px; overflow: hidden; }
+
+/* ── Header ─────────────────────────────────────────────────── */
+.rp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    background: rgba(0,0,0,0.15);
+}
+.rp-header-left { display: flex; align-items: center; gap: 10px; }
+.rp-header-icon {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: white; flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(59,130,246,0.4);
+}
+.rp-title { font-size: 14px; font-weight: 700; color: white; letter-spacing: 0.3px; }
+.rp-subtitle { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 1px; }
+.rp-toggle-btn {
+    width: 28px; height: 28px; border: none; background: rgba(255,255,255,0.07);
+    border-radius: 7px; color: rgba(255,255,255,0.5); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 12px;
+    transition: all 0.2s; flex-shrink: 0;
+}
+.rp-toggle-btn:hover { background: rgba(255,255,255,0.15); color: white; }
+.rp-toggle-icon { transition: transform 0.3s; }
+#routingPanel.rp-collapsed .rp-toggle-icon { transform: rotate(180deg); }
+
+/* ── Body ────────────────────────────────────────────────────── */
+.rp-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+/* ── Vehicle Tabs ────────────────────────────────────────────── */
+.rp-vehicles {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px; background: rgba(0,0,0,0.2); border-radius: 10px; padding: 4px;
+}
+.rp-vehicle {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 8px 4px; border-radius: 7px; cursor: pointer;
+    border: 1px solid transparent; transition: all 0.2s; font-size: 18px;
+}
+.rp-vehicle span { font-size: 10px; color: rgba(255,255,255,0.5); font-weight: 600; letter-spacing: 0.3px; }
+.rp-vehicle:hover { background: rgba(255,255,255,0.07); }
+.rp-vehicle.active {
+    background: rgba(59,130,246,0.2);
+    border-color: rgba(59,130,246,0.4);
+    box-shadow: 0 0 12px rgba(59,130,246,0.15);
+}
+.rp-vehicle.active span { color: #93c5fd; }
+
+/* ── Input Groups ────────────────────────────────────────────── */
+.rp-inputs { display: flex; flex-direction: column; gap: 8px; position: relative; }
+.rp-connector {
+    position: absolute; left: 14px; top: 38px; bottom: 38px;
+    width: 2px; background: linear-gradient(to bottom, #10b981, #ef4444);
+    z-index: 1; border-radius: 2px;
+}
+.rp-input-row {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.07); border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08); padding: 2px 8px 2px 12px;
+    transition: border-color 0.2s;
+}
+.rp-input-row:focus-within { border-color: rgba(59,130,246,0.5); background: rgba(59,130,246,0.06); }
+.rp-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 6px currentColor; }
+.rp-dot.start { color: #10b981; background: #10b981; }
+.rp-dot.end   { color: #ef4444; background: #ef4444; }
+.rp-input-field {
+    flex: 1; background: transparent; border: none; color: white;
+    font-size: 12.5px; padding: 10px 0; outline: none; min-width: 0;
+}
+.rp-input-field::placeholder { color: rgba(255,255,255,0.3); font-size: 12px; }
+.rp-btn-pick {
+    width: 28px; height: 28px; border-radius: 7px; border: 1px solid rgba(59,130,246,0.3);
+    background: rgba(59,130,246,0.12); color: #60a5fa; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 12px;
+    transition: all 0.2s; flex-shrink: 0;
+}
+.rp-btn-pick:hover { background: rgba(59,130,246,0.3); color: white; }
+.rp-btn-pick.picking { background: #3b82f6; color: white; animation: rp-pulse 1.4s infinite; }
+@keyframes rp-pulse {
+    0%  { box-shadow: 0 0 0 0 rgba(59,130,246,0.5); }
+    70% { box-shadow: 0 0 0 7px rgba(59,130,246,0); }
+    100%{ box-shadow: 0 0 0 0 rgba(59,130,246,0); }
+}
+.rp-btn-clear {
+    width: 22px; height: 22px; border: none; background: transparent;
+    color: rgba(255,255,255,0.25); cursor: pointer; border-radius: 5px;
+    display: flex; align-items: center; justify-content: center; font-size: 11px;
+    transition: all 0.2s; flex-shrink: 0;
+}
+.rp-btn-clear:hover { background: rgba(239,68,68,0.2); color: #f87171; }
+
+/* Geocode suggestions */
+.rp-suggest-wrap { position: relative; }
+.rp-suggestions {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 9999;
+    background: white; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+    overflow: hidden; display: none; max-height: 200px; overflow-y: auto; margin-top: 4px;
+}
+.rp-suggestions.show { display: block; }
+.rp-sugg-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background 0.15s;
+}
+.rp-sugg-item:last-child { border-bottom: none; }
+.rp-sugg-item:hover { background: #eff6ff; }
+.rp-sugg-icon { color: #94a3b8; font-size: 12px; flex-shrink: 0; }
+.rp-sugg-main { font-size: 13px; font-weight: 600; color: #1e293b; }
+.rp-sugg-sub  { font-size: 11px; color: #64748b; }
+
+/* ── Swap + Actions ──────────────────────────────────────────── */
+.rp-swap-row { display: flex; justify-content: flex-end; }
+.rp-btn-swap {
+    padding: 4px 10px; font-size: 11px; background: transparent; border: none;
+    color: rgba(255,255,255,0.35); cursor: pointer; border-radius: 6px;
+    display: flex; gap: 5px; align-items: center; transition: all 0.2s;
+}
+.rp-btn-swap:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.7); }
+
+.rp-actions { display: flex; gap: 8px; }
+.rp-btn-go {
+    flex: 1; padding: 12px; border: none; border-radius: 11px;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: white; font-weight: 700; font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: all 0.2s; box-shadow: 0 4px 16px rgba(99,102,241,0.45);
+}
+.rp-btn-go:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(99,102,241,0.55); }
+.rp-btn-go:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.rp-btn-mypos {
+    width: 44px; height: 44px; border: none; border-radius: 11px;
+    background: rgba(16,185,129,0.15); color: #34d399;
+    border: 1px solid rgba(16,185,129,0.3); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+    transition: all 0.2s;
+}
+.rp-btn-mypos:hover { background: rgba(16,185,129,0.3); }
+.rp-btn-reset {
+    width: 44px; height: 44px; border: none; border-radius: 11px;
+    background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4);
+    border: 1px solid rgba(255,255,255,0.1); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+    transition: all 0.2s;
+}
+.rp-btn-reset:hover { background: rgba(239,68,68,0.15); color: #f87171; border-color: rgba(239,68,68,0.3); }
+
+/* ── Status Bar ──────────────────────────────────────────────── */
+.rp-status {
+    display: none; align-items: center; gap: 8px; padding: 8px 12px;
+    background: rgba(0,0,0,0.2); border-radius: 8px; font-size: 12px;
+    color: rgba(255,255,255,0.6);
+}
+.rp-status.show { display: flex; }
+.rp-spin { animation: rp-spin 1s linear infinite; display: inline-block; }
+@keyframes rp-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* ── Result Card ─────────────────────────────────────────────── */
+.rp-result {
+    display: none; background: rgba(0,0,0,0.2); border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.07); overflow: hidden;
+    animation: rp-fadein 0.3s ease;
+}
+.rp-result.show { display: block; }
+@keyframes rp-fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+.rp-result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: rgba(255,255,255,0.07); }
+.rp-stat {
+    background: rgba(0,0,0,0.2); padding: 12px 16px;
+    display: flex; flex-direction: column; gap: 2px;
+}
+.rp-stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.35); }
+.rp-stat-val { font-size: 20px; font-weight: 800; color: #60a5fa; }
+.rp-stat-unit { font-size: 11px; color: rgba(255,255,255,0.4); }
+
+/* ── Steps ───────────────────────────────────────────────────── */
+.rp-steps-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px 0; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.5px; color: rgba(255,255,255,0.35);
+}
+.rp-steps-toggle { cursor: pointer; color: #60a5fa; font-size: 11px; }
+.rp-steps-list { padding: 6px 12px 12px; max-height: 140px; overflow-y: auto; display: none; }
+.rp-steps-list.open { display: block; }
+.rp-step {
+    display: flex; gap: 8px; padding: 5px 0; font-size: 11.5px;
+    color: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.05);
+    align-items: flex-start;
+}
+.rp-step:last-child { border-bottom: none; }
+.rp-step-n {
+    width: 18px; height: 18px; flex-shrink: 0; background: rgba(59,130,246,0.25);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; color: #93c5fd; margin-top: 1px;
+}
+
+/* ── Picking Overlay ─────────────────────────────────────────── */
+#rpPickingOverlay {
+    display: none; position: absolute; inset: 0; background: rgba(59,130,246,0.08);
+    backdrop-filter: blur(1px); z-index: 2000; cursor: crosshair;
+    align-items: center; justify-content: center;
+}
+#rpPickingOverlay.show { display: flex; }
+.rp-pick-hint {
+    background: rgba(15,23,42,0.92); color: white; padding: 12px 22px;
+    border-radius: 12px; font-size: 13px; font-weight: 600;
+    border: 1px solid rgba(99,102,241,0.4); box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    display: flex; align-items: center; gap: 10px;
+}
+}
+
+/* ── Docked in Sidebar ── */
+#routingPanel.docked {
+    position: relative !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+    transform: none !important;
+    border: none !important;
+    z-index: 1 !important;
+}
+#routingPanel.docked .rp-header {
+    display: none !important;
+}
+</style>
+
+{# ── Picking overlay (full-map crosshair) ── #}
+<div id="rpPickingOverlay">
+    <div class="rp-pick-hint">
+        <i class="fas fa-crosshairs" style="color:#60a5fa;font-size:18px;"></i>
+        <span id="rpPickHint">Click vào bản đồ để chọn điểm</span>
+        <button onclick="RP.cancelPick()"
+                style="margin-left:10px;background:rgba(255,255,255,0.1);border:none;color:#f87171;
+                       padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;">
+            Hủy
+        </button>
+    </div>
+</div>
+
+{# ── Main Panel ── #}
+<div id="routingPanel">
+    {# Header #}
+    <div class="rp-header" onclick="RP.togglePanel()">
+        <div class="rp-header-left">
+            <div class="rp-header-icon"><i class="fas fa-route"></i></div>
+            <div>
+                <div class="rp-title">Tìm đường</div>
+                <div class="rp-subtitle" id="rpSubtitle">OSM · OSRM · Nominatim</div>
+            </div>
+        </div>
+        <button class="rp-toggle-btn" onclick="event.stopPropagation(); RP.togglePanel()">
+            <i class="fas fa-chevron-up rp-toggle-icon"></i>
+        </button>
+    </div>
+
+    <div class="rp-body" id="rpBody">
+        {# Vehicle selection #}
+        <div class="rp-vehicles">
+            <div class="rp-vehicle active" id="rpV-car" onclick="RP.setVehicle('driving-car',this)">
+                🚗<span>Ô tô</span>
+            </div>
+            <div class="rp-vehicle" id="rpV-bike" onclick="RP.setVehicle('cycling-regular',this)">
+                🛵<span>Xe máy</span>
+            </div>
+            <div class="rp-vehicle" id="rpV-walk" onclick="RP.setVehicle('foot-walking',this)">
+                🚶<span>Đi bộ</span>
+            </div>
+        </div>
+
+        {# Inputs #}
+        <div class="rp-inputs">
+            <div class="rp-connector"></div>
+
+            {# Start #}
+            <div class="rp-suggest-wrap">
+                <div class="rp-input-row">
+                    <span class="rp-dot start"></span>
+                    <input type="text" id="rpStartInput" class="rp-input-field"
+                           placeholder="Điểm bắt đầu..." autocomplete="off"
+                           oninput="RP.onInput('start',this.value)">
+                    <button class="rp-btn-clear" onclick="RP.clearPoint('start')" title="Xóa">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <button class="rp-btn-pick" id="rpPickStartBtn"
+                            onclick="RP.startPick('start')" title="Chọn trên bản đồ">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </button>
+                </div>
+                <div class="rp-suggestions" id="rpStartSugg"></div>
+            </div>
+
+            <div class="rp-swap-row">
+                <button class="rp-btn-swap" onclick="RP.swapPoints()">
+                    <i class="fas fa-exchange-alt"></i> Đổi chiều
+                </button>
+            </div>
+
+            {# End #}
+            <div class="rp-suggest-wrap">
+                <div class="rp-input-row">
+                    <span class="rp-dot end"></span>
+                    <input type="text" id="rpEndInput" class="rp-input-field"
+                           placeholder="Điểm đến..." autocomplete="off"
+                           oninput="RP.onInput('end',this.value)">
+                    <button class="rp-btn-clear" onclick="RP.clearPoint('end')" title="Xóa">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <button class="rp-btn-pick" id="rpPickEndBtn"
+                            onclick="RP.startPick('end')" title="Chọn trên bản đồ">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </button>
+                </div>
+                <div class="rp-suggestions" id="rpEndSugg"></div>
+            </div>
+        </div>
+
+        {# Action buttons #}
+        <div class="rp-actions">
+            <button class="rp-btn-mypos" onclick="RP.useMyLocation()" title="Vị trí của tôi">
+                <i class="fas fa-location-arrow"></i>
+            </button>
+            <button class="rp-btn-go" id="rpGoBtn" onclick="RP.findRoute()">
+                <i class="fas fa-directions"></i> Tìm đường
+            </button>
+            <button class="rp-btn-reset" onclick="RP.reset()" title="Xóa tất cả">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+
+        {# Status #}
+        <div class="rp-status" id="rpStatus">
+            <i class="fas fa-circle-notch rp-spin"></i>
+            <span id="rpStatusMsg">Đang tính...</span>
+        </div>
+
+        {# Result #}
+        <div class="rp-result" id="rpResult">
+            <div class="rp-result-grid">
+                <div class="rp-stat" style="border-radius:11px 0 0 0;">
+                    <div class="rp-stat-label">Khoảng cách</div>
+                    <div>
+                        <span class="rp-stat-val" id="rpDist">--</span>
+                        <span class="rp-stat-unit"> km</span>
+                    </div>
+                </div>
+                <div class="rp-stat" style="border-radius:0 11px 0 0;">
+                    <div class="rp-stat-label">Thời gian</div>
+                    <div>
+                        <span class="rp-stat-val" id="rpTime">--</span>
+                        <span class="rp-stat-unit"> phút</span>
+                    </div>
+                </div>
+            </div>
+            <div class="rp-steps-header">
+                <span>Hướng dẫn từng bước</span>
+                <span class="rp-steps-toggle" onclick="RP.toggleSteps()">Hiện ▾</span>
+            </div>
+            <div class="rp-steps-list" id="rpStepsList"></div>
+        </div>
+    </div>{# /rp-body #}
+</div>{# /routingPanel #}
+
+<script src="{% static 'myapp/js/routing_panel.js' %}"></script>
+
+
+
+
+

@@ -1,0 +1,86 @@
+/* ===================================
+   DASHBOARD CSS - Trang Tổng quan
+   Chứa: Styles riêng cho trang dashboard
+=================================== */
+
+/* ===== LƯỚI THẺ THỐNG KÊ ===== */
+.luoi_the {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+/* ===== GRID 2 CỘT DASHBOARD ===== */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: stretch;
+    min-height: 0;
+}
+
+.dashboard-grid > .bang_container {
+    display: flex;
+    flex-direction: column;
+}
+
+.dashboard-grid > .bang_container > .bang {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* ===== BẢNG BIẾN ĐỘNG ===== */
+.bang-bien-dong th,
+.bang-bien-dong td {
+    text-align: center;
+}
+
+.bang-bien-dong td:first-child {
+    text-align: left;
+}
+
+/* ===== BẢNG CẢNH BÁO ===== */
+.bang-canh-bao .huy_hieu {
+    font-size: 11px;
+    padding: 2px 8px;
+}
+
+/* ===== THỐNG KÊ LOẠI ĐẤT ===== */
+.thong-ke-loai-dat {
+    margin-top: 12px;
+}
+
+.thanh-ti-le {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.thanh-nen {
+    flex: 1;
+    height: 6px;
+    background: var(--mau-vien);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.thanh-tien-do {
+    height: 100%;
+    background: var(--mau-phu);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.so-ti-le {
+    font-size: 12px;
+    color: var(--mau-chu-nhat);
+    min-width: 35px;
+    text-align: right;
+}
+
+/* ===== RESPONSIVE DASHBOARD ===== */
+@media (max-width: 992px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}

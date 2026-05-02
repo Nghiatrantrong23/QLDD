@@ -1,10 +1,15 @@
+import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from myapp.decorators import admin_required
+from django.core.paginator import Paginator
+from django.db.models import Count
 from myapp.models import ChuSuDung, ThuaDat
 from myapp.forms import ChuSuDungForm
 
 @login_required
+@admin_required
 def danh_sach(request):
     query = request.GET.get('q', '')
     if query:
@@ -14,14 +19,32 @@ def danh_sach(request):
     else:
         danh_sach_chu = ChuSuDung.objects.all()
     
+    # Prepare data for v2 template
+    chu_list = []
+    for chu in danh_sach_chu:
+        try:
+            chu_item = {
+                'id': chu.id,
+                'ho_ten': chu.ho_ten or 'Không tên',
+                'so_giay_to': getattr(chu, 'so_giay_to', ''),
+                'loai_doi_tuong': getattr(chu, 'loai_doi_tuong', 'ca_nhan'),
+                'so_dien_thoai': getattr(chu, 'so_dien_thoai', '') or '',
+                'dia_chi': getattr(chu, 'dia_chi', '') or '',
+                'so_thua_dat': chu.thua_dat.count() if hasattr(chu, 'thua_dat') else 0
+            }
+            chu_list.append(chu_item)
+        except Exception as e:
+            continue
+    
     context = {
-        'danh_sach': danh_sach_chu,
+        'danh_sach_chu': json.dumps(chu_list, default=str),
         'query': query,
         'tieu_de_trang': 'Quản lý Chủ sử dụng đất'
     }
-    return render(request, 'myapp/chu_su_dung/danh_sach.html', context)
+    return render(request, 'myapp/chu_su_dung/danh_sach_v2.html', context)
 
 @login_required
+@admin_required
 def them_moi(request):
     form = ChuSuDungForm()
     if request.method == 'POST':
@@ -44,6 +67,7 @@ def them_moi(request):
     return render(request, 'myapp/chu_su_dung/form.html', context)
 
 @login_required
+@admin_required
 def chinh_sua(request, pk):
     chu = get_object_or_404(ChuSuDung, pk=pk)
     form = ChuSuDungForm(instance=chu)
@@ -69,6 +93,7 @@ def chinh_sua(request, pk):
     return render(request, 'myapp/chu_su_dung/form.html', context)
 
 @login_required
+@admin_required
 def xoa(request, pk):
     chu = get_object_or_404(ChuSuDung, pk=pk)
     # Kiểm tra xem có thửa đất nào đang thuộc chủ này không
@@ -78,3 +103,17 @@ def xoa(request, pk):
         chu.delete()
         messages.success(request, 'Xóa chủ sử dụng đất thành công!')
     return redirect('chu_danh_sach')
+
+@login_required
+@admin_required
+def chi_tiet(request, pk):
+    chu = get_object_or_404(ChuSuDung, pk=pk)
+    danh_sach_thua = chu.thua_dat.all() if hasattr(chu, 'thua_dat') else []
+    
+    context = {
+        'chu': chu,
+        'danh_sach_thua': danh_sach_thua,
+        'tieu_de_trang': f'Chi tiết Chủ sử dụng: {chu.ho_ten}'
+    }
+    return render(request, 'myapp/chu_su_dung/chi_tiet.html', context)
+

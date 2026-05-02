@@ -2,9 +2,12 @@ from django.contrib.gis.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.db import transaction
+from django.contrib.auth.models import User
 import threading
 import logging
 from django.core.validators import RegexValidator
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 logger = logging.getLogger(__name__)
 class ChuSuDung(models.Model):
@@ -77,6 +80,34 @@ class ThuaDat(models.Model):
     ghi_chu = models.TextField(blank=True, verbose_name="Ghi chú")
     ngay_tao = models.DateTimeField(auto_now_add=True)
     ngay_cap_nhat = models.DateTimeField(auto_now=True)
+    
+    @property
+    def status_info(self):
+        """Tính toán trạng thái pháp lý động cho thửa đất"""
+        if self.co_tranh_chap:
+            return {
+                'text': 'Số đỏ đang tranh chấp',
+                'badge_text': 'TRANH CHẤP',
+                'class': 'rose',
+                'icon': 'fa-hand-paper'
+            }
+        
+        # Kiểm tra cảnh báo vi phạm quy hoạch chưa xử lý
+        canh_bao_vi_pham = self.canh_bao.filter(loai_canh_bao='vi_pham_quy_hoach', trang_thai='chua_xu_ly').first()
+        if canh_bao_vi_pham or (self.dien_tich_quy_hoach and self.dien_tich_quy_hoach > 0):
+            return {
+                'text': 'Vi phạm quy hoạch',
+                'badge_text': 'VI PHẠM',
+                'class': 'rose', # Hoặc amber tùy mức độ
+                'icon': 'fa-exclamation-triangle'
+            }
+            
+        return {
+            'text': 'Hồ sơ hợp lệ',
+            'badge_text': 'HỢP LỆ',
+            'class': 'emerald',
+            'icon': 'fa-check-circle'
+        }
 
     def save(self, *args, **kwargs):
         # Tự động tạo centroid nếu có mpoly
@@ -200,7 +231,12 @@ class CanhBaoGIS(models.Model):
         related_name='canh_bao', verbose_name="Thửa đất liên quan"
     )
     location = models.PointField(srid=4326, spatial_index=True, null=True, blank=True, verbose_name="Vị trí")
-    da_xu_ly = models.BooleanField(default=False, verbose_name="Đã xử lý")
+    TRANG_THAI_CHOICES = [
+        ('chua_xu_ly', 'Chưa xử lý'),
+        ('dang_xu_ly', 'Đang xử lý'),
+        ('da_hoan_tat', 'Đã xử lý xong'),
+    ]
+    trang_thai = models.CharField(max_length=20, choices=TRANG_THAI_CHOICES, default='chua_xu_ly', verbose_name="Trạng thái xử lý")
     ngay_phat_sinh = models.DateTimeField(auto_now_add=True, verbose_name="Ngày phát sinh")
     ngay_xu_ly = models.DateTimeField(null=True, blank=True, verbose_name="Ngày xử lý")
 
@@ -286,3 +322,55 @@ def cap_nhat_chu_su_dung_sau_giao_dich(sender, instance, **kwargs):
                     pass
             if instance.chu_moi:
                 thua.danh_sach_chu_su_dung.add(instance.chu_moi)
+
+@receiver(post_save, sender=CanhBaoGIS)
+def gui_thong_bao_canh_bao_realtime(sender, instance, created, **kwargs):
+    """Gửi thông báo WebSocket khi có cảnh báo mới phát sinh"""
+    if created:
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "gis_alerts",
+            {
+                "type": "send_alert",
+                "alert": {
+                    "id": instance.id,
+                    "tieu_de": instance.tieu_de,
+                    "muc_do": instance.muc_do,
+                    "loai": instance.get_loai_canh_bao_display(),
+                    "ma_thua": instance.thua_dat_lien_quan.ma_thua if instance.thua_dat_lien_quan else "N/A",
+                    "thoi_gian": instance.ngay_phat_sinh.strftime('%H:%M:%S %d/%m/%Y')
+                }
+            }
+        )
+
+class NguoiDungProfile(models.Model):
+    """Thông tin bổ sung cho tài khoản người dùng"""
+    VAI_TRO_CHOICES = [
+        ('admin', 'Quản trị viên'),
+        ('can_bo', 'Cán bộ'),
+        ('nguoi_dung', 'Người dùng'),
+    ]
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='system_profile')
+    so_dien_thoai = models.CharField(max_length=15, blank=True, verbose_name="Số điện thoại")
+    vai_tro = models.CharField(max_length=20, choices=VAI_TRO_CHOICES, default='nguoi_dung', verbose_name="Vai trò")
+    khu_vuc_phu_trach = models.CharField(max_length=255, blank=True, null=True, verbose_name="Khu vực phụ trách")
+    is_locked = models.BooleanField(default=False, verbose_name="Đang bị khóa")
+    ngay_tao = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_vai_tro_display()}"
+
+    class Meta:
+        verbose_name = "Hồ sơ người dùng"
+        verbose_name_plural = "Hồ sơ người dùng"
+
+# Signal tự động tạo Profile khi tạo User
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        NguoiDungProfile.objects.create(user=instance)
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    if hasattr(instance, 'system_profile'):
+        instance.system_profile.save()

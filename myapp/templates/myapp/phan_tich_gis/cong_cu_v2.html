@@ -1,0 +1,1177 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% load static %}
+{% block tieu_de %}GIS Analysis Hub{% endblock %}
+
+{% block css_page %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css"/>
+<style>
+:root {
+    --sidebar-w: 300px;
+    --result-w: 360px;
+    --topbar-h: 64px;
+    --navy: #1a3a5c;
+    --blue: #3b82f6;
+}
+
+/* ── Layout ── */
+.hub-layout {
+    display: flex;
+    height: calc(100vh - var(--topbar-h));
+    overflow: hidden;
+    background: #0f1923;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ══════════════════════
+   LEFT SIDEBAR
+══════════════════════ */
+.hub-sidebar {
+    width: var(--sidebar-w);
+    display: flex;
+    flex-direction: column;
+    background: #131f2e;
+    border-right: 1px solid rgba(255,255,255,0.07);
+    z-index: 20;
+    overflow: hidden;
+}
+
+.sidebar-header {
+    padding: 14px 16px;
+    background: rgba(59,130,246,0.12);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.sidebar-header i { color: var(--blue); font-size: 16px; }
+.sidebar-header h2 { margin: 0; font-size: 14px; font-weight: 700; color: white; }
+.sidebar-header .db-stats { margin-left: auto; font-size: 10px; color: rgba(255,255,255,0.35); text-align: right; line-height: 1.4; }
+
+.tool-scroll { flex: 1; overflow-y: auto; padding: 10px; }
+.tool-scroll::-webkit-scrollbar { width: 4px; }
+.tool-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+/* Accordion Category */
+.tool-cat { margin-bottom: 6px; }
+.tool-cat-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 8px; cursor: pointer;
+    color: rgba(255,255,255,0.5); font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.7px;
+    transition: all 0.2s; user-select: none;
+}
+.tool-cat-header:hover { color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.04); }
+.tool-cat-header.open { color: white; }
+.tool-cat-header .cat-icon { font-size: 14px; width: 16px; text-align: center; }
+.tool-cat-header .chevron { margin-left: auto; transition: transform 0.2s; }
+.tool-cat-header.open .chevron { transform: rotate(90deg); }
+
+.tool-cat-body { overflow: hidden; max-height: 0; transition: max-height 0.3s ease; }
+.tool-cat-body.open { max-height: 500px; }
+
+/* Tool Button */
+.tool-btn {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px 9px 18px; border-radius: 8px; cursor: pointer;
+    transition: all 0.15s; margin-bottom: 2px;
+    color: rgba(255,255,255,0.6); font-size: 13px;
+}
+.tool-btn:hover { background: rgba(59,130,246,0.12); color: rgba(255,255,255,0.9); }
+.tool-btn.active { background: rgba(59,130,246,0.2); color: #60a5fa; border-left: 2px solid var(--blue); }
+.tool-btn.disabled { opacity: 0.35; cursor: not-allowed; }
+.tool-btn .t-icon { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; background: rgba(255,255,255,0.05); flex-shrink: 0; }
+.tool-btn.active .t-icon { background: rgba(59,130,246,0.25); color: var(--blue); }
+.tool-btn .t-badge { margin-left: auto; font-size: 9px; padding: 1px 6px; border-radius: 10px; background: rgba(59,130,246,0.25); color: #60a5fa; font-weight: 700; }
+.t-badge.new { background: rgba(16,185,129,0.25); color: #34d399; }
+.t-badge.pro { background: rgba(139,92,246,0.25); color: #a78bfa; }
+
+/* Tool Config Panel */
+.tool-config {
+    border-top: 1px solid rgba(255,255,255,0.06);
+    background: #0f1923;
+    overflow-y: auto;
+    max-height: 340px;
+}
+.config-inner { padding: 14px; }
+.config-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: rgba(255,255,255,0.4); letter-spacing: 0.5px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+
+.cfg-label { font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 4px; font-weight: 600; }
+.cfg-input {
+    width: 100%; padding: 8px 10px; background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 7px;
+    color: white; font-size: 13px; outline: none; box-sizing: border-box;
+    transition: border-color 0.2s;
+}
+.cfg-input:focus { border-color: var(--blue); background: rgba(255,255,255,0.09); }
+.cfg-input::placeholder { color: rgba(255,255,255,0.25); }
+.cfg-group { margin-bottom: 10px; }
+
+/* Run button */
+.btn-run-tool {
+    width: 100%; padding: 11px; background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white; border: none; border-radius: 9px; font-weight: 700; font-size: 13px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-top: 12px; transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(59,130,246,0.35);
+}
+.btn-run-tool:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,0.5); }
+.btn-run-tool:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.btn-run-tool.running { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+
+.cfg-hint { font-size: 10.5px; color: rgba(255,255,255,0.3); line-height: 1.5; margin-top: 6px; }
+
+/* Selection indicator */
+.sel-indicator {
+    display: flex; align-items: center; gap: 7px;
+    padding: 6px 10px; border-radius: 7px; font-size: 11px; margin-bottom: 10px;
+}
+.sel-indicator.empty { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); color: rgba(245,158,11,0.8); }
+.sel-indicator.set   { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: rgba(16,185,129,0.9); }
+
+/* History pills */
+.history-section { padding: 10px; border-top: 1px solid rgba(255,255,255,0.06); }
+.history-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: rgba(255,255,255,0.25); letter-spacing: 0.5px; margin-bottom: 6px; }
+.history-item {
+    display: flex; align-items: center; gap: 7px; padding: 5px 7px;
+    border-radius: 6px; cursor: pointer; color: rgba(255,255,255,0.4);
+    font-size: 11px; transition: all 0.15s;
+}
+.history-item:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.7); }
+
+/* ══════════════════════
+   MAP
+══════════════════════ */
+.hub-map { flex: 1; position: relative; }
+#analysis-map { height: 100%; width: 100%; }
+
+/* Floating map toolbar */
+.map-toolbar {
+    position: absolute; top: 14px; left: 14px; z-index: 1000;
+    display: flex; flex-direction: column; gap: 5px;
+}
+.map-tool-btn {
+    width: 34px; height: 34px; background: rgba(19,31,46,0.92);
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+    color: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 13px; transition: all 0.15s; backdrop-filter: blur(6px);
+}
+.map-tool-btn:hover { background: rgba(59,130,246,0.3); color: white; border-color: rgba(59,130,246,0.4); }
+.map-tool-btn.active { background: rgba(59,130,246,0.5); color: white; border-color: var(--blue); }
+
+/* Mode indicator */
+.mode-badge {
+    position: absolute; bottom: 14px; left: 14px; z-index: 1000;
+    display: flex; align-items: center; gap: 7px;
+    padding: 7px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    background: rgba(19,31,46,0.9); color: white; border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(6px);
+}
+.mode-badge .pulse { width: 8px; height: 8px; border-radius: 50%; background: #3b82f6; animation: pulse-dot 1.5s infinite; }
+@keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+
+/* Layer manager */
+.layer-manager {
+    position: absolute; top: 14px; right: 14px; z-index: 1000;
+    background: rgba(19,31,46,0.92); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; padding: 12px 14px; min-width: 170px;
+    backdrop-filter: blur(8px);
+}
+.layer-manager-title { font-size: 10px; font-weight: 700; text-transform: uppercase; color: rgba(255,255,255,0.35); letter-spacing: 0.5px; margin-bottom: 10px; }
+.layer-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; font-size: 12px; color: rgba(255,255,255,0.65); cursor: pointer; }
+.layer-row input[type=checkbox] { accent-color: var(--blue); cursor: pointer; }
+.layer-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+/* ══════════════════════
+   RESULT PANEL (RIGHT)
+══════════════════════ */
+.result-panel {
+    width: 0; overflow: hidden;
+    transition: width 0.35s cubic-bezier(0.4,0,0.2,1);
+    background: #131f2e; border-left: 1px solid rgba(255,255,255,0.07);
+    display: flex; flex-direction: column;
+}
+.result-panel.open { width: var(--result-w); }
+
+.result-header {
+    padding: 14px 16px; background: rgba(59,130,246,0.1);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+}
+.result-header h3 { margin: 0; font-size: 14px; font-weight: 700; color: white; }
+.result-close { background: transparent; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 16px; transition: color 0.2s; }
+.result-close:hover { color: white; }
+
+.result-body { flex: 1; overflow-y: auto; padding: 14px; }
+.result-body::-webkit-scrollbar { width: 4px; }
+.result-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+/* KPI row */
+.result-kpi { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.kpi-box { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px; }
+.kpi-val { font-size: 22px; font-weight: 800; color: #60a5fa; line-height: 1; }
+.kpi-lbl { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+
+/* Result table */
+.result-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; color: rgba(255,255,255,0.3); letter-spacing: 0.5px; margin-bottom: 8px; }
+.result-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 14px; }
+.result-table th { padding: 6px 8px; color: rgba(255,255,255,0.35); font-weight: 700; font-size: 10px; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.07); text-align: left; }
+.result-table td { padding: 8px 8px; color: rgba(255,255,255,0.75); border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+.result-table tr:hover td { background: rgba(255,255,255,0.03); }
+
+/* Charts */
+.chart-wrap { background: rgba(255,255,255,0.03); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+.chart-wrap canvas { max-height: 140px; }
+
+/* Export */
+.export-row { display: flex; gap: 6px; margin-top: 14px; }
+.btn-export {
+    flex: 1; padding: 8px 6px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.7);
+    font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.btn-export:hover { background: rgba(59,130,246,0.2); border-color: rgba(59,130,246,0.4); color: white; }
+.btn-save {
+    width: 100%; padding: 10px; border-radius: 9px;
+    background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.25);
+    color: #34d399; font-size: 12px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    margin-top: 10px; transition: all 0.2s;
+}
+.btn-save:hover { background: rgba(16,185,129,0.25); }
+
+/* Loading overlay */
+.hub-loading {
+    display: none; position: absolute; inset: 0; z-index: 3000;
+    background: rgba(10,18,30,0.75); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center; flex-direction: column; gap: 12px;
+}
+.hub-loading.show { display: flex; }
+.hub-loading-spinner { font-size: 36px; color: var(--blue); }
+.hub-loading-text { color: white; font-size: 14px; font-weight: 600; }
+.hub-loading-sub { color: rgba(255,255,255,0.4); font-size: 12px; }
+
+/* Workflow bar (bottom) */
+.workflow-bar {
+    position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 1000;
+    background: rgba(19,31,46,0.93); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px; padding: 10px 16px; display: flex; align-items: center; gap: 8px;
+    backdrop-filter: blur(8px); font-size: 12px;
+}
+.wf-step {
+    padding: 5px 12px; border-radius: 7px; border: 1px solid rgba(59,130,246,0.3);
+    color: #60a5fa; background: rgba(59,130,246,0.1); font-weight: 600; font-size: 11px;
+    cursor: pointer; transition: all 0.15s;
+}
+.wf-step.done { border-color: rgba(16,185,129,0.4); color: #34d399; background: rgba(16,185,129,0.1); }
+.wf-step.active { border-color: var(--blue); background: rgba(59,130,246,0.2); color: white; }
+.wf-arrow { color: rgba(255,255,255,0.2); font-size: 14px; }
+.wf-clear { margin-left: 6px; background: transparent; border: none; color: rgba(255,255,255,0.25); cursor: pointer; font-size: 14px; transition: color 0.15s; }
+.wf-clear:hover { color: #f87171; }
+
+/* Overrides for leaflet on dark bg */
+.leaflet-control-zoom a { background: rgba(19,31,46,0.9) !important; color: rgba(255,255,255,0.7) !important; border-color: rgba(255,255,255,0.1) !important; }
+.leaflet-control-zoom a:hover { background: rgba(59,130,246,0.4) !important; color: white !important; }
+</style>
+{% endblock %}
+
+{% block noi_dung %}
+<div class="hub-layout" x-data="analysisHub()" x-init="init()">
+
+  <!-- ══════ LEFT SIDEBAR ══════ -->
+  <div class="hub-sidebar">
+    <div class="sidebar-header">
+      <i class="fas fa-draw-polygon"></i>
+      <h2>Analysis Hub</h2>
+      <div class="db-stats">
+        {{ so_thua_dat }} thửa đất<br>{{ so_quy_hoach }} vùng QH
+      </div>
+    </div>
+
+    <div class="tool-scroll">
+      <!-- CAT 1: Proximity & Area -->
+      <div class="tool-cat">
+        <div class="tool-cat-header" :class="{open: openCat==='proximity'}" @click="openCat = openCat==='proximity' ? '' : 'proximity'">
+          <span class="cat-icon">📍</span> Proximity & Area
+          <i class="fas fa-chevron-right chevron"></i>
+        </div>
+        <div class="tool-cat-body" :class="{open: openCat==='proximity'}">
+          <div class="tool-btn" :class="{active: activeTool==='buffer'}" @click="switchTool('buffer')">
+            <div class="t-icon"><i class="fas fa-bullseye"></i></div>
+            Vùng đệm (Buffer)
+          </div>
+          <div class="tool-btn" :class="{active: activeTool==='buffer_parcel'}" @click="switchTool('buffer_parcel')">
+            <div class="t-icon"><i class="fas fa-vector-square"></i></div>
+            Buffer từ Thửa đất
+            <span class="t-badge new">MỚI</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- CAT 2: Overlay & Planning -->
+      <div class="tool-cat">
+        <div class="tool-cat-header" :class="{open: openCat==='overlay'}" @click="openCat = openCat==='overlay' ? '' : 'overlay'">
+          <span class="cat-icon">🗂️</span> Overlay & Planning
+          <i class="fas fa-chevron-right chevron"></i>
+        </div>
+        <div class="tool-cat-body" :class="{open: openCat==='overlay'}">
+          <div class="tool-btn" :class="{active: activeTool==='planning'}" @click="switchTool('planning')">
+            <div class="t-icon"><i class="fas fa-shield-alt"></i></div>
+            Kiểm tra Quy hoạch
+          </div>
+          <div class="tool-btn" :class="{active: activeTool==='intersect'}" @click="switchTool('intersect')">
+            <div class="t-icon"><i class="fas fa-object-group"></i></div>
+            Giao thoa (Intersect)
+            <span class="t-badge new">MỚI</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- CAT 3: Suitability -->
+      <div class="tool-cat">
+        <div class="tool-cat-header" :class="{open: openCat==='suitability'}" @click="openCat = openCat==='suitability' ? '' : 'suitability'">
+          <span class="cat-icon">📊</span> Suitability & Stats
+          <i class="fas fa-chevron-right chevron"></i>
+        </div>
+        <div class="tool-cat-body" :class="{open: openCat==='suitability'}">
+          <div class="tool-btn" :class="{active: activeTool==='summarize'}" @click="switchTool('summarize')">
+            <div class="t-icon"><i class="fas fa-chart-bar"></i></div>
+            Thống kê Thửa đất
+          </div>
+
+        </div>
+      </div>
+
+
+    </div>
+
+    <!-- Tool Config Panel -->
+    <div class="tool-config">
+      <div class="config-inner">
+
+        <!-- BUFFER CLICK -->
+        <template x-if="activeTool === 'buffer'">
+          <div>
+            <div class="config-title"><i class="fas fa-bullseye" style="color:#60a5fa"></i> Buffer từ điểm click</div>
+            <div class="sel-indicator" :class="selectedCoord ? 'set' : 'empty'">
+              <i :class="selectedCoord ? 'fas fa-check-circle' : 'fas fa-hand-pointer'"></i>
+              <span x-text="selectedCoord ? `Click tại (${selectedCoord[0].toFixed(4)}, ${selectedCoord[1].toFixed(4)})` : 'Click trên bản đồ để chọn tâm'"></span>
+            </div>
+            <div class="cfg-group">
+              <div class="cfg-label">Bán kính (mét)</div>
+              <input type="number" class="cfg-input" x-model="bufferRadius" placeholder="200" min="10" max="10000">
+            </div>
+            <div class="cfg-group">
+              <div class="cfg-label">Kiểm tra chồng chéo</div>
+              <select class="cfg-input" x-model="bufferOverlap">
+                <option value="none">Không kiểm tra</option>
+                <option value="planning">Với vùng Quy hoạch</option>
+                <option value="parcels">Với thửa đất lân cận</option>
+              </select>
+            </div>
+            <button class="btn-run-tool" @click="runBuffer()" :disabled="!selectedCoord || loading" :class="{running: loading}">
+              <i :class="loading ? 'fas fa-spinner fa-spin' : 'fas fa-play'"></i>
+              <span x-text="loading ? 'Đang phân tích...' : 'Thực hiện Buffer'"></span>
+            </button>
+          </div>
+        </template>
+
+        <!-- BUFFER PARCEL -->
+        <template x-if="activeTool === 'buffer_parcel'">
+          <div>
+            <div class="config-title"><i class="fas fa-vector-square" style="color:#60a5fa"></i> Buffer từ Thửa đất</div>
+            <div class="sel-indicator" :class="selectedThuaId ? 'set' : 'empty'">
+              <i :class="selectedThuaId ? 'fas fa-check-circle' : 'fas fa-mouse-pointer'"></i>
+              <span x-text="selectedThuaId ? `Thửa: ${selectedThuaMa}` : 'Click thửa đất trên bản đồ'"></span>
+            </div>
+            <div class="cfg-group">
+              <div class="cfg-label">Bán kính (mét)</div>
+              <input type="number" class="cfg-input" x-model="bufferRadius" placeholder="200">
+            </div>
+            <button class="btn-run-tool" @click="runBufferParcel()" :disabled="!selectedThuaId || loading">
+              <i :class="loading ? 'fas fa-spinner fa-spin' : 'fas fa-play'"></i>
+              <span x-text="loading ? 'Đang phân tích...' : 'Thực hiện Buffer'"></span>
+            </button>
+          </div>
+        </template>
+
+        <!-- PLANNING CHECK -->
+        <template x-if="activeTool === 'planning'">
+          <div>
+            <div class="config-title"><i class="fas fa-shield-alt" style="color:#60a5fa"></i> Kiểm tra vi phạm QH</div>
+            <div class="sel-indicator" :class="selectedThuaId ? 'set' : 'empty'">
+              <i :class="selectedThuaId ? 'fas fa-check-circle' : 'fas fa-mouse-pointer'"></i>
+              <span x-text="selectedThuaId ? `Thửa: ${selectedThuaMa}` : 'Click thửa đất trên bản đồ'"></span>
+            </div>
+            <div class="cfg-group">
+              <div class="cfg-label">Vùng quy hoạch</div>
+              <select class="cfg-input" x-model="selectedQhId">
+                <option value="">Tất cả vùng</option>
+                <template x-for="qh in qhList" :key="qh.id">
+                  <option :value="qh.id" x-text="qh.ten_vung"></option>
+                </template>
+              </select>
+            </div>
+            <button class="btn-run-tool" @click="runPlanning()" :disabled="!selectedThuaId || loading">
+              <i :class="loading ? 'fas fa-spinner fa-spin' : 'fas fa-shield-alt'"></i>
+              <span x-text="loading ? 'Đang phân tích...' : 'Kiểm tra chồng lấn'"></span>
+            </button>
+          </div>
+        </template>
+
+        <!-- INTERSECT -->
+        <template x-if="activeTool === 'intersect'">
+          <div>
+            <div class="config-title"><i class="fas fa-object-group" style="color:#60a5fa"></i> Giao thoa (Intersect)</div>
+            <p class="cfg-hint">Vẽ polygon tùy ý trên bản đồ bằng công cụ Draw để xác định vùng giao thoa với tất cả thửa đất.</p>
+            <button class="btn-run-tool" style="background:rgba(59,130,246,0.2);box-shadow:none;border:1px solid rgba(59,130,246,0.3);" @click="activateDrawMode()">
+              <i class="fas fa-pencil-alt"></i> Vẽ vùng phân tích
+            </button>
+            <button class="btn-run-tool" style="margin-top:6px;" @click="runIntersect()" :disabled="!drawnLayer || loading">
+              <i :class="loading ? 'fas fa-spinner fa-spin' : 'fas fa-play'"></i>
+              <span x-text="loading ? 'Đang tính...' : 'Tính Intersect'"></span>
+            </button>
+          </div>
+        </template>
+
+        <!-- SUMMARIZE -->
+        <template x-if="activeTool === 'summarize'">
+          <div>
+            <div class="config-title"><i class="fas fa-chart-bar" style="color:#60a5fa"></i> Thống kê thửa đất</div>
+            <div class="cfg-group">
+              <div class="cfg-label">Nhóm theo</div>
+              <select class="cfg-input" x-model="summarizeBy">
+                <option value="loai_dat">Loại đất</option>
+                <option value="muc_dich">Mục đích sử dụng</option>
+              </select>
+            </div>
+            <button class="btn-run-tool" @click="runSummarize()">
+              <i class="fas fa-chart-bar"></i> Tổng hợp thống kê
+            </button>
+          </div>
+        </template>
+
+        <!-- Default -->
+        <template x-if="!activeTool">
+          <div style="text-align:center;padding:20px;color:rgba(255,255,255,0.25);font-size:12px;">
+            <i class="fas fa-arrow-up" style="font-size:18px;opacity:0.3;display:block;margin-bottom:8px;"></i>
+            Chọn công cụ để bắt đầu
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="history-section" x-show="history.length > 0">
+      <div class="history-label">Lịch sử</div>
+      <template x-for="(h,i) in history.slice(0,4)" :key="i">
+        <div class="history-item" @click="restoreHistory(h)">
+          <i class="fas fa-history" style="font-size:10px;"></i>
+          <span x-text="h.label"></span>
+          <span style="margin-left:auto;font-size:9px;opacity:0.4;" x-text="h.time"></span>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <!-- ══════ MAP ══════ -->
+  <div class="hub-map">
+    <div id="analysis-map"></div>
+
+    <!-- Map toolbar -->
+    <div class="map-toolbar">
+      <div class="map-tool-btn" title="Về vị trí mặc định" @click="map.setView([16.047,108.206],14)"><i class="fas fa-home"></i></div>
+      <div class="map-tool-btn" :class="{active: basemap==='sat'}" title="Vệ tinh" @click="toggleBasemap()"><i class="fas fa-satellite"></i></div>
+      <div class="map-tool-btn" title="Zoom kết quả" @click="zoomResult()"><i class="fas fa-expand-arrows-alt"></i></div>
+      <div class="map-tool-btn" title="Xóa tất cả" @click="clearAll()" style="margin-top:8px;"><i class="fas fa-trash" style="color:#f87171;"></i></div>
+    </div>
+
+    <!-- Layer manager -->
+    <div class="layer-manager">
+      <div class="layer-manager-title">Lớp bản đồ</div>
+      <label class="layer-row">
+        <input type="checkbox" checked @change="toggleLayer('parcels', $event)">
+        <div class="layer-dot" style="background:#3b82f6;opacity:0.7;"></div> Thửa đất
+      </label>
+      <label class="layer-row">
+        <input type="checkbox" checked @change="toggleLayer('planning', $event)">
+        <div class="layer-dot" style="background:#ef4444;opacity:0.7;"></div> Quy hoạch
+      </label>
+      <label class="layer-row">
+        <input type="checkbox" checked @change="toggleLayer('analysis', $event)">
+        <div class="layer-dot" style="background:#f59e0b;opacity:0.7;"></div> Kết quả
+      </label>
+    </div>
+
+    <!-- Loading overlay -->
+    <div class="hub-loading" :class="{show: loading}">
+      <div class="hub-loading-spinner"><i class="fas fa-spinner fa-spin"></i></div>
+      <div class="hub-loading-text" x-text="loadingMsg">Đang xử lý...</div>
+      <div class="hub-loading-sub">Truy vấn PostGIS database...</div>
+    </div>
+
+    <!-- Mode badge -->
+    <div class="mode-badge" x-show="activeTool">
+      <div class="pulse"></div>
+      <span x-text="modeText"></span>
+    </div>
+
+    <!-- Workflow bar -->
+    <div class="workflow-bar" x-show="workflow.length > 0">
+      <i class="fas fa-project-diagram" style="color:rgba(255,255,255,0.3);font-size:12px;"></i>
+      <template x-for="(step, i) in workflow" :key="i">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div class="wf-step" :class="{done: step.done, active: i===workflow.length-1 && !step.done}" x-text="step.label"></div>
+          <div class="wf-arrow" x-show="i < workflow.length-1">→</div>
+        </div>
+      </template>
+      <button class="wf-clear" @click="workflow=[]" title="Xóa workflow"><i class="fas fa-times"></i></button>
+    </div>
+  </div>
+
+  <!-- ══════ RESULT PANEL ══════ -->
+  <div class="result-panel" :class="{open: resultOpen}">
+    <div class="result-header">
+      <h3><i class="fas fa-table" style="color:var(--blue);margin-right:8px;"></i><span x-text="resultTitle">Kết quả</span></h3>
+      <button class="result-close" @click="resultOpen=false"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="result-body" x-show="resultOpen">
+
+      <!-- KPI boxes -->
+      <div class="result-kpi" x-show="resultKPI.length > 0">
+        <template x-for="kpi in resultKPI" :key="kpi.label">
+          <div class="kpi-box">
+            <div class="kpi-val" x-text="kpi.val"></div>
+            <div class="kpi-lbl" x-text="kpi.label"></div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Chart -->
+      <template x-if="resultChartData">
+        <div class="chart-wrap">
+          <div class="result-section-title">Phân bổ kết quả</div>
+          <canvas id="resultChart"></canvas>
+        </div>
+      </template>
+
+      <!-- Categorized Results (for buffer_thua) -->
+      <template x-if="activeTool === 'buffer_thua_result'">
+          <div class="cate-results">
+              <div x-show="resultData?.ds_thua?.length > 0">
+                  <div class="result-section-title">Thửa đất lân cận (<span x-text="resultData.ds_thua.length"></span>)</div>
+                  <table class="result-table">
+                      <thead><tr><th>Mã thửa</th><th>Khoảng cách (m)</th></tr></thead>
+                      <tbody>
+                          <template x-for="t in resultData.ds_thua">
+                              <tr><td x-text="t.ma_thua"></td><td x-text="t.khoang_cach_m"></td></tr>
+                          </template>
+                      </tbody>
+                  </table>
+              </div>
+              <div x-show="resultData?.ds_qh?.length > 0" style="margin-top:14px;">
+                  <div class="result-section-title">Quy hoạch lân cận (<span x-text="resultData.ds_qh.length"></span>)</div>
+                  <table class="result-table">
+                      <thead><tr><th>Tên vùng</th><th>Diện tích (m²)</th><th>%</th><th>Trạng thái</th></tr></thead>
+                      <tbody>
+                          <template x-for="q in resultData.ds_qh">
+                              <tr>
+                                  <td :title="q.loai_qh"><b x-text="q.ten_vung"></b></td>
+                                  <td x-text="q.dien_tich_m2"></td>
+                                  <td x-text="q.phan_tram"></td>
+                                  <td>
+                                      <span class="huy_hieu" style="background:#10b981; color:white; font-size:10px; padding:2px 6px;">
+                                          <i class="fas fa-check-circle"></i> Đã ghi nhận
+                                      </span>
+                                  </td>
+                              </tr>
+                          </template>
+                      </tbody>
+                  </table>
+              </div>
+              <div x-show="resultData?.ds_qh?.length > 0" style="margin-top:10px; font-size:11px; color:#94a3b8; display:flex; align-items:center; gap:6px;">
+                  <i class="fas fa-robot"></i> <i>Các vi phạm trên đã được tự động gửi về trang <b>Cảnh báo - Chờ xử lý</b>.</i>
+              </div>
+          </div>
+      </template>
+
+      <!-- Standard Table -->
+      <div x-show="activeTool !== 'buffer_thua_result' && resultRows.length > 0">
+        <div class="result-section-title">Chi tiết (<span x-text="resultRows.length"></span> dòng)</div>
+        <table class="result-table">
+          <thead>
+            <tr>
+              <template x-for="col in resultCols" :key="col"><th x-text="col"></th></template>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="(row,i) in resultRows" :key="i">
+              <tr>
+                <template x-for="col in resultCols" :key="col">
+                  <td x-text="row[col] ?? '—'"></td>
+                </template>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <div x-show="activeTool === 'planning'" style="margin-top:10px; font-size:11px; color:#94a3b8; display:flex; align-items:center; gap:6px;">
+            <i class="fas fa-robot"></i> <i>Các vi phạm trên đã được tự động gửi về trang <b>Cảnh báo - Chờ xử lý</b>.</i>
+        </div>
+      </div>
+
+      <!-- Empty -->
+      <div x-show="resultRows.length===0 && !resultChartData" style="text-align:center;padding:40px;color:rgba(255,255,255,0.2);font-size:13px;">
+        <i class="fas fa-chart-area" style="font-size:32px;display:block;margin-bottom:10px;opacity:0.3;"></i>
+        Chưa có kết quả
+      </div>
+
+      <!-- Export -->
+      <div x-show="resultRows.length > 0">
+        <div class="result-section-title" style="margin-top:14px;">Xuất dữ liệu</div>
+        <div class="export-row">
+          <button class="btn-export" @click="exportGeoJSON()"><i class="fas fa-map"></i> GeoJSON</button>
+          <button class="btn-export" @click="exportCSV()"><i class="fas fa-file-csv"></i> CSV</button>
+        </div>
+        <button class="btn-save" @click="saveAnalysis()">
+          <i class="fas fa-save"></i> Lưu phân tích vào lịch sử
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+
+<script>
+const QH_LIST  = {{ quy_hoach_list|safe|default:'[]' }};
+const CSRF_TOKEN = '{{ csrf_token }}';
+
+function analysisHub() {
+  return {
+    // ── UI State ──
+    openCat: 'proximity',
+    activeTool: 'buffer',
+    loading: false,
+    loadingMsg: 'Đang phân tích...',
+    basemap: 'osm',
+    resultOpen: false,
+    resultTitle: 'Kết quả',
+
+    // ── Form fields ──
+    bufferRadius: 300,
+    bufferOverlap: 'planning',
+    selectedCoord: null,
+    selectedThuaId: null,
+    selectedThuaMa: '',
+    selectedQhId: '',
+    summarizeBy: 'loai_dat',
+    drawnLayer: null,
+
+    // ── Map layers ──
+    map: null,
+    tileOsm: null, tileSat: null,
+    layers: { 
+      parcels: L.layerGroup(), 
+      planning: L.layerGroup(), 
+      analysis: L.layerGroup() 
+    },
+    tempMarker: null,
+    drawControl: null,
+    drawnItems: null,
+
+    // ── Results ──
+    resultKPI: [],
+    resultRows: [],
+    resultCols: [],
+    resultChartData: null,
+    resultGeoJSON: null,
+    resultChart: null,
+    qhList: QH_LIST,
+
+    // ── Workflow ──
+    workflow: [],
+    history: JSON.parse(localStorage.getItem('gis_hub_history') || '[]'),
+
+    get modeText() {
+      const modes = {
+        buffer: '📍 Buffer – Click bản đồ để đặt tâm',
+        buffer_parcel: '🗺️ Buffer Thửa – Click thửa đất',
+        planning: '🛡️ Kiểm tra QH – Click thửa đất',
+        intersect: '✏️ Intersect – Vẽ vùng phân tích',
+        summarize: '📊 Thống kê – Nhấn "Tổng hợp" để chạy',
+      };
+      return modes[this.activeTool] || '';
+    },
+
+    // ═══ INIT ═══
+    init() {
+      this.$nextTick(() => {
+        this.initMap();
+        this.loadMapData();
+      });
+    },
+
+    initMap() {
+      // ── Guard: destroy existing map if already initialized ──
+      const container = document.getElementById('analysis-map');
+      if (!container) return;
+      if (container._leaflet_id != null) {
+        // Map already exists — reuse if possible, else destroy first
+        if (window._analysisMapInstance) {
+          try { window._analysisMapInstance.remove(); } catch(e) {}
+        }
+        container._leaflet_id = null;
+      }
+
+      this.map = L.map('analysis-map', { zoomControl: false }).setView([16.047,108.206],14);
+      window._analysisMapInstance = this.map;
+
+      L.control.zoom({ position: 'bottomright' }).addTo(this.map);
+
+      this.tileOsm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.map);
+      this.tileSat = L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+        subdomains:['mt0','mt1','mt2','mt3']
+      });
+
+      // Thêm các layer group vào map ngay từ đầu
+      this.layers.parcels.addTo(this.map);
+      this.layers.planning.addTo(this.map);
+      this.layers.analysis.addTo(this.map);
+
+      this.drawnItems = new L.FeatureGroup().addTo(this.map);
+      // Store draw config, create control lazily on demand
+      this._drawConfig = {
+        draw: { polygon: { shapeOptions: { color:'#f59e0b', weight:2, fillOpacity:0.15 } }, polyline:false, circle:false, rectangle:false, marker:false, circlemarker:false },
+        edit: { featureGroup: this.drawnItems }
+      };
+
+      this.map.on(L.Draw.Event.CREATED, (e) => {
+        this.drawnItems.clearLayers();
+        this.drawnItems.addLayer(e.layer);
+        this.drawnLayer = e.layer.toGeoJSON();
+        if (this._polygonHandler) {
+          try { this._polygonHandler.disable(); } catch(err) {}
+        }
+      });
+
+      // Click handler
+      this.map.on('click', (e) => {
+        if (this.activeTool === 'buffer') {
+          this.selectedCoord = [e.latlng.lat, e.latlng.lng];
+          this.placeTempMarker(e.latlng);
+          this.previewBuffer(e.latlng, Number(this.bufferRadius));
+        }
+      });
+    },
+
+    async loadMapData() {
+      this.loadingMsg = 'Đang tải dữ liệu bản đồ...';
+      this.loading = true;
+      try {
+        const [pRes, qRes] = await Promise.all([
+          fetch('/ban-do/api/thua-dat/'),
+          fetch('/ban-do/api/vung-quy-hoach/')
+        ]);
+        const pData = await pRes.json();
+        const qData = await qRes.json();
+
+        // Thửa đất
+        L.geoJSON(pData, {
+          style: { color:'#3b82f6', weight:1, fillOpacity:0.08 },
+          onEachFeature: (feature, layer) => {
+            layer.on('click', (e) => {
+              L.DomEvent.stopPropagation(e);
+              this.selectedThuaId = feature.id || feature.properties.id;
+              this.selectedThuaMa = feature.properties.ma_thua || '#'+this.selectedThuaId;
+              this.selectedCoord  = [e.latlng.lat, e.latlng.lng];
+              if (this.activeTool === 'buffer') {
+                this.placeTempMarker(e.latlng);
+                this.previewBuffer(e.latlng, Number(this.bufferRadius));
+              } else if (['planning','buffer_parcel'].includes(this.activeTool)) {
+                this.highlightParcel(layer);
+              }
+            });
+            layer.on('mouseover', () => layer.setStyle({ fillOpacity:0.25, weight:2 }));
+            layer.on('mouseout', () => this.layers.parcels.getLayers()[0]?.resetStyle(layer));
+          }
+        }).addTo(this.layers.parcels);
+
+        // Quy hoạch (Đổi sang màu đa sắc)
+        L.geoJSON(qData, {
+          style: (f) => {
+            const colors = { 'dat_o':'#ef4444','dat_thuong_mai':'#ec4899','dat_cong_nghiep':'#64748b','dat_cong_cong':'#3b82f6','dat_giao_thong':'#f59e0b','dat_cay_xanh':'#22c55e','dat_nong_nghiep':'#84cc16','dat_du_lich':'#8b5cf6','khac':'#9ca3af' };
+            const c = colors[f.properties.loai_qh_code] || colors['khac'];
+            return { color:c, weight:1.5, fillColor:c, fillOpacity:0.1, dashArray:'8 5' };
+          }
+        }).addTo(this.layers.planning);
+
+      } catch(e) { console.warn('Load data failed:', e); }
+      this.loading = false;
+    },
+
+    // ═══ TOOL SWITCH ═══
+    switchTool(tool) {
+      if (this.activeTool === tool) return;
+      this.activeTool = tool;
+      this.clearAnalysis();
+      // Open correct category
+      const catMap = { buffer:'proximity', buffer_parcel:'proximity', planning:'overlay', intersect:'overlay', summarize:'suitability' };
+      this.openCat = catMap[tool] || this.openCat;
+    },
+
+    // ═══ MAP HELPERS ═══
+    placeTempMarker(latlng) {
+      if(this.tempMarker) this.map.removeLayer(this.tempMarker);
+      this.tempMarker = L.circleMarker(latlng, {
+        radius: 6, fillColor:'#3b82f6', color:'white', weight:2, fillOpacity:1
+      }).addTo(this.map);
+    },
+
+    previewBuffer(latlng, radius) {
+      this.clearAnalysis(false); // Xóa preview cũ
+      const buff = turf.buffer(turf.point([latlng.lng, latlng.lat]), radius, {units:'meters'});
+      L.geoJSON(buff, { style:{color:'#3b82f6',weight:1.5,fillOpacity:0.06,dashArray:'5 3',opacity:0.5} }).addTo(this.layers.analysis);
+    },
+
+    highlightParcel(layer) {
+      this.clearAnalysis(false);
+      L.geoJSON(layer.feature, { style:{color:'#f59e0b',weight:2.5,fillColor:'#f59e0b',fillOpacity:0.2} }).addTo(this.layers.analysis);
+    },
+
+    // ═══ ANALYSES ═══
+    async runBuffer() {
+      if(!this.selectedCoord) return;
+      this.startLoading('Đang tạo vùng đệm...');
+      this.clearAnalysis(false);
+
+      const [lat,lng] = this.selectedCoord;
+      const radius = parseFloat(this.bufferRadius);
+
+      if (isNaN(radius) || radius <= 0) {
+        alert('Vui lòng nhập bán kính hợp lệ (mét)');
+        this.stopLoading();
+        return;
+      }
+
+      // Instant Turf.js visual
+      const buff = turf.buffer(turf.point([lng,lat]), radius, {units:'meters'});
+      const bl = L.geoJSON(buff, {style:{color:'#1a3a5c',weight:2,fillColor:'#3b82f6',fillOpacity:0.15,dashArray:'6 3'}}).addTo(this.layers.analysis);
+      this.map.fitBounds(bl.getBounds(),{padding:[40,40]});
+
+      // Server analysis
+      const fd = new FormData();
+      fd.append('loai_phan_tich','buffer'); fd.append('vi_do',lat);
+      fd.append('kinh_do',lng); fd.append('ban_kinh',radius);
+      fd.append('csrfmiddlewaretoken',CSRF_TOKEN);
+      try {
+        const res = await fetch('/phan-tich-gis/thuc-hien/',{method:'POST',body:fd});
+        const data = await res.json();
+        if(data.thanh_cong) {
+          const list = data.ket_qua.danh_sach || [];
+          list.forEach(item => {
+            const pLayer = this.layers.parcels.getLayers()[0];
+            if(pLayer) pLayer.eachLayer(l => {
+              if(l.feature?.properties?.ma_thua === item.ma_thua) {
+                L.geoJSON(l.feature,{style:{color:'#f59e0b',weight:1.5,fillColor:'#fbbf24',fillOpacity:0.3}}).addTo(this.layers.analysis);
+              }
+            });
+          });
+          this.showResult(`Buffer ${radius}m — ${list.length} thửa đất`, [
+            {label:'Thửa đất', val:list.length},
+            {label:'Bán kính', val:radius+'m'},
+          ], list.map(i=>({'Mã thửa':i.ma_thua,'Khoảng cách (m)':Number(i.khoang_cach_m).toFixed(0)})),
+          ['Mã thửa','Khoảng cách (m)'], buff);
+          this.addWorkflow(`Buffer ${radius}m`, true);
+          this.saveHistory('buffer', `Buffer ${radius}m (${list.length} thửa)`);
+        }
+      } catch(e){ console.warn(e); }
+      this.stopLoading();
+    },
+
+    async runBufferParcel() {
+      if(!this.selectedThuaId) return;
+      this.startLoading('Đang quét các đối tượng lân cận...');
+      this.clearAnalysis(false);
+
+      const radius = parseFloat(this.bufferRadius);
+      if (isNaN(radius) || radius <= 0) {
+        alert('Vui lòng nhập bán kính hợp lệ (mét)');
+        this.stopLoading();
+        return;
+      }
+
+      const fd = new FormData();
+      fd.append('loai_phan_tich', 'buffer_thua');
+      fd.append('thua_id', this.selectedThuaId);
+      fd.append('ban_kinh', radius);
+      fd.append('csrfmiddlewaretoken', CSRF_TOKEN);
+
+      try {
+        const res = await fetch('/phan-tich-gis/thuc-hien/', {method:'POST', body:fd});
+        const data = await res.json();
+        
+        if(data.thanh_cong) {
+          const res_data = data.ket_qua;
+          
+          // 1. Vẽ vùng đệm
+          if(res_data.vung_dem) {
+            L.geoJSON(res_data.vung_dem, {
+              style: { color:'#7c3aed', weight:2, fillColor:'#8b5cf6', fillOpacity:0.1, dashArray:'6 3' }
+            }).addTo(this.layers.analysis);
+          }
+
+          // 2. Vẽ quy hoạch lân cận (Màu đỏ/cam để phân biệt)
+          if(res_data.ds_qh?.length > 0) {
+            const qhGrp = L.featureGroup();
+            res_data.ds_qh.forEach(q => {
+              if(q.geojson) L.geoJSON(q.geojson, { 
+                style: { color:'#f97316', weight:2, fillColor:'#fb923c', fillOpacity:0.4 } 
+              }).addTo(qhGrp);
+            });
+            qhGrp.addTo(this.layers.analysis);
+          }
+
+          // 3. Highlight thửa đất lân cận (Màu xanh dương)
+          if(res_data.ds_thua?.length > 0) {
+            const tGrp = L.featureGroup();
+            res_data.ds_thua.forEach(t => {
+                // Tìm layer gốc để highlight hoặc vẽ mới từ centroid/geojson (nếu có)
+                // Ở đây ta dùng mã thửa để tìm trong layer parcels hiện có
+                const pLayer = this.layers.parcels.getLayers()[0];
+                if(pLayer) pLayer.eachLayer(l => {
+                    if(l.feature?.properties?.ma_thua === t.ma_thua) {
+                        L.geoJSON(l.feature, { 
+                          style: { color:'#2563eb', weight:2, fillColor:'#3b82f6', fillOpacity:0.25 } 
+                        }).addTo(tGrp);
+                    }
+                });
+            });
+            tGrp.addTo(this.layers.analysis);
+          }
+
+          // 4. Hiển thị kết quả categorized
+          this.activeTool = 'buffer_thua_result'; // Chế độ hiển thị đặc biệt
+          this.resultTitle = `Quét lân cận: ${this.selectedThuaMa}`;
+          this.resultKPI = [
+            {label: 'Thửa lân cận', val: res_data.so_thua_lan_can},
+            {label: 'Vùng QH', val: res_data.so_qh_lan_can}
+          ];
+          this.resultData = res_data; // Lưu data phức hợp vào state
+          this.resultOpen = true;
+          this.zoomResult();
+          
+          this.addWorkflow('Quét lân cận', true);
+        } else {
+          alert('Lỗi: ' + data.loi);
+        }
+      } catch(e) { 
+        console.warn(e); 
+        alert('Lỗi kết nối máy chủ phân tích');
+      }
+      this.stopLoading();
+    },
+
+    async runPlanning() {
+      if(!this.selectedThuaId) return;
+      this.startLoading('Kiểm tra chồng lấn quy hoạch...');
+      this.clearAnalysis(false);
+
+      const fd = new FormData();
+      fd.append('loai_phan_tich','vi_pham_quy_hoach');
+      fd.append('thua_id',this.selectedThuaId);
+      if(this.selectedQhId) fd.append('qh_id',this.selectedQhId);
+      fd.append('csrfmiddlewaretoken',CSRF_TOKEN);
+
+      try {
+        const res = await fetch('/phan-tich-gis/thuc-hien/',{method:'POST',body:fd});
+        const data = await res.json();
+        if(data.thanh_cong) {
+          const list = data.ket_qua.danh_sach || [];
+          const resGroup = L.featureGroup();
+          list.forEach(v => { if(v.geojson) L.geoJSON(v.geojson,{style:{color:'#ef4444',weight:1.5,fillColor:'#ef4444',fillOpacity:0.5}}).addTo(resGroup); });
+          if(list.length > 0) { resGroup.addTo(this.layers.analysis); this.map.fitBounds(resGroup.getBounds(),{padding:[40,40]}); }
+          this.showResult(
+            list.length>0 ? `⚠️ ${list.length} vi phạm quy hoạch` : '✅ Không vi phạm',
+            [{label:'Vi phạm',val:list.length},{label:'Tổng DT (m²)',val:list.reduce((s,v)=>s+parseFloat(v.dien_tich_m2||0),0).toFixed(1)}],
+            list.map(v=>({
+              'Quy hoạch': v.quy_hoach,
+              'DT (m²)': v.dien_tich_m2,
+              '%': v.phan_tram,
+              'Trạng thái': 'Đã ghi nhận'
+            })),
+            ['Quy hoạch', 'DT (m²)', '%', 'Trạng thái'], null
+          );
+          this.addWorkflow('Kiểm tra QH', true);
+          this.saveHistory('planning', `QH: ${this.selectedThuaMa} (${list.length} vi phạm)`);
+        }
+      } catch(e){ console.warn(e); }
+      this.stopLoading();
+    },
+
+    async runIntersect() {
+      if(!this.drawnLayer) return;
+      this.startLoading('Tính giao thoa...');
+      // Client-side intersect với Turf
+      const results = [];
+      if(this.layers.parcels) {
+        this.layers.parcels.eachLayer(collection => {
+          if (typeof collection.eachLayer === 'function') {
+            collection.eachLayer(l => {
+              if(!l.feature) return;
+              try {
+                const inter = turf.intersect(this.drawnLayer, l.feature);
+                if(inter) {
+                  const area = turf.area(inter);
+                  if (area > 0.1) { // Ngưỡng tối thiểu 0.1m2
+                    results.push({ 'Mã thửa': l.feature.properties.ma_thua||'?', 'DT giao (m²)': area.toFixed(1) });
+                    L.geoJSON(inter,{style:{color:'#10b981',weight:1.5,fillColor:'#10b981',fillOpacity:0.5}}).addTo(this.layers.analysis);
+                  }
+                }
+              } catch(err) { console.error('Turf intersect error:', err); }
+            });
+          }
+        });
+      }
+      this.showResult(`Intersect — ${results.length} thửa giao thoa`, [{label:'Thửa giao',val:results.length}], results, ['Mã thửa','DT giao (m²)'], null);
+      this.addWorkflow('Intersect', true);
+      this.stopLoading();
+    },
+
+    runSummarize() {
+      this.startLoading('Đang thống kê...');
+      const counts = {};
+      const pLayer = this.layers.parcels.getLayers()[0];
+      if(pLayer) {
+        pLayer.eachLayer(l => {
+          const val = l.feature?.properties?.[this.summarizeBy] || 'Không xác định';
+          counts[val] = (counts[val]||0)+1;
+        });
+      }
+      const rows = Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>({'Loại':k,'Số thửa':v}));
+      this.showResult('Thống kê thửa đất', [{label:'Tổng nhóm',val:rows.length},{label:'Tổng thửa',val:rows.reduce((s,r)=>s+r['Số thửa'],0)}], rows, ['Loại','Số thửa'], { labels: rows.map(r=>r['Loại']), values: rows.map(r=>r['Số thửa']) });
+      this.stopLoading();
+    },
+
+    activateDrawMode() {
+      if (!this.map) return;
+      this.drawnItems.clearLayers();
+      this.drawnLayer = null;
+
+      try {
+        if (!this._polygonHandler) {
+          this._polygonHandler = new L.Draw.Polygon(this.map, this._drawConfig.draw.polygon);
+        }
+        // Disable first in case it's already active
+        this._polygonHandler.disable();
+        this._polygonHandler.enable();
+      } catch(e) {
+        console.warn('Draw init error:', e);
+      }
+    },
+
+    // ═══ RESULTS ═══
+    showResult(title, kpis, rows, cols, geojson) {
+      this.resultTitle = title;
+      this.resultKPI = kpis;
+      this.resultRows = rows;
+      this.resultCols = cols;
+      this.resultGeoJSON = geojson;
+      this.resultOpen = true;
+
+      // Chart
+      if(this.resultChart) { this.resultChart.destroy(); this.resultChart = null; }
+      if(this.resultChartData) {
+        this.$nextTick(() => {
+          const ctx = document.getElementById('resultChart');
+          if(!ctx) return;
+          this.resultChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: this.resultChartData.labels,
+              datasets: [{ data: this.resultChartData.values, backgroundColor: ['#3b82f6','#ef4444','#f59e0b','#10b981','#8b5cf6','#f97316'], borderWidth:0 }]
+            },
+            options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{position:'right',labels:{color:'rgba(255,255,255,0.6)',font:{size:11}}} } }
+          });
+        });
+      }
+    },
+
+    // ═══ EXPORT ═══
+    exportGeoJSON() {
+      if(!this.resultGeoJSON) return alert('Không có GeoJSON để xuất');
+      const blob = new Blob([JSON.stringify(this.resultGeoJSON)],{type:'application/json'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = `phan_tich_${Date.now()}.geojson`; a.click();
+    },
+    exportCSV() {
+      if(!this.resultRows.length) return;
+      const hdr = this.resultCols.join(',');
+      const rows = this.resultRows.map(r => this.resultCols.map(c => `"${r[c]||''}"`).join(',')).join('\n');
+      const blob = new Blob([hdr+'\n'+rows],{type:'text/csv;charset=utf-8;'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = `ket_qua_${Date.now()}.csv`; a.click();
+    },
+    saveAnalysis() {
+      this.saveHistory(this.activeTool, this.resultTitle);
+      alert('✅ Đã lưu vào lịch sử phân tích.');
+    },
+
+    // ═══ LAYER MANAGER ═══
+    toggleLayer(name, evt) {
+      const lyr = this.layers[name];
+      if(!lyr) return;
+      if(evt.target.checked) this.map.addLayer(lyr);
+      else this.map.removeLayer(lyr);
+    },
+
+    // ═══ MISC ═══
+    toggleBasemap() {
+      if(this.basemap==='osm') { this.map.removeLayer(this.tileOsm); this.map.addLayer(this.tileSat); this.basemap='sat'; }
+      else { this.map.removeLayer(this.tileSat); this.map.addLayer(this.tileOsm); this.basemap='osm'; }
+    },
+
+    zoomResult() {
+      if (!this.layers.analysis) return;
+      const layers = this.layers.analysis.getLayers();
+      const valid = layers.filter(l => { try{l.getBounds();return true;}catch{return false;} });
+      if(!valid.length) return;
+      try { this.map.fitBounds(L.featureGroup(valid).getBounds(),{padding:[60,60]}); } catch{}
+    },
+
+    clearAnalysis(fullReset=true) {
+      if(this.layers.analysis) this.layers.analysis.clearLayers();
+      if(this.tempMarker){this.map.removeLayer(this.tempMarker);this.tempMarker=null;}
+      if(fullReset){
+        this.selectedCoord=null; this.selectedThuaId=null; this.selectedThuaMa='';
+        this.drawnLayer=null; this.drawnItems?.clearLayers();
+        this.resultOpen=false; this.resultRows=[]; this.resultKPI=[];
+      }
+    },
+    clearAll() { this.clearAnalysis(true); this.workflow=[]; },
+
+    addWorkflow(label, done=false) { this.workflow.push({label, done}); },
+
+    startLoading(msg='Đang xử lý...') { this.loadingMsg=msg; this.loading=true; },
+    stopLoading() { this.loading=false; },
+
+    saveHistory(type, label) {
+      const entry = {type, label, time: new Date().toLocaleTimeString('vi-VN'), coord:this.selectedCoord, thuaId:this.selectedThuaId};
+      this.history.unshift(entry);
+      this.history = this.history.slice(0,10);
+      localStorage.setItem('gis_hub_history', JSON.stringify(this.history));
+    },
+    restoreHistory(h) {
+      if(h.thuaId) { this.selectedThuaId=h.thuaId; this.selectedThuaMa=h.label; }
+      if(h.coord) { this.selectedCoord=h.coord; }
+    },
+  };
+}
+</script>
+{% endblock %}

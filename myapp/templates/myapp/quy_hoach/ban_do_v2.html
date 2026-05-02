@@ -1,0 +1,252 @@
+{% extends 'myapp/ban_do/index.html' %}
+{% load static %}
+
+{% block tieu_de %}Bản đồ Quy hoạch - Hệ thống QLĐĐ GIS{% endblock %}
+
+{% block header_nut %}
+{% if user.is_superuser %}
+<a href="{% url 'qh_them_moi' %}" class="nut_header nut_header--chinh">+ Thêm vùng quy hoạch</a>
+{% endif %}
+{% endblock %}
+
+{% block css_them %}
+{{ block.super }}
+<style>
+    /* Planning Sidebar Styles */
+    .planning-sidebar {
+        width: 380px;
+        background: white;
+        border-left: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        box-shadow: -5px 0 15px rgba(0,0,0,0.05);
+        z-index: 10;
+    }
+    .sidebar-header { padding: 20px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+    .sidebar-title { font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+    .sidebar-subtitle { font-size: 13px; color: #64748b; }
+    
+    .sidebar-tabs { display: flex; border-bottom: 1px solid #e2e8f0; padding: 0 16px; background: white; }
+    .sidebar-tab {
+        padding: 12px 16px; font-size: 13px; font-weight: 500; color: #64748b;
+        cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
+    }
+    .sidebar-tab:hover { color: #1a3a5c; }
+    .sidebar-tab.active { color: #1a3a5c; border-bottom-color: #1a3a5c; }
+    
+    .sidebar-search { padding: 16px; border-bottom: 1px solid #e2e8f0; }
+    .search-input {
+        width: 100%; padding: 10px 14px; border: 1px solid #e2e8f0;
+        border-radius: 8px; font-size: 14px; background: #f1f5f9;
+        transition: all 0.2s;
+    }
+    .search-input:focus { outline: none; border-color: #1a3a5c; background: white; box-shadow: 0 0 0 3px rgba(26,58,92,0.1); }
+    
+    .zone-list { flex: 1; overflow-y: auto; padding: 12px; }
+    .zone-accordion { border: 1px solid #f1f5f9; border-radius: 10px; overflow: hidden; margin-bottom: 10px; transition: all 0.2s; }
+    .zone-accordion:hover { border-color: #e2e8f0; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    
+    .zone-header { display: flex; align-items: center; gap: 12px; padding: 14px; background: white; cursor: pointer; }
+    .zone-header.active { background: #f0f9ff; }
+    .zone-color { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .zone-info { flex: 1; }
+    .zone-name { font-weight: 600; font-size: 14px; color: #1e293b; }
+    .zone-meta { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+    .zone-toggle { color: #cbd5e1; transition: transform 0.2s; }
+    .zone-accordion.open .zone-toggle { transform: rotate(180deg); color: #1a3a5c; }
+    
+    .zone-body { display: none; padding: 16px; background: #fcfdfe; border-top: 1px solid #f1f5f9; }
+    .zone-accordion.open .zone-body { display: block; }
+    .zone-detail-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 12px; border-bottom: 1px dotted #e2e8f0; }
+    .zone-detail-row:last-child { border-bottom: none; }
+    .zone-label { color: #94a3b8; }
+    .zone-value { font-weight: 600; color: #475569; }
+    
+    .zone-actions { display: flex; gap: 8px; margin-top: 14px; }
+    .zone-btn {
+        flex: 1; padding: 8px; border: 1px solid #e2e8f0; background: white;
+        border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer;
+        display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;
+    }
+    .zone-btn:hover { background: #f8fafc; border-color: #cbd5e1; }
+    .zone-btn.primary { background: #1a3a5c; color: white; border-color: #1a3a5c; }
+    .zone-btn.primary:hover { background: #132b45; }
+
+    .sidebar-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #e2e8f0; border-top: 1px solid #e2e8f0; }
+    .stat-item { padding: 12px 8px; background: white; text-align: center; }
+    .stat-value { font-size: 16px; font-weight: 800; color: #1a3a5c; }
+    .stat-label { font-size: 9px; color: #94a3b8; text-transform: uppercase; margin-top: 2px; }
+
+    /* FAB in map */
+    .fab-add-zone {
+        position: absolute; bottom: 30px; left: 30px;
+        width: 50px; height: 50px; border-radius: 50%;
+        background: #1a3a5c; color: white; border: none;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3); cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px; z-index: 1000; transition: all 0.3s;
+    }
+    .fab-add-zone:hover { transform: scale(1.1) rotate(90deg); background: #2563eb; }
+
+    /* Empty state */
+    .zone-empty { text-align: center; padding: 60px 20px; color: #cbd5e1; }
+    .zone-empty i { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+</style>
+{% endblock %}
+
+{% block right_sidebar %}
+<div class="planning-sidebar" x-data="planningSidebar()">
+    <!-- Header -->
+    <div class="sidebar-header">
+        <div class="sidebar-title">Vùng Quy hoạch</div>
+        <div class="sidebar-subtitle" x-text="filteredZones.length + ' vùng quy hoạch được tìm thấy'"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="sidebar-tabs">
+        <div class="sidebar-tab" :class="{'active': activeTab === 'all'}" @click="activeTab = 'all'">Tất cả</div>
+        <div class="sidebar-tab" :class="{'active': activeTab === 'year'}" @click="activeTab = 'year'">Năm</div>
+        <div class="sidebar-tab" :class="{'active': activeTab === 'type'}" @click="activeTab = 'type'">Phân loại</div>
+    </div>
+
+    <!-- Search -->
+    <div class="sidebar-search">
+        <input type="text" class="search-input" x-model="searchQuery" placeholder="Tìm theo tên vùng...">
+    </div>
+
+    <!-- List -->
+    <div class="zone-list">
+        <template x-for="zone in filteredZones" :key="zone.id">
+            <div class="zone-accordion" :class="{'open': openZone === zone.id}">
+                <div class="zone-header" :class="{'active': openZone === zone.id}" @click="toggleZone(zone.id)">
+                    <span class="zone-color" :style="`background:${zone.color}`"></span>
+                    <div class="zone-info">
+                        <div class="zone-name" x-text="zone.ten_vung"></div>
+                        <div class="zone-meta">
+                            <span x-text="zone.loai_display"></span> • <span x-text="zone.nam"></span>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-down zone-toggle" style="font-size: 11px;"></i>
+                </div>
+                <div class="zone-body">
+                    <div class="zone-detail-row">
+                        <span class="zone-label">Mã vùng</span>
+                        <span class="zone-value" x-text="zone.ma_vung"></span>
+                    </div>
+                    <div class="zone-detail-row">
+                        <span class="zone-label">Diện tích</span>
+                        <span class="zone-value" x-text="zone.dien_tich.toLocaleString() + ' ha'"></span>
+                    </div>
+                    <div class="zone-detail-row">
+                        <span class="zone-label">Số thửa</span>
+                        <span class="zone-value" x-text="zone.so_thua + ' thửa'"></span>
+                    </div>
+                    <div class="zone-actions">
+                        <button class="zone-btn" @click="viewZone(zone.id)">
+                            <i class="fas fa-info-circle"></i> Chi tiết
+                        </button>
+                        {% if user.is_superuser %}
+                        <button class="zone-btn primary" @click="editZone(zone.id)">
+                            <i class="fas fa-edit"></i> Sửa
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <div class="zone-empty" x-show="filteredZones.length === 0">
+            <i class="fas fa-map-marked-alt"></i>
+            <p>Không có dữ liệu</p>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="sidebar-stats">
+        <div class="stat-item">
+            <div class="stat-value" x-text="stats.total"></div>
+            <div class="stat-label">Tổng vùng</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" x-text="stats.totalArea"></div>
+            <div class="stat-label">Diện tích (ha)</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" x-text="stats.thisYear"></div>
+            <div class="stat-label">Năm 2024</div>
+        </div>
+    </div>
+</div>
+
+<!-- FAB Add Zone -->
+{% if user.is_superuser %}
+<button class="fab-add-zone" onclick="window.location.href='/quy-hoach/them-moi/'" title="Thêm vùng quy hoạch">
+    <i class="fas fa-plus"></i>
+</button>
+{% endif %}
+{% endblock %}
+
+{% block js_them %}
+{{ block.super }}
+<script>
+    const ZONES_DATA = {{ ds_quy_hoach_json|safe|default:'[]' }};
+    
+    function planningSidebar() {
+        return {
+            activeTab: 'all',
+            searchQuery: '',
+            openZone: null,
+            zones: ZONES_DATA,
+            
+            get filteredZones() {
+                let filtered = this.zones;
+                if (this.searchQuery) {
+                    filtered = filtered.filter(z => z.ten_vung.toLowerCase().includes(this.searchQuery.toLowerCase()));
+                }
+                if (this.activeTab === 'year') {
+                    filtered = [...filtered].sort((a, b) => b.nam - a.nam);
+                } else if (this.activeTab === 'type') {
+                    filtered = [...filtered].sort((a, b) => a.loai.localeCompare(b.loai));
+                }
+                return filtered;
+            },
+            
+            get stats() {
+                return {
+                    total: this.zones.length,
+                    totalArea: Math.round(this.zones.reduce((sum, z) => sum + (z.dien_tich || 0), 0)),
+                    thisYear: this.zones.filter(z => z.nam == 2024).length
+                };
+            },
+            
+            toggleZone(id) {
+                this.openZone = this.openZone === id ? null : id;
+                if (this.openZone) {
+                    // Tương tác với MapApp đã khởi tạo ở index.html
+                    if (typeof MapApp !== 'undefined' && MapApp.state.map) {
+                        const map = MapApp.state.map;
+                        // Tìm layer vùng quy hoạch trên bản đồ
+                        let found = false;
+                        map.eachLayer(layer => {
+                            if (layer.feature && layer.feature.properties && layer.feature.properties.id === id) {
+                                map.fitBounds(layer.getBounds(), { padding: [50, 50], maxZoom: 16 });
+                                layer.openTooltip();
+                                found = true;
+                            }
+                        });
+                        
+                        // Nếu chưa thấy (có thể dữ liệu chưa load kịp), thử lại sau 500ms
+                        if (!found) {
+                            setTimeout(() => this.toggleZone(id), 500);
+                        }
+                    }
+                }
+            },
+            
+            viewZone(id) { window.location.href = `/quy-hoach/${id}/`; },
+            editZone(id) { window.location.href = `/quy-hoach/${id}/chinh-sua/`; }
+        };
+    }
+</script>
+{% endblock %}

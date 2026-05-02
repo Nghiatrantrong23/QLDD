@@ -1,0 +1,182 @@
+/* ===================================
+   HỒ SƠ ĐẤT CSS - Trang quản lý thửa đất
+   Chứa: Styles riêng cho trang Hồ sơ đất
+=================================== */
+
+/* ===== BỘ LỌC ===== */
+.bo-loc-ho-so {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.bo-loc-ho-so .form_o_nhap {
+    max-width: 280px;
+}
+
+.bo-loc-ho-so select.form_o_nhap {
+    max-width: 200px;
+}
+
+/* ===== BẢNG HỒ SƠ ĐẤT ===== */
+.bang-ho-so-dat th {
+    white-space: nowrap;
+}
+
+.bang-ho-so-dat td {
+    vertical-align: middle;
+}
+
+.bang-ho-so-dat .chu-so-huu {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ===== TRẠNG THÁI THỬA ĐẤT ===== */
+.trang-thai-thua {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.trang-thai-thua::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.trang-thai-thua.binh-thuong::before { background: var(--mau-xanh-la); }
+.trang-thai-thua.tranh-chap::before { background: var(--mau-do); }
+
+/* ===== CHI TIẾT HỒ SƠ ===== */
+.chi-tiet-ho-so {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 20px;
+}
+
+.thong-tin-thua-dat {
+    display: grid;
+    gap: 20px;
+}
+
+.thong-tin-phu {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ===== TABS ===== */
+.tabs-chi-tiet {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--mau-vien);
+    margin-bottom: 16px;
+}
+
+.tab-item {
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--mau-chu-nhat);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tab-item:hover {
+    color: var(--mau-chu);
+}
+
+.tab-item.active {
+    color: var(--mau-chinh);
+    border-bottom-color: var(--mau-chinh);
+}
+
+/* ===== MAP CHI TIẾT ===== */
+.map-chi-tiet {
+    height: 300px;
+    border-radius: var(--bo_goc);
+    border: 1px solid var(--mau-vien);
+    margin-bottom: 16px;
+}
+
+/* ===== LỊCH SỬ BIẾN ĐỘNG ===== */
+.lich-su-bien-dong {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.item-bien-dong {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    border-bottom: 1px solid var(--mau-vien);
+}
+
+.item-bien-dong:last-child {
+    border-bottom: none;
+}
+
+.icon-bien-dong {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* ===== CẢNH BÁO ===== */
+.danh-sach-canh-bao-ho-so {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.item-canh-bao-ho-so {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--mau-nen);
+}
+
+/* ===== FORM HỒ SƠ ===== */
+.form-ho-so-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.form-ho-so-grid .form_nhom.full-width {
+    grid-column: 1 / -1;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 992px) {
+    .chi-tiet-ho-so {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-ho-so-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .bo-loc-ho-so .form_o_nhap,
+    .bo-loc-ho-so select.form_o_nhap {
+        max-width: 100%;
+        width: 100%;
+    }
+}

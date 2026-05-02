@@ -1,0 +1,188 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% load static %}
+{% block tieu_de %}Ghi nhận Vi phạm{% endblock %}
+
+{% block css_page %}
+<style>
+    .form-page { max-width: 680px; margin: 36px auto; padding: 0 16px; }
+
+    .form-header { margin-bottom: 28px; }
+    .form-header h1 { font-size: 22px; font-weight: 800; color: #1e293b; margin: 0 0 6px; display: flex; align-items: center; gap: 10px; }
+    .form-header h1 i { color: #ef4444; }
+    .form-header p { font-size: 14px; color: #64748b; margin: 0; }
+
+    .form-card {
+        background: white; border-radius: 14px; border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden;
+    }
+
+    .form-section { padding: 24px; border-bottom: 1px solid #f1f5f9; }
+    .form-section:last-child { border-bottom: none; }
+    .section-label {
+        font-size: 11px; font-weight: 700; text-transform: uppercase;
+        color: #94a3b8; letter-spacing: 0.8px; margin-bottom: 16px;
+    }
+
+    .form-group { margin-bottom: 18px; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    .required::after { content: ' *'; color: #ef4444; }
+
+    .form-control {
+        width: 100%; padding: 10px 14px; border: 1.5px solid #e2e8f0;
+        border-radius: 9px; font-size: 14px; color: #1e293b;
+        transition: border-color 0.2s, box-shadow 0.2s; box-sizing: border-box;
+    }
+    .form-control:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
+    textarea.form-control { resize: vertical; min-height: 100px; }
+
+    /* Mức độ buttons */
+    .muc-do-group { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+    .muc-do-btn {
+        padding: 10px 4px; border: 1.5px solid #e2e8f0; border-radius: 9px;
+        text-align: center; cursor: pointer; transition: all 0.18s;
+        font-size: 12px; font-weight: 700; background: white;
+    }
+    .muc-do-btn input { display: none; }
+    .muc-do-btn span { display: block; font-size: 18px; margin-bottom: 4px; }
+    .muc-do-btn.selected-thap     { border-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
+    .muc-do-btn.selected-trung_binh { border-color: #ca8a04; background: #fefce8; color: #92400e; }
+    .muc-do-btn.selected-cao      { border-color: #ea580c; background: #fff7ed; color: #c2410c; }
+    .muc-do-btn.selected-khan_cap { border-color: #dc2626; background: #fee2e2; color: #991b1b; }
+
+    /* Error */
+    .alert-error {
+        display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+        background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px;
+        color: #dc2626; font-size: 13px; font-weight: 600; margin-bottom: 20px;
+    }
+
+    /* Footer actions */
+    .form-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; }
+    .btn-submit {
+        padding: 11px 28px; background: #1a3a5c; color: white; border: none;
+        border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer;
+        display: flex; align-items: center; gap: 8px; transition: background 0.18s;
+    }
+    .btn-submit:hover { background: #2d4e7a; }
+    .btn-cancel {
+        padding: 11px 20px; background: transparent; color: #64748b;
+        border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: 14px;
+        font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.18s;
+    }
+    .btn-cancel:hover { border-color: #94a3b8; color: #475569; }
+</style>
+{% endblock %}
+
+{% block noi_dung %}
+<div class="form-page">
+    <div class="form-header">
+        <h1><i class="fas fa-exclamation-triangle"></i> Ghi nhận Vi phạm</h1>
+        <p>Điền thông tin để ghi nhận thửa đất vi phạm vào hệ thống cảnh báo.</p>
+    </div>
+
+    {% if loi %}
+    <div class="alert-error">
+        <i class="fas fa-exclamation-circle"></i> {{ loi }}
+    </div>
+    {% endif %}
+
+    <div class="form-card">
+        <form method="post" action="{% url 'cb_them_moi' %}">
+            {% csrf_token %}
+
+            <!-- Thông tin cơ bản -->
+            <div class="form-section">
+                <div class="section-label">Thông tin vi phạm</div>
+
+                <div class="form-group">
+                    <label class="form-label required">Tiêu đề cảnh báo</label>
+                    <input type="text" name="tieu_de" class="form-control"
+                           placeholder="Vd: Thửa đất xây dựng trái phép trên đất nông nghiệp"
+                           value="{{ post.tieu_de|default:'' }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Loại vi phạm</label>
+                    <select name="loai_canh_bao" class="form-control" required>
+                        <option value="">-- Chọn loại vi phạm --</option>
+                        {% for val, label in loai_choices %}
+                        <option value="{{ val }}" {% if post.loai_canh_bao == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label required">Mức độ nghiêm trọng</label>
+                    <div class="muc-do-group" id="mucDoGroup">
+                        <label class="muc-do-btn" data-val="thap">
+                            <input type="radio" name="muc_do" value="thap" {% if post.muc_do == 'thap' or not post %}checked{% endif %}>
+                            <span>⬇️</span> Thấp
+                        </label>
+                        <label class="muc-do-btn" data-val="trung_binh">
+                            <input type="radio" name="muc_do" value="trung_binh" {% if post.muc_do == 'trung_binh' %}checked{% endif %}>
+                            <span>➡️</span> Trung bình
+                        </label>
+                        <label class="muc-do-btn" data-val="cao">
+                            <input type="radio" name="muc_do" value="cao" {% if post.muc_do == 'cao' %}checked{% endif %}>
+                            <span>⬆️</span> Cao
+                        </label>
+                        <label class="muc-do-btn" data-val="khan_cap">
+                            <input type="radio" name="muc_do" value="khan_cap" {% if post.muc_do == 'khan_cap' %}checked{% endif %}>
+                            <span>⚡</span> Khẩn cấp
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Mô tả chi tiết</label>
+                    <textarea name="noi_dung" class="form-control"
+                              placeholder="Mô tả cụ thể tình trạng vi phạm, vị trí, thời gian phát hiện...">{{ post.noi_dung|default:'' }}</textarea>
+                </div>
+            </div>
+
+            <!-- Liên kết thửa đất -->
+            <div class="form-section">
+                <div class="section-label">Thửa đất liên quan</div>
+                <div class="form-group">
+                    <label class="form-label">Chọn thửa đất vi phạm</label>
+                    <select name="thua_dat_id" class="form-control">
+                        <option value="">-- Chọn thửa đất (nếu có) --</option>
+                        {% for td in thua_list %}
+                        <option value="{{ td.id }}"
+                                {% if post.thua_dat_id == td.id|stringformat:"s" %}selected{% endif %}>
+                            Thửa {{ td.ma_thua }}{% if td.dia_chi_thua %} — {{ td.dia_chi_thua|truncatechars:50 }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div style="font-size:11px;color:#94a3b8;margin-top:5px;">Có thể bỏ trống nếu chưa xác định được thửa đất.</div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="form-footer">
+                <a href="{% url 'cb_danh_sach' %}" class="btn-cancel">
+                    <i class="fas fa-arrow-left"></i> Quay lại
+                </a>
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-save"></i> Ghi nhận vi phạm
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Highlight mức độ button khi chọn
+function updateMucDo() {
+    document.querySelectorAll('.muc-do-btn').forEach(btn => {
+        const input = btn.querySelector('input');
+        btn.className = 'muc-do-btn' + (input.checked ? ' selected-' + btn.dataset.val : '');
+    });
+}
+document.querySelectorAll('.muc-do-btn input').forEach(inp => {
+    inp.addEventListener('change', updateMucDo);
+});
+updateMucDo(); // Init on load
+</script>
+{% endblock %}

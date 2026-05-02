@@ -3,15 +3,18 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.db import transaction
 from django.contrib.auth.decorators import login_required
+from myapp.decorators import admin_required
 from django.contrib.gis.geos import GEOSGeometry, MultiPolygon, Polygon, Point
 from myapp.models import ThuaDat, ChuSuDung
 
 @login_required
+@admin_required
 def hs_nhap_du_lieu(request):
     """Trang hiển thị form upload GeoJSON"""
     return render(request, 'myapp/ho_so_dat/nhap_lieu.html')
 
 @login_required
+@admin_required
 def hs_import_geojson(request):
     """Logic xử lý import file GeoJSON"""
     if request.method == 'POST' and request.FILES.get('file_geojson'):

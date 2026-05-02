@@ -23,10 +23,10 @@
             </option>
             {% endfor %}
         </select>
-        <select name="da_xu_ly" class="form_o_nhap" style="max-width:180px;">
+        <select name="trang_thai" class="form_o_nhap" style="max-width:180px;">
             <option value="">-- Tất cả trạng thái --</option>
-            <option value="0">Chưa xử lý</option>
-            <option value="1">Đã xử lý</option>
+            <option value="chua_xu_ly" {% if trang_thai_chon == 'chua_xu_ly' %}selected{% endif %}>Chưa xử lý</option>
+            <option value="da_hoan_tat" {% if trang_thai_chon == 'da_hoan_tat' %}selected{% endif %}>Đã xử lý</option>
         </select>
         <button type="submit" class="nut nut--chinh">Lọc</button>
         <a href="{% url 'cb_danh_sach' %}" class="nut nut--vien">Xóa</a>
@@ -70,7 +70,7 @@
                     {% else %}—{% endif %}
                 </td>
                 <td>
-                    {% if cb.da_xu_ly %}
+                    {% if cb.trang_thai == 'da_hoan_tat' %}
                     <span class="huy_hieu huy_hieu--xanh">Đã xử lý</span>
                     {% else %}
                     <span class="huy_hieu huy_hieu--do">Chưa xử lý</span>
@@ -89,5 +89,8 @@
         <p>Hệ thống không ghi nhận cảnh báo nào với bộ lọc hiện tại</p>
     </div>
     {% endif %}
+
+    <!-- PHÂN TRANG -->
+    {% include 'myapp/co_so/phan_trang.html' %}
 </div>
 {% endblock %}

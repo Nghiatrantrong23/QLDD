@@ -1,7 +1,9 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from myapp.decorators import admin_required
 from django.contrib.gis.geos import Point, GEOSGeometry
+from django.core.paginator import Paginator
 from myapp.models import ThuaDat, ChuSuDung, BienDongDat, VungQuyHoach
 from myapp.forms import ThuaDatForm
 import json
@@ -23,13 +25,19 @@ def danh_sach(request):
     if loai_dat:
         thua_dat_qs = thua_dat_qs.filter(loai_dat_hien_trang=loai_dat)
 
+    # Phân trang - 10 items/trang
+    tong_so = thua_dat_qs.count()
+    paginator = Paginator(thua_dat_qs, 10)
+    trang = request.GET.get('trang', 1)
+    danh_sach_trang = paginator.get_page(trang)
+
     context = {
         'tieu_de_trang': 'Danh sách hồ sơ đất',
-        'danh_sach': thua_dat_qs,
+        'danh_sach': danh_sach_trang,
         'query': tu_khoa,
         'loai_dat_chon': loai_dat,
         'loai_dat_choices': ThuaDat.LOAI_DAT_CHOICES,
-        'tong_so': thua_dat_qs.count(),
+        'tong_so': tong_so,
     }
     return render(request, 'myapp/ho_so_dat/danh_sach.html', context)
 
@@ -71,6 +79,9 @@ def chi_tiet(request, pk):
     else:
         gcn_status = 'lau_dai'
 
+    # Kiểm tra quyền sở hữu của người dùng hiện tại
+    is_owner = thua.danh_sach_chu_su_dung.filter(so_giay_to=request.user.username).exists()
+
     context = {
         'tieu_de_trang': f'Chi tiết thửa đất {thua.ma_thua}',
         'thua': thua,
@@ -79,12 +90,14 @@ def chi_tiet(request, pk):
         'vi_pham': vi_pham,
         'tong_dt_vi_pham': tong_dt_vi_pham,
         'gcn_status': gcn_status,
+        'is_owner': is_owner,
         'geojson_thua': thua.mpoly.geojson if thua.mpoly else "null",
     }
     return render(request, 'myapp/ho_so_dat/chi_tiet.html', context)
 
 
 @login_required
+@admin_required
 def them_moi(request):
     """Thêm mới hồ sơ đất thông qua ModelForm"""
     chu_su_dung_list = ChuSuDung.objects.all()
@@ -130,6 +143,7 @@ def them_moi(request):
 
 
 @login_required
+@admin_required
 def chinh_sua(request, pk):
     """Chỉnh sửa hồ sơ đất thông qua ModelForm"""
     thua = get_object_or_404(ThuaDat, pk=pk)
@@ -178,6 +192,7 @@ def chinh_sua(request, pk):
 
 
 @login_required
+@admin_required
 def xoa(request, pk):
     """Xóa hồ sơ đất"""
     thua = get_object_or_404(ThuaDat, pk=pk)
@@ -190,6 +205,7 @@ def xoa(request, pk):
 
 
 @login_required
+@admin_required
 def xuat_bao_cao(request, pk):
     """Xuất báo cáo Giấy Chứng Nhận (Printable PDF style)"""
     thua = get_object_or_404(ThuaDat, pk=pk)

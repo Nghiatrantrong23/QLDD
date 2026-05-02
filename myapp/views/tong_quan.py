@@ -1,12 +1,17 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from myapp.decorators import admin_required
 from myapp.models import ThuaDat, CanhBaoGIS, BienDongDat, VungQuyHoach
 
 @login_required
 def tong_quan(request):
     """Trang Tổng quan - Dashboard chính"""
+    # Nếu không phải Admin, chuyển hướng sang trang Dashboard người dùng
+    if not request.user.is_superuser:
+        return redirect('profile_dashboard')
+
     tong_thua_dat = ThuaDat.objects.count()
-    tong_canh_bao = CanhBaoGIS.objects.filter(da_xu_ly=False).count()
+    tong_canh_bao = CanhBaoGIS.objects.filter(trang_thai='chua_xu_ly').count()
     tong_bien_dong = BienDongDat.objects.count()
     tong_quy_hoach = VungQuyHoach.objects.count()
 
@@ -20,7 +25,7 @@ def tong_quan(request):
     bien_dong_gan_nhat = BienDongDat.objects.select_related('thua_dat').order_by('-ngay_bien_dong')[:5]
 
     # Cảnh báo chưa xử lý
-    canh_bao_chua_xu_ly = CanhBaoGIS.objects.filter(da_xu_ly=False).order_by('-ngay_phat_sinh')[:5]
+    canh_bao_chua_xu_ly = CanhBaoGIS.objects.filter(trang_thai='chua_xu_ly').order_by('-ngay_phat_sinh')[:5]
 
     context = {
         'tieu_de_trang': 'Tổng quan hệ thống',

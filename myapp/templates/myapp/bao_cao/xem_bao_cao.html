@@ -70,7 +70,7 @@
                 <td>{{ cb.tieu_de }}</td>
                 <td>{{ cb.get_loai_canh_bao_display }}</td>
                 <td>{{ cb.get_muc_do_display }}</td>
-                <td>{% if cb.da_xu_ly %}Đã xử lý{% else %}Chưa xử lý{% endif %}</td>
+                <td>{% if cb.trang_thai == 'da_hoan_tat' %}Đã xử lý{% else %}Chưa xử lý{% endif %}</td>
                 <td>{{ cb.ngay_phat_sinh|date:"d/m/Y" }}</td>
             </tr>
             {% empty %}

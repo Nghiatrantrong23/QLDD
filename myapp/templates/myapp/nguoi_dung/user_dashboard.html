@@ -1,0 +1,387 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% load static %}
+
+{% block tieu_de %}Cổng thông tin cư dân | GIS QLDD{% endblock %}
+
+{% block css_page %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    /* Premium Design System */
+    :root {
+        --primary: #2563eb;
+        --primary-soft: #dbeafe;
+        --secondary: #64748b;
+        --accent: #f59e0b;
+        --success: #10b981;
+        --danger: #ef4444;
+        --glass-bg: rgba(255, 255, 255, 0.85);
+        --glass-border: rgba(255, 255, 255, 0.4);
+        --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    }
+
+    body { font-family: 'Inter', sans-serif; background: #f1f5f9; }
+
+    /* Layout & Utilities */
+    .dashboard-wrapper { padding: 32px; max-width: 1600px; margin: 0 auto; animation: fadeIn 0.8s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Glass Cards */
+    .glass-card {
+        background: var(--glass-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border); border-radius: 24px; box-shadow: var(--card-shadow);
+        overflow: hidden; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+
+    /* Stats Section */
+    .stat-badge {
+        display: flex; align-items: center; justify-content: center;
+        width: 56px; height: 56px; border-radius: 18px; margin-bottom: 20px;
+        font-size: 24px; transition: all 0.3s;
+    }
+    .card-stat { padding: 30px; }
+    .card-stat:hover .stat-badge { transform: scale(1.1) rotate(5deg); }
+
+    /* Custom Map UI */
+    .map-container { height: 500px; width: 100%; position: relative; border-radius: 0 0 24px 24px; }
+    #userMap { height: 100%; z-index: 10; }
+    .map-overlay {
+        position: absolute; top: 20px; right: 20px; z-index: 1000;
+        background: white; padding: 10px 15px; border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1); font-size: 13px; font-weight: 700;
+        display: flex; align-items: center; pointer-events: none;
+    }
+
+    /* Parcel List */
+    .scroll-area { max-height: 400px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+    .parcel-item {
+        display: flex; align-items: center; padding: 20px; gap: 20px;
+        border-bottom: 1px solid #f1f5f9; transition: all 0.2s; cursor: pointer;
+    }
+    .parcel-item:hover { background: #f8fafc; padding-left: 25px; }
+    .parcel-item.active { border-left: 4px solid var(--primary); background: #eff6ff; }
+    
+    .parcel-icon {
+        width: 44px; height: 44px; background: #f1f5f9; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center; color: var(--primary);
+    }
+
+    /* Personal Profile Card */
+    .profile-header {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        padding: 40px; color: white; border-radius: 24px 24px 0 0;
+    }
+    .profile-avatar {
+        width: 80px; height: 80px; background: var(--primary); border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+        display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 800;
+        box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3); margin-bottom: 20px;
+    }
+
+    /* Timeline Section */
+    .feed-item { position: relative; padding-left: 30px; margin-bottom: 24px; }
+    .feed-item::before {
+        content: ''; position: absolute; left: 0; top: 0; bottom: -24px;
+        width: 2px; background: #e2e8f0;
+    }
+    .feed-item:last-child::before { display: none; }
+    .feed-dot {
+        position: absolute; left: -6px; top: 5px; width: 14px; height: 14px;
+        border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px var(--primary);
+        background: var(--primary); z-index: 2;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .main-grid { grid-template-columns: 1fr !important; }
+    }
+</style>
+{% endblock %}
+
+{% block noi_dung %}
+<div class="dashboard-wrapper">
+    {% if error %}
+    <div class="glass-card p-12 text-center max-w-2xl mx-auto mt-20">
+        <div class="mb-6 inline-flex p-6 bg-red-100 text-red-600 rounded-full text-4xl">
+            <i class="fas fa-search-location"></i>
+        </div>
+        <h2 class="text-2xl font-black text-slate-800 mb-4">{{ error }}</h2>
+        <p class="text-slate-500 mb-8 leading-relaxed">Tài khoản này chưa được liên kết với hồ sơ đất đai nào trong hệ thống GIS. Vui lòng liên hệ bộ phận Tiếp nhận hồ sơ để được hỗ trợ.</p>
+        <a href="{% url 'ban_do' %}" class="inline-flex items-center px-6 py-3 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 transition translate-y-0 hover:-translate-y-1">
+            <i class="fas fa-map-marked-alt mr-2"></i> Trở về Bản đồ chính
+        </a>
+    </div>
+    {% else %}
+
+    <!-- Welcome Section -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+        <div>
+            <h1 class="text-4xl font-black text-slate-900 tracking-tight">Cổng thông tin cư dân</h1>
+            <p class="text-slate-500 font-medium mt-2 flex items-center">
+                <span class="flex h-3 w-3 relative mr-3">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                </span>
+                Chào mừng trở lại, <span class="text-primary font-bold ml-1">{{ user_info.ho_ten }}</span>
+            </p>
+        </div>
+        <div class="flex gap-4">
+            <button onclick="window.print()" class="glass-card px-6 py-3 text-sm font-bold flex items-center hover:bg-slate-50">
+                <i class="fas fa-download mr-3 text-secondary"></i> Xuất hồ sơ PDF
+            </button>
+            <button class="bg-primary text-white shadow-lg px-6 py-3 text-sm font-bold rounded-xl flex items-center hover:bg-blue-700 transition transform hover:scale-105 active:scale-95">
+                <i class="fas fa-file-invoice mr-3"></i> Phản ánh/Kiếu nại
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Stats Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+        <div class="glass-card card-stat">
+            <div class="stat-badge bg-blue-100 text-blue-600"><i class="fas fa-map"></i></div>
+            <div class="text-4xl font-black text-slate-900 mb-1">{{ stats.count }}</div>
+            <div class="text-slate-500 font-bold uppercase text-[11px] tracking-wider">Thửa đất sở hữu</div>
+        </div>
+        <div class="glass-card card-stat">
+            <div class="stat-badge bg-emerald-100 text-emerald-600"><i class="fas fa-layer-group"></i></div>
+            <div class="text-4xl font-black text-slate-900 mb-1">{{ stats.area|floatformat:1|default:"0" }} <small class="text-lg font-bold">m²</small></div>
+            <div class="text-slate-500 font-bold uppercase text-[11px] tracking-wider">Tổng diện tích mặt bằng</div>
+        </div>
+        <div class="glass-card card-stat">
+            <div class="stat-badge {% if canh_bao.count > 0 %}bg-rose-100 text-rose-600{% else %}bg-slate-100 text-slate-400{% endif %}">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <div class="text-4xl font-black text-slate-900 mb-1">{{ canh_bao.count }}</div>
+            <div class="text-slate-500 font-bold uppercase text-[11px] tracking-wider">Cảnh báo liên quan</div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 main-grid">
+        
+        <!-- Center/Left Column: GIS Map & List -->
+        <div class="lg:col-span-2 space-y-8">
+            <!-- Map Card -->
+            <div class="glass-card">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                    <h3 class="font-black text-slate-800 flex items-center">
+                        <i class="fas fa-satellite mr-3 text-primary"></i> Bản đồ định vị GIS
+                    </h3>
+                    <div class="flex gap-2">
+                        <span class="px-3 py-1 bg-slate-100 rounded-full text-[10px] font-bold text-slate-600 uppercase">Real-time Data</span>
+                    </div>
+                </div>
+                <div class="map-container">
+                    <div id="userMap"></div>
+                    <div class="map-overlay">
+                        <i class="fas fa-compass animate-spin-slow mr-3 text-primary"></i>
+                        <span>VN-2000 / WGS84</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Parcel List Table -->
+            <div class="glass-card">
+                <div class="p-6 border-b border-slate-100">
+                    <h3 class="font-black text-slate-800">Danh sách tài sản số</h3>
+                </div>
+                <div class="scroll-area">
+                    {% for t in thua_dat_list %}
+                    <div class="parcel-item" onclick="triggerHighlight({{ t.id }})" id="parcel-{{ t.id }}">
+                        <div class="parcel-icon">
+                            <i class="fas fa-house-user"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-black text-slate-800">Thửa {{ t.so_thua }}, Tờ {{ t.so_to }}</div>
+                            <div class="text-sm text-slate-500 line-clamp-1">{{ t.dia_chi_thua }}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-primary font-black text-lg">{{ t.dien_tich }} m²</div>
+                            <div class="text-[10px] font-bold text-{{ t.status_info.class }}-600 bg-{{ t.status_info.class }}-50 px-2 py-0.5 rounded-full inline-block mt-1">
+                                {{ t.status_info.badge_text }}
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="py-20 text-center text-slate-400 italic">Dữ liệu đang được cập nhật...</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Profile & Timeline -->
+        <div class="space-y-8">
+            <!-- New Profile Card -->
+            <div class="glass-card shadow-2xl">
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        {{ user_info.ho_ten|slice:":1" }}
+                    </div>
+                    <h2 class="text-xl font-black mb-1">{{ user_info.ho_ten }}</h2>
+                    <p class="text-slate-400 text-sm font-medium">Hồ sơ công dân chính danh</p>
+                </div>
+                <div class="p-6 space-y-5 bg-white">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Số định danh</span>
+                        <span class="font-black text-slate-800">{{ cccd }}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Điện thoại</span>
+                        <span class="font-black text-slate-800">{{ user_info.so_dien_thoai|default:"N/A" }}</span>
+                    </div>
+                    <div class="pb-2">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-widest block mb-2">Địa chỉ đăng ký</span>
+                        <p class="text-sm font-bold text-slate-700 leading-relaxed">{{ user_info.dia_chi|default:"Chưa có địa chỉ văn phòng" }}</p>
+                    </div>
+                    <button class="w-full py-3 bg-slate-50 text-slate-600 font-bold rounded-xl border border-slate-100 hover:bg-slate-100 transition">
+                        Cập nhật thông tin
+                    </button>
+                </div>
+            </div>
+
+            <!-- Warning/Notifications Card -->
+            <div class="glass-card p-6">
+                <h3 class="font-black text-slate-800 mb-5 flex items-center">
+                    <i class="fas fa-bell mr-3 text-rose-500"></i> Thông báo & Cảnh báo
+                </h3>
+                <div class="space-y-4">
+                    {% for c in canh_bao %}
+                    <div class="p-4 bg-rose-50 border border-rose-100 rounded-2xl">
+                        <div class="text-rose-800 font-black text-sm mb-1">{{ c.tieu_de }}</div>
+                        <p class="text-xs text-rose-600 mb-2 leading-tight">Vui lòng kiểm tra hiện trạng tại thửa {{ c.thua_dat_lien_quan.so_thua }}.</p>
+                        <span class="text-[10px] font-bold text-rose-400">{{ c.ngay_phat_sinh|date:"d/m/Y" }}</span>
+                    </div>
+                    {% empty %}
+                    <div class="py-8 text-center">
+                        <div class="text-emerald-500 mb-2 text-3xl"><i class="fas fa-circle-check"></i></div>
+                        <p class="text-sm font-bold text-slate-400">Không có cảnh báo vi phạm</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Modern Timeline -->
+            <div class="glass-card p-6">
+                <h3 class="font-black text-slate-800 mb-6">Nhật ký biến động</h3>
+                <div class="pl-2">
+                    {% for l in lich_su %}
+                    <div class="feed-item">
+                        <div class="feed-dot"></div>
+                        <div class="font-black text-sm text-slate-800 mb-1">{{ l.get_loai_bien_dong_display }}</div>
+                        <div class="text-[11px] font-bold text-primary flex items-center mb-2">
+                            <i class="far fa-calendar-alt mr-1"></i> {{ l.ngay_bien_dong|date:"d/m/Y" }}
+                        </div>
+                        <p class="text-xs text-slate-500">Thực hiện cho Thửa {{ l.thua_dat.so_thua }}, Tờ {{ l.thua_dat.so_to }}</p>
+                    </div>
+                    {% empty %}
+                    <p class="text-center py-6 text-slate-400 italic text-xs">Chưa ghi nhận biến động mới</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block js_them %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    let userMap, geoLayer;
+
+    function initUserMap() {
+        const mapElement = document.getElementById('userMap');
+        if (!mapElement) return;
+
+        userMap = L.map('userMap', {
+            zoomControl: false,
+            scrollWheelZoom: true
+        }).setView([16.06, 108.21], 14);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            attribution: '© CartoDB'
+        }).addTo(userMap);
+
+        L.control.zoom({ position: 'bottomright' }).addTo(userMap);
+
+        // Fetch User GIS Data
+        fetch('{% url "api_my_parcels" %}')
+            .then(res => res.json())
+            .then(data => {
+                if (data.features.length > 0) {
+                    geoLayer = L.geoJSON(data, {
+                        style: (feature) => ({
+                            color: '#2563eb',
+                            fillColor: '#3b82f6',
+                            weight: 3,
+                            opacity: 1,
+                            fillOpacity: 0.15,
+                            dashArray: '5, 5'
+                        }),
+                        onEachFeature: (feature, layer) => {
+                            let popup = `
+                                <div class="p-2">
+                                    <div class="text-xs font-bold text-slate-400 uppercase mb-1">Thửa đất số</div>
+                                    <div class="text-lg font-black text-slate-800 mb-2">${feature.properties.so_thua}</div>
+                                    <div class="text-xs text-slate-600"><i class="fas fa-expand mr-2"></i>DT: ${feature.properties.dien_tich} m²</div>
+                                    <div class="text-xs text-slate-600 mt-1"><i class="fas fa-map-marker-alt mr-2"></i>Tờ: ${feature.properties.so_to}</div>
+                                </div>
+                            `;
+                            layer.bindPopup(popup, { className: 'custom-popup' });
+                        }
+                    }).addTo(userMap);
+
+                    userMap.fitBounds(geoLayer.getBounds(), { padding: [40, 40], animate: true });
+                }
+            });
+    }
+
+    function triggerHighlight(id) {
+        if (!geoLayer) return;
+
+        // Reset list styles
+        document.querySelectorAll('.parcel-item').forEach(el => el.classList.remove('active'));
+        document.getElementById(`parcel-${id}`).classList.add('active');
+
+        geoLayer.eachLayer(layer => {
+            if (layer.feature.id === id) {
+                userMap.flyTo(layer.getBounds().getCenter(), 18, { animate: true, duration: 1.5 });
+                setTimeout(() => layer.openPopup(), 1500);
+
+                layer.setStyle({
+                    color: '#f59e0b',
+                    fillColor: '#fbbf24',
+                    fillOpacity: 0.4,
+                    weight: 5,
+                    dashArray: ''
+                });
+
+                setTimeout(() => {
+                    layer.setStyle({
+                        color: '#2563eb',
+                        fillColor: '#3b82f6',
+                        weight: 3,
+                        fillOpacity: 0.15,
+                        dashArray: '5, 5'
+                    });
+                }, 3000);
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', initUserMap);
+</script>
+
+<style>
+    /* Leaflet Custom Style */
+    .custom-popup .leaflet-popup-content-wrapper {
+        border-radius: 12px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        padding: 5px;
+    }
+    .leaflet-container { font-family: 'Inter', sans-serif !important; }
+    .animate-spin-slow { animation: spin 4s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+{% endblock %}

@@ -14,30 +14,66 @@
 
 <form method="post" action="" class="panel" style="max-width: 800px; margin: 0 auto;">
     {% csrf_token %}
+    
+    {% if form.non_field_errors %}
+    <div class="thong_bao thong_bao--loi" style="margin-bottom: 16px;">
+        {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+    </div>
+    {% endif %}
+    
     <div class="form_luoi" style="grid-template-columns: 1fr 1fr;">
         <div class="form_nhom">
             <label class="form_nhan">Họ và tên <span style="color:red;">*</span></label>
-            <input type="text" name="ho_ten" class="form_o_nhap" value="{{ chu.ho_ten|default:'' }}" required>
+            <input type="text" name="ho_ten" class="form_o_nhap {% if form.ho_ten.errors %}error{% endif %}" 
+                   value="{{ form.ho_ten.value|default:'' }}" required>
+            {% if form.ho_ten.errors %}
+            <span style="color: var(--mau-do); font-size: 12px; margin-top: 4px; display: block;">
+                {{ form.ho_ten.errors.0 }}
+            </span>
+            {% endif %}
         </div>
         <div class="form_nhom">
             <label class="form_nhan">Số CMND/CCCD/MST <span style="color:red;">*</span></label>
-            <input type="text" name="so_giay_to" class="form_o_nhap" value="{{ chu.so_giay_to|default:'' }}" required>
+            <input type="text" name="so_giay_to" class="form_o_nhap {% if form.so_giay_to.errors %}error{% endif %}" 
+                   value="{{ form.so_giay_to.value|default:'' }}" required
+                   pattern="[a-zA-Z0-9-]{9,15}" title="Số giấy tờ phải từ 9-15 ký tự (chữ, số, dấu -)">
+            {% if form.so_giay_to.errors %}
+            <span style="color: var(--mau-do); font-size: 12px; margin-top: 4px; display: block;">
+                {{ form.so_giay_to.errors.0 }}
+            </span>
+            {% endif %}
         </div>
         <div class="form_nhom">
             <label class="form_nhan">Loại đối tượng</label>
             <select name="loai_doi_tuong" class="form_o_nhap">
-                <option value="ca_nhan" {% if chu.loai_doi_tuong == 'ca_nhan' %}selected{% endif %}>Cá nhân</option>
-                <option value="to_chuc" {% if chu.loai_doi_tuong == 'to_chuc' %}selected{% endif %}>Tổ chức</option>
-                <option value="ho_gia_dinh" {% if chu.loai_doi_tuong == 'ho_gia_dinh' %}selected{% endif %}>Hộ gia đình</option>
+                <option value="ca_nhan" {% if form.loai_doi_tuong.value == 'ca_nhan' %}selected{% endif %}>Cá nhân</option>
+                <option value="to_chuc" {% if form.loai_doi_tuong.value == 'to_chuc' %}selected{% endif %}>Tổ chức</option>
+                <option value="ho_gia_dinh" {% if form.loai_doi_tuong.value == 'ho_gia_dinh' %}selected{% endif %}>Hộ gia đình</option>
             </select>
+            {% if form.loai_doi_tuong.errors %}
+            <span style="color: var(--mau-do); font-size: 12px; margin-top: 4px; display: block;">
+                {{ form.loai_doi_tuong.errors.0 }}
+            </span>
+            {% endif %}
         </div>
         <div class="form_nhom">
             <label class="form_nhan">Số điện thoại</label>
-            <input type="text" name="so_dien_thoai" class="form_o_nhap" value="{{ chu.so_dien_thoai|default:'' }}">
+            <input type="text" name="so_dien_thoai" class="form_o_nhap {% if form.so_dien_thoai.errors %}error{% endif %}" 
+                   value="{{ form.so_dien_thoai.value|default:'' }}">
+            {% if form.so_dien_thoai.errors %}
+            <span style="color: var(--mau-do); font-size: 12px; margin-top: 4px; display: block;">
+                {{ form.so_dien_thoai.errors.0 }}
+            </span>
+            {% endif %}
         </div>
         <div class="form_nhom" style="grid-column: span 2;">
             <label class="form_nhan">Địa chỉ liên lạc</label>
-            <textarea name="dia_chi" class="form_o_nhap" rows="3">{{ chu.dia_chi|default:'' }}</textarea>
+            <textarea name="dia_chi" class="form_o_nhap {% if form.dia_chi.errors %}error{% endif %}" rows="3">{{ form.dia_chi.value|default:'' }}</textarea>
+            {% if form.dia_chi.errors %}
+            <span style="color: var(--mau-do); font-size: 12px; margin-top: 4px; display: block;">
+                {{ form.dia_chi.errors.0 }}
+            </span>
+            {% endif %}
         </div>
     </div>
 

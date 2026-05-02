@@ -15,6 +15,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
@@ -22,6 +23,7 @@ INSTALLED_APPS = [
     'django.contrib.auth',
     'django.contrib.gis',
     'rest_framework',
+    'channels',
     'myapp',
 ]
 
@@ -54,6 +56,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'QLDD.wsgi.application'
+ASGI_APPLICATION = 'QLDD.asgi.application'
+
+# --- Channels Layer (In-Memory for Dev) ---
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 # --- Cơ sở dữ liệu PostgreSQL ---
 DATABASES = {
@@ -92,3 +102,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = 'dang_nhap'
 LOGIN_REDIRECT_URL = 'tong_quan'
 LOGOUT_REDIRECT_URL = 'dang_nhap'
+
+# --- OpenRouteService API Key ---
+# Đăng ký miễn phí tại: https://openrouteservice.org/dev/
+ORS_API_KEY = '5b3ce3597851110001cf6248fd2a9ff7c8864417a0ef3f6ea0d6ab28'

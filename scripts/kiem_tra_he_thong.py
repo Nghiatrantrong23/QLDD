@@ -176,7 +176,7 @@ def tao_bao_cao():
         'Số chủ sử dụng': ChuSuDung.objects.count(),
         'Số vùng quy hoạch': VungQuyHoach.objects.count(),
         'Số cảnh báo': CanhBaoGIS.objects.count(),
-        'Cảnh báo chưa xử lý': CanhBaoGIS.objects.filter(da_xu_ly=False).count(),
+        'Cảnh báo chưa xử lý': CanhBaoGIS.objects.filter(trang_thai='chua_xu_ly').count(),
         'Số biến động': BienDongDat.objects.count(),
         'Số user': User.objects.count(),
         'Số admin': User.objects.filter(is_staff=True).count(),

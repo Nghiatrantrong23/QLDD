@@ -30,23 +30,47 @@ MapApp.sidebar = {
         if (layer && typeof layer.setStyle === 'function') {
             layer.setStyle({ weight: 3, color: '#f59e0b', fillOpacity: 0.85 });
         }
+
+        // Bắt đầu tracking hướng khi di chuyển ra xa (MỚI)
+        if (MapApp.tracker) {
+            MapApp.tracker.track(layer);
+        }
     },
 
     close: function() {
         const panel = document.getElementById('detail-panel');
         if (panel) panel.classList.remove('open');
 
-        // Reset style thửa đất
+        // Giữ nguyên đoạn restore highlight
         if (this.currentLayer && MapApp.state.layers.parcels) {
             MapApp.state.layers.parcels.resetStyle(this.currentLayer);
         }
-        // Xóa highlight quy hoạch
         if (this.planningHighlight) {
             MapApp.state.map.removeLayer(this.planningHighlight);
             this.planningHighlight = null;
         }
+
+        // Dừng tracking hướng (MỚI)
+        if (MapApp.tracker) {
+            MapApp.tracker.clear();
+        }
+        
+        this.restoreRoutingPanel();
+
         this.currentFeature = null;
         this.currentLayer = null;
+    },
+
+    // ================================================================
+    // TIỆN ÍCH RESTORE ROUTING PANEL
+    // ================================================================
+    restoreRoutingPanel: function() {
+        // ID chính xác trong routing_panel.html là 'routingPanel'
+        const rp = document.getElementById('routingPanel');
+        if (rp && rp.classList.contains('docked')) {
+            rp.classList.remove('docked');
+            document.body.appendChild(rp);
+        }
     },
 
     // ================================================================
@@ -66,12 +90,16 @@ MapApp.sidebar = {
         const p = this.currentFeature.properties;
         const layers = MapApp.layers;
 
+        // BẮT BUỘC: Phải nhả rpPanel về body trước khi ghi đè innerHTML của detail-body
+        // Nếu không, rpPanel sẽ bị xóa nhầm ra khỏi bộ nhớ DOM!
+        this.restoreRoutingPanel();
+
         if (tabName === 'info') {
             this.renderInfoTab(body, p, layers);
         } else if (tabName === 'history') {
             this.renderLichSuTab(body, p);
         } else if (tabName === 'routing') {
-            if (MapApp.routing) MapApp.routing.renderTab(body, p);
+            this.renderRoutingTab(body, p);
         }
 
         // Cập nhật tab active button
@@ -292,6 +320,55 @@ MapApp.sidebar = {
             .catch(() => {
                 container.innerHTML = `<div class="sb-empty">Lỗi khi tải lịch sử biến động.</div>`;
             });
+    },
+
+    // ================================================================
+    // TAB: CHỈ ĐƯỜNG (Teleport Routing Panel)
+    // ================================================================
+    renderRoutingTab: function(body, p) {
+        let lat = null, lng = null;
+        if (p.centroid && p.centroid.coordinates) {
+            lng = p.centroid.coordinates[0];
+            lat = p.centroid.coordinates[1];
+        }
+
+        if (!lat || !lng) {
+            body.innerHTML = '<div class="sb-empty">Thửa đất này không có tọa độ không gian.</div>';
+            return;
+        }
+
+        body.innerHTML = `
+            <div class="sb-section" style="padding: 10px 0;">
+                <div style="font-size: 14px; color: #64748b; margin-bottom: 12px; text-align: center;">Lộ trình thông minh (OSM/OSRM)</div>
+                <div id="routing-dock-container"></div>
+            </div>
+        `;
+
+        // ID chính xác trong routing_panel.html là 'routingPanel'
+        const rp = document.getElementById('routingPanel');
+        if (rp) {
+            document.getElementById('routing-dock-container').appendChild(rp);
+            rp.classList.add('docked');
+            
+            // Đảm bảo body của routing panel luôn hiện
+            const rpBodyView = document.getElementById('rpBody');
+            if (rpBodyView) rpBodyView.style.display = 'block';
+
+            // Tự động nạp tọa độ đích & kích hoạt GPS 
+            if (window.RP) {
+                const lbl = p.ma_thua ? `Thửa đất ${p.ma_thua}` : 'Thửa đất mục tiêu';
+                RP.selectSugg('end', lat, lng, lbl);
+                
+                // Tự động kích hoạt GPS dẫn đường
+                setTimeout(() => {
+                    if (typeof RP.useMyLocation === 'function') {
+                        RP.useMyLocation();
+                    }
+                }, 500);
+            }
+        } else {
+            body.innerHTML = '<div class="sb-empty" style="color:#ef4444;">Lỗi: Không tìm thấy trình điều khiển Tìm đường (#routingPanel). Vui lòng tải lại trang.</div>';
+        }
     }
 };
 

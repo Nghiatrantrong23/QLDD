@@ -1,8 +1,17 @@
 {% extends 'myapp/co_so/khung_chinh.html' %}
+{% load static %}
 {% block tieu_de %}Danh sách hồ sơ Đất{% endblock %}
+
+{% block css_page %}
+<link rel="stylesheet" href="{% static 'myapp/css/ho_so_dat.css' %}">
+{% endblock %}
+
 {% block header_nut %}
-<a href="{% url 'hs_nhap_lieu' %}" class="nut_header nut_header--phu" style="margin-right:10px;">📥 Nhập Batch (GeoJSON)</a>
+{% if user.is_superuser %}
+<a href="{% url 'hs_nhap_lieu' %}" class="nut_header nut_header--phu" style="margin-right:10px;">📥 Nhập Batch
+    (GeoJSON)</a>
 <a href="{% url 'hs_them_moi' %}" class="nut_header nut_header--chinh">+ Thêm hồ sơ mới</a>
+{% endif %}
 {% endblock %}
 
 {% block noi_dung %}
@@ -31,15 +40,17 @@
 <div class="bang_container">
     <div class="bang_tieu_de">
         <h3>Danh sách ({{ tong_so }} thửa)</h3>
+        {% if user.is_superuser %}
         <a href="{% url 'bc_xem' 'tong_hop' %}" class="nut nut--vien" style="font-size:12px;padding:5px 12px;">Xuất báo
             cáo</a>
+        {% endif %}
     </div>
     {% if danh_sach %}
     <table class="bang">
         <thead>
             <tr>
                 <th>Mã thửa</th>
-                <th>Số tá» / Số thửa</th>
+                <th>Số tờ / Số thửa</th>
                 <th>Diện tích</th>
                 <th>Loại đất</th>
                 <th>Chủ sử dụng</th>
@@ -52,14 +63,14 @@
             {% for thua in danh_sach %}
             <tr>
                 <td><a href="{% url 'hs_chi_tiet' thua.pk %}"><strong>{{ thua.ma_thua }}</strong></a></td>
-                <td>Tá» {{ thua.so_to }} / Thửa {{ thua.so_thua }}</td>
+                <td>Tờ {{ thua.so_to }} / Thửa {{ thua.so_thua }}</td>
                 <td>{{ thua.dien_tich|floatformat:1 }} m²</td>
                 <td><span class="huy_hieu huy_hieu--xanh-da-troi">{{ thua.get_loai_dat_hien_trang_display }}</span></td>
                 <td>
                     {% for chu in thua.danh_sach_chu_su_dung.all %}
-                        {{ chu.ho_ten }}{% if not forloop.last %}, {% endif %}
+                    {{ chu.ho_ten }}{% if not forloop.last %}, {% endif %}
                     {% empty %}
-                        —
+                    —
                     {% endfor %}
                 </td>
                 <td>{{ thua.so_gcn|default:"—" }}</td>
@@ -67,14 +78,16 @@
                     {% if thua.co_tranh_chap %}
                     <span class="huy_hieu huy_hieu--do">Tranh chấp</span>
                     {% else %}
-                    <span class="huy_hieu huy_hieu--xanh">Bình thuong</span>
+                    <span class="huy_hieu huy_hieu--xanh">Bình thường</span>
                     {% endif %}
                 </td>
                 <td>
                     <a href="{% url 'hs_chi_tiet' thua.pk %}" class="nut nut--vien"
                         style="font-size:12px;padding:4px 10px;">Chi tiết</a>
-                    <a href="{% url 'hs_chinh_sua' thua.pk %}" class="nut nut--phu"
+                    {% if user.is_superuser %}
+                    <a href="{% url 'hs_chinh_sua' thua.pk %}" class="nut nut--cam"
                         style="font-size:12px;padding:4px 10px;">Sửa</a>
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}
@@ -87,5 +100,8 @@
         <p>Thử thay đổi từ khoá tìm kiếm hoặc <a href="{% url 'hs_them_moi' %}">thêm hồ sơ mới</a></p>
     </div>
     {% endif %}
+
+    <!-- PHÂN TRANG -->
+    {% include 'myapp/co_so/phan_trang.html' %}
 </div>
 {% endblock %}

@@ -1,0 +1,559 @@
+{% comment %}
+  ROUTING GOOGLE MAPS COMPONENT
+  Sử dụng Google Maps API thay thế OSRM (độ tin cậy cao hơn)
+  
+  Cách dùng:
+  {% include 'myapp/components/routing_google.html' with map_id='mapDiv' %}
+  
+  Yêu cầu: Thêm GOOGLE_MAPS_API_KEY vào settings.py
+{% endcomment %}
+
+<style>
+/* Routing Panel */
+.routing-google-panel {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 320px;
+    background: linear-gradient(145deg, #1e3a5f 0%, #0f2027 100%);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    z-index: 1000;
+    overflow: hidden;
+    color: white;
+    font-family: 'Segoe UI', Roboto, sans-serif;
+}
+
+.routing-google-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    background: rgba(0,0,0,0.2);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.routing-google-header i {
+    color: #60a5fa;
+    font-size: 20px;
+}
+
+.routing-google-header span {
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.routing-google-body {
+    padding: 20px;
+}
+
+/* Transport Modes */
+.transport-modes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.transport-btn {
+    padding: 10px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    color: rgba(255,255,255,0.7);
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.transport-btn:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.transport-btn.active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
+    box-shadow: 0 4px 12px rgba(59,130,246,0.4);
+}
+
+/* Input Fields */
+.route-input-wrap {
+    position: relative;
+    margin-bottom: 12px;
+}
+
+.route-input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    z-index: 2;
+}
+
+.route-input-icon.start { color: #10b981; }
+.route-input-icon.end { color: #dc2626; }
+
+.route-input-google {
+    width: 100%;
+    padding: 12px 12px 12px 40px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    color: white;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.route-input-google::placeholder {
+    color: rgba(255,255,255,0.4);
+}
+
+.route-input-google:focus {
+    border-color: #3b82f6;
+    background: rgba(255,255,255,0.12);
+}
+
+/* Action Buttons */
+.route-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.btn-google-route {
+    flex: 1;
+    padding: 12px;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.btn-google-route:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59,130,246,0.5);
+}
+
+.btn-google-clear {
+    width: 44px;
+    height: 44px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-google-clear:hover {
+    background: rgba(220,38,38,0.2);
+    border-color: #dc2626;
+    color: #dc2626;
+}
+
+/* Route Info */
+.route-info-google {
+    display: none;
+    margin-top: 16px;
+    padding: 16px;
+    background: rgba(0,0,0,0.25);
+    border-radius: 12px;
+}
+
+.route-info-google.active {
+    display: block;
+    animation: fadeIn 0.3s;
+}
+
+.route-info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.route-info-row:last-child {
+    margin-bottom: 0;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.route-info-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+}
+
+.route-info-value {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* Turn by Turn */
+.turn-by-turn {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 12px;
+}
+
+.turn-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-size: 13px;
+}
+
+.turn-icon {
+    width: 28px;
+    height: 28px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.turn-text {
+    flex: 1;
+    line-height: 1.4;
+}
+
+.turn-distance {
+    color: #60a5fa;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+    .routing-google-panel {
+        width: calc(100% - 20px);
+        left: 10px;
+        right: 10px;
+    }
+}
+</style>
+
+<div class="routing-google-panel" id="routingGooglePanel">
+    <div class="routing-google-header">
+        <i class="fas fa-route"></i>
+        <span>Tìm đường Google Maps</span>
+    </div>
+    <div class="routing-google-body">
+        <!-- Transport Modes -->
+        <div class="transport-modes">
+            <button class="transport-btn active" data-mode="DRIVING" title="Xe hơi" onclick="setTransportMode('DRIVING')">🚗</button>
+            <button class="transport-btn" data-mode="MOTORCYCLE" title="Xe máy" onclick="setTransportMode('MOTORCYCLE')">🛵</button>
+            <button class="transport-btn" data-mode="BICYCLING" title="Xe đạp" onclick="setTransportMode('BICYCLING')">🚲</button>
+            <button class="transport-btn" data-mode="WALKING" title="Đi bộ" onclick="setTransportMode('WALKING')">🚶</button>
+        </div>
+        
+        <!-- Start Input -->
+        <div class="route-input-wrap">
+            <span class="route-input-icon start">📍</span>
+            <input type="text" 
+                   id="googleStartInput" 
+                   class="route-input-google" 
+                   placeholder="Nhập điểm bắt đầu...">
+        </div>
+        
+        <!-- End Input -->
+        <div class="route-input-wrap">
+            <span class="route-input-icon end">🏁</span>
+            <input type="text" 
+                   id="googleEndInput" 
+                   class="route-input-google" 
+                   placeholder="Nhập điểm đến...">
+        </div>
+        
+        <!-- Actions -->
+        <div class="route-actions">
+            <button class="btn-google-route" onclick="calculateGoogleRoute()">
+                <i class="fas fa-search-location"></i> Tìm đường
+            </button>
+            <button class="btn-google-clear" onclick="clearGoogleRoute()" title="Xóa">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        
+        <!-- Route Info -->
+        <div class="route-info-google" id="routeInfoGoogle">
+            <div class="route-info-row">
+                <span class="route-info-label">
+                    <i class="fas fa-road"></i> Khoảng cách
+                </span>
+                <span class="route-info-value" id="googleDistance">--</span>
+            </div>
+            <div class="route-info-row">
+                <span class="route-info-label">
+                    <i class="fas fa-clock"></i> Thời gian
+                </span>
+                <span class="route-info-value" id="googleDuration">--</span>
+            </div>
+            <div class="turn-by-turn" id="turnByTurn"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * GOOGLE MAPS ROUTING
+ * Sử dụng Google Maps Directions API
+ */
+
+let googleMap, directionsService, directionsRenderer;
+let transportMode = 'DRIVING';
+let startMarker, endMarker;
+
+// Khởi tạo Google Maps (gọi sau khi map đã tạo)
+function initGoogleRouting(mapInstance) {
+    googleMap = mapInstance;
+    
+    // Khởi tạo Directions Service & Renderer
+    directionsService = new google.maps.DirectionsService();
+    directionsRenderer = new google.maps.DirectionsRenderer({
+        map: googleMap,
+        suppressMarkers: true, // Tự quản lý markers
+        polylineOptions: {
+            strokeColor: '#3b82f6',
+            strokeWeight: 6,
+            strokeOpacity: 0.9
+        }
+    });
+    
+    // Autocomplete cho input
+    setupAutocomplete('googleStartInput', 'start');
+    setupAutocomplete('googleEndInput', 'end');
+}
+
+// Thiết lập Google Places Autocomplete
+function setupAutocomplete(inputId, type) {
+    const input = document.getElementById(inputId);
+    if (!input || !google.maps.places) return;
+    
+    const autocomplete = new google.maps.places.Autocomplete(input, {
+        componentRestrictions: { country: 'vn' }, // Giới hạn Việt Nam
+        fields: ['geometry', 'name', 'formatted_address']
+    });
+    
+    autocomplete.bindTo('bounds', googleMap);
+    
+    autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry) return;
+        
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        
+        if (type === 'start') {
+            setStartPoint(lat, lng, place.formatted_address || place.name);
+        } else {
+            setEndPoint(lat, lng, place.formatted_address || place.name);
+        }
+    });
+}
+
+function setStartPoint(lat, lng, address) {
+    // Xóa marker cũ
+    if (startMarker) startMarker.setMap(null);
+    
+    // Tạo marker mới
+    startMarker = new google.maps.Marker({
+        position: { lat, lng },
+        map: googleMap,
+        icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+                `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><path fill="#10b981" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>`
+            ),
+            scaledSize: new google.maps.Size(32, 32)
+        },
+        title: 'Điểm bắt đầu: ' + address
+    });
+    
+    googleMap.setCenter({ lat, lng });
+}
+
+function setEndPoint(lat, lng, address) {
+    // Xóa marker cũ
+    if (endMarker) endMarker.setMap(null);
+    
+    // Tạo marker mới
+    endMarker = new google.maps.Marker({
+        position: { lat, lng },
+        map: googleMap,
+        icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+                `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><path fill="#dc2626" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>`
+            ),
+            scaledSize: new google.maps.Size(32, 32)
+        },
+        title: 'Điểm đến: ' + address
+    });
+}
+
+// Chọn phương tiện
+function setTransportMode(mode) {
+    transportMode = mode;
+    document.querySelectorAll('.transport-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+    
+    // Nếu đã có route, tính lại
+    if (startMarker && endMarker) {
+        calculateGoogleRoute();
+    }
+}
+
+// Tính đường
+function calculateGoogleRoute() {
+    if (!startMarker || !endMarker) {
+        alert('Vui lòng chọn điểm bắt đầu và điểm đến');
+        return;
+    }
+    
+    const request = {
+        origin: startMarker.getPosition(),
+        destination: endMarker.getPosition(),
+        travelMode: google.maps.TravelMode[transportMode],
+        optimizeWaypoints: true,
+        provideRouteAlternatives: false,
+        avoidTolls: false,
+        avoidHighways: false,
+        avoidFerries: false
+    };
+    
+    // Xe máy không có sẵn trong API, dùng DRIVING thay thế
+    if (transportMode === 'MOTORCYCLE') {
+        request.travelMode = google.maps.TravelMode.DRIVING;
+    }
+    
+    directionsService.route(request, (result, status) => {
+        if (status === 'OK') {
+            directionsRenderer.setDirections(result);
+            displayRouteInfo(result.routes[0]);
+        } else {
+            console.error('Directions request failed:', status);
+            alert('Không thể tìm đường.\nLỗi: ' + status + '\n\nThử đổi phương tiện hoặc chọn điểm khác.');
+        }
+    });
+}
+
+// Hiển thị thông tin route
+function displayRouteInfo(route) {
+    const leg = route.legs[0];
+    
+    // Cập nhật UI
+    document.getElementById('googleDistance').textContent = leg.distance.text;
+    document.getElementById('googleDuration').textContent = leg.duration.text;
+    document.getElementById('routeInfoGoogle').classList.add('active');
+    
+    // Hiển thị chỉ đường chi tiết
+    const turnByTurnDiv = document.getElementById('turnByTurn');
+    turnByTurnDiv.innerHTML = leg.steps.map((step, idx) => `
+        <div class="turn-item">
+            <div class="turn-icon">${getTurnIcon(step.maneuver)}</div>
+            <div class="turn-text">${step.instructions}</div>
+            <div class="turn-distance">${step.distance.text}</div>
+        </div>
+    `).join('');
+}
+
+// Icon cho các bước đi
+function getTurnIcon(maneuver) {
+    const icons = {
+        'turn-left': '<i class="fas fa-arrow-left"></i>',
+        'turn-right': '<i class="fas fa-arrow-right"></i>',
+        'straight': '<i class="fas fa-arrow-up"></i>',
+        'uturn': '<i class="fas fa-undo"></i>',
+        'merge': '<i class="fas fa-code-branch"></i>',
+        'roundabout': '<i class="fas fa-sync"></i>',
+        'ramp-left': '<i class="fas fa-arrow-left"></i>',
+        'ramp-right': '<i class="fas fa-arrow-right"></i>'
+    };
+    return icons[maneuver] || '<i class="fas fa-arrow-up"></i>';
+}
+
+// Xóa route
+function clearGoogleRoute() {
+    // Xóa markers
+    if (startMarker) { startMarker.setMap(null); startMarker = null; }
+    if (endMarker) { endMarker.setMap(null); endMarker = null; }
+    
+    // Xóa directions
+    if (directionsRenderer) {
+        directionsRenderer.setMap(null);
+        directionsRenderer.setMap(googleMap);
+    }
+    
+    // Reset UI
+    document.getElementById('googleStartInput').value = '';
+    document.getElementById('googleEndInput').value = '';
+    document.getElementById('routeInfoGoogle').classList.remove('active');
+    document.getElementById('turnByTurn').innerHTML = '';
+}
+
+// Click trên map để chọn điểm
+function enableMapClickForRouting() {
+    if (!googleMap) return;
+    
+    googleMap.addListener('click', (e) => {
+        const lat = e.latLng.lat();
+        const lng = e.latLng.lng();
+        
+        // Reverse geocoding
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+                const address = results[0].formatted_address;
+                
+                if (!startMarker) {
+                    setStartPoint(lat, lng, address);
+                    document.getElementById('googleStartInput').value = address;
+                } else if (!endMarker) {
+                    setEndPoint(lat, lng, address);
+                    document.getElementById('googleEndInput').value = address;
+                    calculateGoogleRoute();
+                }
+            }
+        });
+    });
+}
+
+// Load Google Maps API với Places library
+function loadGoogleMapsAPI(apiKey) {
+    if (window.google && window.google.maps) return Promise.resolve();
+    
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry`;
+        script.async = true;
+        script.defer = true;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+</script>

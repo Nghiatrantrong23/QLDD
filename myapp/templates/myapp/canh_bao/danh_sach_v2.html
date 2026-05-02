@@ -1,0 +1,373 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% load static %}
+{% block tieu_de %}Cảnh báo Vi phạm Đất đai{% endblock %}
+
+{% block css_page %}
+<style>
+    /* ── Layout ── */
+    .cb-page { max-width: 1000px; margin: 0 auto; padding: 28px 20px; }
+
+    /* ── Header ── */
+    .cb-header {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
+    }
+    .cb-header h1 { font-size: 22px; font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 10px; }
+    .cb-header h1 i { color: #ef4444; }
+
+    /* ── Summary chips ── */
+    .cb-summary { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+    .summary-chip {
+        padding: 6px 16px; border-radius: 20px; font-size: 13px;
+        font-weight: 700; display: flex; align-items: center; gap: 6px; cursor: pointer;
+        border: 1.5px solid transparent; transition: all 0.18s;
+    }
+    .chip-all    { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+    .chip-chua   { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+    .chip-hoan   { background: #dcfce7; color: #16a34a; border-color: #86efac; }
+    .summary-chip:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    .summary-chip.active { box-shadow: 0 0 0 3px rgba(59,130,246,0.25); border-color: #3b82f6; }
+
+    /* ── Filters ── */
+    .cb-filters {
+        display: flex; gap: 10px; margin-bottom: 18px; align-items: center; flex-wrap: wrap;
+    }
+    .filter-select {
+        padding: 7px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+        font-size: 13px; color: #475569; background: white; cursor: pointer;
+        transition: border-color 0.2s;
+    }
+    .filter-select:focus { border-color: #3b82f6; outline: none; }
+    .search-box {
+        flex: 1; min-width: 200px; padding: 7px 14px; border: 1.5px solid #e2e8f0;
+        border-radius: 8px; font-size: 13px; transition: border-color 0.2s;
+    }
+    .search-box:focus { border-color: #3b82f6; outline: none; }
+    .btn-add {
+        padding: 7px 18px; background: #1a3a5c; color: white; border: none;
+        border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer;
+        display: flex; align-items: center; gap: 7px; transition: background 0.18s;
+        text-decoration: none;
+    }
+    .btn-add:hover { background: #2d4e7a; }
+
+    /* ── Table ── */
+    .cb-table-wrap {
+        background: white; border-radius: 14px; border: 1px solid #e2e8f0;
+        overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+    }
+    .cb-table { width: 100%; border-collapse: collapse; }
+    .cb-table thead th {
+        padding: 11px 16px; background: #f8fafc; font-size: 11px; font-weight: 700;
+        text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;
+        border-bottom: 1px solid #e2e8f0; text-align: left;
+    }
+    .cb-table tbody tr { border-bottom: 1px solid #f1f5f9; transition: background 0.15s; }
+    .cb-table tbody tr:last-child { border-bottom: none; }
+    .cb-table tbody tr:hover { background: #f8fafc; }
+    .cb-table td { padding: 13px 16px; font-size: 13.5px; vertical-align: middle; }
+
+    /* Title link */
+    .row-title { font-weight: 600; color: #1e293b; }
+    .row-title a { color: inherit; text-decoration: none; }
+    .row-title a:hover { color: #3b82f6; }
+    .row-sub { font-size: 11.5px; color: #94a3b8; margin-top: 3px; }
+
+    /* Mức độ */
+    .muc-do-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700;
+    }
+    .md-khan_cap { background: #fee2e2; color: #dc2626; }
+    .md-cao      { background: #fff7ed; color: #ea580c; }
+    .md-trung_binh { background: #fefce8; color: #ca8a04; }
+    .md-thap     { background: #eff6ff; color: #3b82f6; }
+
+    /* Trạng thái */
+    .trang-thai-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 5px 12px; border-radius: 8px; font-size: 12px; font-weight: 700;
+        white-space: nowrap;
+    }
+    .tt-chua { background: #fee2e2; color: #dc2626; }
+    .tt-dang { background: #fff7ed; color: #ea580c; }
+    .tt-hoan { background: #dcfce7; color: #16a34a; }
+    .tt-dot {
+        width: 7px; height: 7px; border-radius: 50%; display: inline-block;
+    }
+    .tt-dot.chua { background: #dc2626; animation: pulse-red 1.5s infinite; }
+    .tt-dot.hoan { background: #16a34a; }
+    .tt-dot.dang { background: #ea580c; }
+    @keyframes pulse-red { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+    /* Actions */
+    .row-actions { display: flex; gap: 6px; align-items: center; }
+    .btn-hoan {
+        padding: 5px 12px; background: #1a3a5c; color: white; border: none;
+        border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer;
+        transition: background 0.18s; white-space: nowrap;
+    }
+    .btn-hoan:hover { background: #2d4e7a; }
+    .btn-hoan:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-detail {
+        padding: 5px 10px; background: transparent; color: #64748b;
+        border: 1.5px solid #e2e8f0; border-radius: 7px; font-size: 12px;
+        cursor: pointer; text-decoration: none; transition: all 0.18s;
+        display: inline-flex; align-items: center;
+    }
+    .btn-detail:hover { border-color: #3b82f6; color: #3b82f6; }
+
+    /* Empty state */
+    .empty-state {
+        text-align: center; padding: 60px 20px; color: #94a3b8;
+    }
+    .empty-state i { font-size: 42px; opacity: 0.25; display: block; margin-bottom: 12px; }
+
+    /* Toast */
+    .toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 9999; }
+    .toast {
+        padding: 12px 18px; border-radius: 10px; color: white; font-size: 13px; font-weight: 600;
+        display: flex; align-items: center; gap: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        animation: toastUp 0.3s ease;
+    }
+    .toast.ok  { background: #16a34a; }
+    .toast.err { background: #dc2626; }
+    @keyframes toastUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+    /* Count badge in header */
+    .count-badge {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 26px; height: 26px; border-radius: 50%; font-size: 13px;
+        font-weight: 800; background: #fee2e2; color: #dc2626;
+    }
+</style>
+{% endblock %}
+
+{% block noi_dung %}
+<div class="cb-page" x-data="cbApp()" x-init="init()">
+
+    <!-- Header -->
+    <div class="cb-header">
+        <h1>
+            <i class="fas fa-exclamation-triangle"></i>
+            Cảnh báo Vi phạm
+            <span class="count-badge" x-text="chuaXuLy" x-show="chuaXuLy > 0"></span>
+        </h1>
+        <a href="{% url 'cb_them_moi' %}" class="btn-add">
+            <i class="fas fa-plus"></i> Ghi nhận vi phạm
+        </a>
+    </div>
+
+    <!-- Summary chips -->
+    <div class="cb-summary">
+        <div class="summary-chip chip-all" :class="{active: filter===''}" @click="filter=''">
+            <i class="fas fa-list"></i> Tất cả (<span x-text="list.length"></span>)
+        </div>
+        <div class="summary-chip chip-chua" :class="{active: filter==='chua_xu_ly'}" @click="filter='chua_xu_ly'">
+            <i class="fas fa-clock"></i> Chưa xử lý (<span x-text="chuaXuLy"></span>)
+        </div>
+        <div class="summary-chip chip-hoan" :class="{active: filter==='da_hoan_tat'}" @click="filter='da_hoan_tat'">
+            <i class="fas fa-check-circle"></i> Đã xử lý (<span x-text="daHoanTat"></span>)
+        </div>
+    </div>
+
+    <!-- Filters row -->
+    <div class="cb-filters">
+        <input type="text" class="search-box" x-model="search"
+               placeholder="🔍  Tìm mã thửa, tiêu đề vi phạm...">
+        <select class="filter-select" x-model="filterMucDo">
+            <option value="">Mọi mức độ</option>
+            <option value="khan_cap">⚡ Khẩn cấp</option>
+            <option value="cao">⬆ Cao</option>
+            <option value="trung_binh">➡ Trung bình</option>
+            <option value="thap">⬇ Thấp</option>
+        </select>
+    </div>
+
+    <!-- Table -->
+    <div class="cb-table-wrap">
+        <table class="cb-table">
+            <thead>
+                <tr>
+                    <th>Thửa đất vi phạm</th>
+                    <th>Loại vi phạm</th>
+                    <th>Mức độ</th>
+                    <th>Ngày ghi nhận</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                <template x-for="cb in filtered" :key="cb.id">
+                    <tr>
+                        <!-- Thửa đất -->
+                        <td>
+                            <div class="row-title">
+                                <a :href="'/canh-bao/'+cb.id+'/'" x-text="cb.tieu_de"></a>
+                            </div>
+                            <div class="row-sub">
+                                <i class="fas fa-map-pin" style="color:#94a3b8;font-size:10px;"></i>
+                                <span x-text="cb.ma_thua && cb.ma_thua!='N/A' ? 'Thửa '+cb.ma_thua : 'Chưa liên kết thửa đất'"></span>
+                                <span x-show="cb.dia_diem && cb.dia_diem!='Không xác định'"> ·
+                                    <span x-text="cb.dia_diem"></span>
+                                </span>
+                            </div>
+                        </td>
+
+                        <!-- Loại vi phạm -->
+                        <td style="color:#475569;" x-text="cb.loai || '—'"></td>
+
+                        <!-- Mức độ -->
+                        <td>
+                            <span class="muc-do-badge" :class="'md-'+cb.muc_do">
+                                <span x-text="mdEmoji(cb.muc_do)"></span>
+                                <span x-text="mdLabel(cb.muc_do)"></span>
+                            </span>
+                        </td>
+
+                        <!-- Ngày -->
+                        <td style="color:#64748b;white-space:nowrap;" x-text="fmtDate(cb.ngay_tao)"></td>
+
+                        <!-- Trạng thái -->
+                        <td>
+                            <span class="trang-thai-badge" :class="ttClass(cb.trang_thai)">
+                                <span class="tt-dot" :class="ttDotClass(cb.trang_thai)"></span>
+                                <span x-text="ttLabel(cb.trang_thai)"></span>
+                            </span>
+                        </td>
+
+                        <!-- Thao tác -->
+                        <td>
+                            <div class="row-actions">
+                                <button class="btn-hoan"
+                                        x-show="cb.trang_thai === 'chua_xu_ly'"
+                                        @click="markDone(cb)"
+                                        :disabled="processing === cb.id">
+                                    <span x-show="processing !== cb.id"><i class="fas fa-check"></i> Xử lý xong</span>
+                                    <span x-show="processing === cb.id"><i class="fas fa-spinner fa-spin"></i></span>
+                                </button>
+                                <a :href="'/canh-bao/'+cb.id+'/'" class="btn-detail" title="Xem chi tiết">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                </template>
+
+                <!-- Empty state -->
+                <tr x-show="filtered.length === 0">
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <i class="fas fa-shield-alt"></i>
+                            <div style="font-weight:600;font-size:15px;color:#64748b;margin-bottom:6px;">
+                                <span x-text="search || filterMucDo || filter ? 'Không tìm thấy kết quả phù hợp' : 'Chưa có cảnh báo vi phạm nào'"></span>
+                            </div>
+                            <div style="font-size:13px;">
+                                <span x-show="!search && !filterMucDo && !filter">
+                                    <a href="{% url 'cb_them_moi' %}" style="color:#3b82f6;font-weight:600;">
+                                        + Ghi nhận vi phạm đầu tiên
+                                    </a>
+                                </span>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Count info -->
+    <div style="margin-top:12px;font-size:12px;color:#94a3b8;text-align:right;"
+         x-show="filtered.length > 0">
+        Hiển thị <strong x-text="filtered.length"></strong> / <strong x-text="list.length"></strong> cảnh báo
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+const CANH_BAO_DATA = {{ danh_sach_json|safe|default:'[]' }};
+
+function cbApp() {
+    return {
+        list: CANH_BAO_DATA,
+        filter: '',
+        filterMucDo: '',
+        search: '',
+        processing: null,
+
+        get chuaXuLy()  { return this.list.filter(c => c.trang_thai === 'chua_xu_ly').length; },
+        get daHoanTat() { return this.list.filter(c => c.trang_thai === 'da_hoan_tat').length; },
+
+        get filtered() {
+            const q = this.search.toLowerCase().trim();
+            return this.list.filter(c => {
+                const matchFilter = !this.filter || c.trang_thai === this.filter;
+                const matchMucDo = !this.filterMucDo || c.muc_do === this.filterMucDo;
+                const matchSearch = !q ||
+                    (c.tieu_de||'').toLowerCase().includes(q) ||
+                    (c.ma_thua||'').toLowerCase().includes(q) ||
+                    (c.dia_diem||'').toLowerCase().includes(q);
+                return matchFilter && matchMucDo && matchSearch;
+            });
+        },
+
+        init() { /* no async needed */ },
+
+        async markDone(cb) {
+            this.processing = cb.id;
+            const fd = new FormData();
+            fd.append('ajax', '1');
+            fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            try {
+                const res = await fetch(`/canh-bao/${cb.id}/danh-dau-xu-ly/`, {
+                    method: 'POST', body: fd,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await res.json();
+                if(data.thanh_cong) {
+                    cb.trang_thai = 'da_hoan_tat';
+                    this.toast('✅ Đã đánh dấu xử lý xong', 'ok');
+                } else {
+                    this.toast('❌ Cập nhật thất bại', 'err');
+                }
+            } catch(e) {
+                this.toast('❌ Lỗi kết nối', 'err');
+            }
+            this.processing = null;
+        },
+
+        toast(msg, type='ok') {
+            const wrap = document.getElementById('toastWrap');
+            const t = document.createElement('div');
+            t.className = 'toast ' + type;
+            t.innerText = msg;
+            wrap.appendChild(t);
+            setTimeout(() => t.remove(), 3500);
+        },
+
+        fmtDate(d) {
+            if(!d) return '—';
+            return new Date(d).toLocaleDateString('vi-VN', { day:'2-digit', month:'2-digit', year:'numeric' });
+        },
+
+        mdLabel(m) {
+            return { khan_cap:'Khẩn cấp', cao:'Cao', trung_binh:'Trung bình', thap:'Thấp' }[m] || m;
+        },
+        mdEmoji(m) {
+            return { khan_cap:'⚡', cao:'⬆', trung_binh:'➡', thap:'⬇' }[m] || '';
+        },
+        ttLabel(t) {
+            return { chua_xu_ly:'Chưa xử lý', dang_xu_ly:'Đang xử lý', da_hoan_tat:'Đã xử lý' }[t] || t;
+        },
+        ttClass(t) {
+            return { chua_xu_ly:'tt-chua', dang_xu_ly:'tt-dang', da_hoan_tat:'tt-hoan' }[t] || '';
+        },
+        ttDotClass(t) {
+            return { chua_xu_ly:'chua', dang_xu_ly:'dang', da_hoan_tat:'hoan' }[t] || '';
+        }
+    };
+}
+</script>
+{% endblock %}

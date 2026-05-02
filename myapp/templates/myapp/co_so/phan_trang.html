@@ -1,0 +1,85 @@
+{% load myapp_tags %}
+{% if danh_sach.has_other_pages %}
+<div class="phan_trang">
+    <div class="phan_trang__thong_tin">
+        Hiển thị <strong>{{ danh_sach.start_index }}-{{ danh_sach.end_index }}</strong> / {{ danh_sach.paginator.count }} bản ghi
+    </div>
+    <div class="phan_trang__nut">
+        {% if danh_sach.has_previous %}
+            <a href="?{% param_replace trang=danh_sach.previous_page_number %}" class="nut_trang">← Trước</a>
+        {% else %}
+            <span class="nut_trang nut_trang--vo_hieu">← Trước</span>
+        {% endif %}
+
+        {% for num in danh_sach.paginator.page_range %}
+            {% if danh_sach.number == num %}
+                <span class="nut_trang nut_trang--hien_tai">{{ num }}</span>
+            {% elif num > danh_sach.number|add:'-3' and num < danh_sach.number|add:'3' %}
+                <a href="?{% param_replace trang=num %}" class="nut_trang">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+
+        {% if danh_sach.has_next %}
+            <a href="?{% param_replace trang=danh_sach.next_page_number %}" class="nut_trang">Sau →</a>
+        {% else %}
+            <span class="nut_trang nut_trang--vo_hieu">Sau →</span>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.phan_trang {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: var(--mau-nen);
+    border-top: 1px solid var(--mau-vien);
+    font-size: 13px;
+}
+.phan_trang__thong_tin {
+    color: var(--mau-chu-nhat);
+}
+.phan_trang__nut {
+    display: flex;
+    gap: 6px;
+}
+.nut_trang {
+    padding: 6px 12px;
+    border: 1px solid var(--mau-vien);
+    border-radius: 6px;
+    background: white;
+    color: var(--mau-chu-chinh);
+    text-decoration: none;
+    transition: all 0.2s;
+    min-width: 32px;
+    text-align: center;
+}
+.nut_trang:hover {
+    border-color: var(--mau-chinh);
+    color: var(--mau-chinh);
+}
+.nut_trang--hien_tai {
+    background: var(--mau-chinh);
+    color: white;
+    border-color: var(--mau-chinh);
+    font-weight: 600;
+}
+.nut_trang--vo_hieu {
+    color: var(--mau-chu-nhat);
+    cursor: not-allowed;
+    background: #f1f5f9;
+}
+.nut_trang--vo_hieu:hover {
+    border-color: var(--mau-vien);
+    color: var(--mau-chu-nhat);
+}
+@media (max-width: 768px) {
+    .phan_trang {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+    }
+}
+</style>
+{% endif %}

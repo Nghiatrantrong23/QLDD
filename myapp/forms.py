@@ -35,6 +35,32 @@ class ThuaDatForm(forms.ModelForm):
             'centroid': gis_forms.OSMWidget(attrs={'map_width': 800, 'map_height': 500}),
         }
 
+from django.contrib.auth.models import User
+from django.contrib.auth.forms import UserCreationForm
+
+class UserRegistrationForm(UserCreationForm):
+    first_name = forms.CharField(max_length=30, required=True, label="Họ")
+    last_name = forms.CharField(max_length=30, required=True, label="Tên")
+    email = forms.EmailField(required=True, label="Email")
+    so_dien_thoai = forms.CharField(max_length=15, required=False, label="Số điện thoại")
+
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = UserCreationForm.Meta.fields + ('first_name', 'last_name', 'email')
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.email = self.cleaned_data["email"]
+        user.first_name = self.cleaned_data["first_name"]
+        user.last_name = self.cleaned_data["last_name"]
+        if commit:
+            user.save()
+            # Update profile (already created by signal)
+            profile = user.system_profile
+            profile.so_dien_thoai = self.cleaned_data.get("so_dien_thoai", "")
+            profile.save()
+        return user
+
 class ChuSuDungForm(forms.ModelForm):
     class Meta:
         model = ChuSuDung

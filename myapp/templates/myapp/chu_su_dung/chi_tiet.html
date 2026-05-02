@@ -1,0 +1,273 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% load static %}
+{% block tieu_de %}{{ tieu_de_trang }}{% endblock %}
+
+{% block css_page %}
+<style>
+    /* Styling cho Chi tiết Chủ sử dụng */
+    .detail-container { padding: 24px; max-width: 1200px; margin: 0 auto; }
+    
+    .owner-header {
+        background: linear-gradient(135deg, #1a3a5c 0%, #2d3748 100%);
+        border-radius: 16px;
+        padding: 32px;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    .header-avatar {
+        width: 80px;
+        height: 80px;
+        background: rgba(255,255,255,0.2);
+        border: 2px solid rgba(255,255,255,0.5);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        font-weight: 700;
+    }
+    
+    .header-info h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+    
+    .header-badges {
+        display: flex;
+        gap: 12px;
+    }
+    
+    .badge {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+        background: rgba(255,255,255,0.2);
+        backdrop-filter: blur(4px);
+    }
+    
+    .info-card {
+        background: white;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        margin-bottom: 24px;
+    }
+    
+    .info-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .info-label {
+        font-size: 13px;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .info-value {
+        font-size: 15px;
+        color: #1e293b;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .parcels-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 16px;
+    }
+    
+    .parcel-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+        transition: all 0.2s;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+    
+    .parcel-card:hover {
+        border-color: #3b82f6;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        transform: translateY(-2px);
+    }
+    
+    .action-bar {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        border: none;
+        transition: all 0.2s;
+    }
+    
+    .btn-edit { background: #3b82f6; color: white; }
+    .btn-edit:hover { background: #2563eb; }
+    
+    .btn-delete { background: #ef4444; color: white; }
+    .btn-delete:hover { background: #dc2626; }
+    
+    .btn-back { background: #f1f5f9; color: #475569; }
+    .btn-back:hover { background: #e2e8f0; }
+
+</style>
+{% endblock %}
+
+{% block noi_dung %}
+<div class="detail-container">
+    
+    <div class="action-bar">
+        <a href="{% url 'chu_danh_sach' %}" class="btn btn-back"><i class="fas fa-arrow-left"></i> Quay lại danh sách</a>
+        <a href="{% url 'chu_chinh_sua' chu.pk %}" class="btn btn-edit"><i class="fas fa-edit"></i> Chỉnh sửa</a>
+        <a href="{% url 'chu_xoa' chu.pk %}" class="btn btn-delete" onclick="return confirm('Bạn có chắc chắn muốn xóa chủ sử dụng này không?');"><i class="fas fa-trash"></i> Xóa</a>
+    </div>
+
+    <!-- Header -->
+    <div class="owner-header">
+        <div class="header-avatar" id="ownerAvatar"></div>
+        <div class="header-info">
+            <h1 id="ownerName">{{ chu.ho_ten }}</h1>
+            <div class="header-badges">
+                <span class="badge"><i class="fas fa-id-card"></i> {{ chu.get_loai_doi_tuong_display }}</span>
+                <span class="badge"><i class="fas fa-fingerprint"></i> {{ chu.so_giay_to }}</span>
+                <span class="badge"><i class="fas fa-map"></i> {{ danh_sach_thua|length }} Thửa đất</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thông tin chi tiết -->
+    <div class="info-card">
+        <div class="info-title"><i class="fas fa-user-circle" style="color: #3b82f6;"></i> Thông tin chung</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Họ và tên</span>
+                <span class="info-value">{{ chu.ho_ten }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Loại đối tượng</span>
+                <span class="info-value">{{ chu.get_loai_doi_tuong_display }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Số giấy tờ (CMND/CCCD/GPKD)</span>
+                <span class="info-value"><i class="fas fa-id-badge" style="color: #64748b;"></i> {{ chu.so_giay_to }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Nơi cấp (nếu có)</span>
+                <span class="info-value">{{ chu.noi_cap|default:"-" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Ngày cấp (nếu có)</span>
+                <span class="info-value">{{ chu.ngay_cap|date:"d/m/Y"|default:"-" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-card">
+        <div class="info-title"><i class="fas fa-address-book" style="color: #10b981;"></i> Thông tin liên hệ</div>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Số điện thoại</span>
+                <span class="info-value"><i class="fas fa-phone" style="color: #64748b;"></i> {{ chu.so_dien_thoai|default:"Chưa cung cấp" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Email</span>
+                <span class="info-value"><i class="fas fa-envelope" style="color: #64748b;"></i> {{ chu.email|default:"Chưa cung cấp" }}</span>
+            </div>
+            <div class="info-item" style="grid-column: 1 / -1;">
+                <span class="info-label">Địa chỉ liên hệ</span>
+                <span class="info-value"><i class="fas fa-map-marker-alt" style="color: #ef4444;"></i> {{ chu.dia_chi }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Danh sách thửa đất sở hữu -->
+    <div class="info-card">
+        <div class="info-title"><i class="fas fa-layer-group" style="color: #f59e0b;"></i> Danh sách Thửa đất sở hữu ({{ danh_sach_thua|length }})</div>
+        {% if danh_sach_thua %}
+        <div class="parcels-grid">
+            {% for thua in danh_sach_thua %}
+            <a href="{% url 'hs_chi_tiet' thua.pk %}" class="parcel-card">
+                <div style="font-weight: 700; color: #1e293b; font-size: 16px; margin-bottom: 8px; display: flex; justify-content: space-between;">
+                    <span>{{ thua.ma_thua|default:"Không có mã thửa" }}</span>
+                    <span style="color: #3b82f6; font-size: 14px;"><i class="fas fa-external-link-alt"></i></span>
+                </div>
+                <div style="font-size: 14px; color: #475569; margin-bottom: 4px;">
+                    <i class="fas fa-map-pin" style="width: 16px;"></i> Tờ {{ thua.so_to|default:"-" }} - Thửa {{ thua.so_thua|default:"-" }}
+                </div>
+                <div style="font-size: 14px; color: #475569; margin-bottom: 4px;">
+                    <i class="fas fa-vector-square" style="width: 16px;"></i> Diện tích: <b>{{ thua.dien_tich|floatformat:1|default:"0" }} m²</b>
+                </div>
+                <div style="font-size: 13px; color: #64748b; margin-top: 8px; border-top: 1px dashed #cbd5e1; padding-top: 8px;">
+                    {{ thua.dia_chi_thua|default:"Đang cập nhật địa chỉ thửa đất" }}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 40px 20px; color: #94a3b8;">
+            <i class="fas fa-home" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+            <h3 style="font-size: 18px; color: #475569; margin-bottom: 8px;">Chưa sở hữu thửa đất nào</h3>
+            <p>Chủ sử dụng này hiện chưa được gắn với bất kỳ thửa đất nào trong hệ thống.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<script>
+    // Gen Initials cho Avatar
+    document.addEventListener("DOMContentLoaded", function() {
+        const name = "{{ chu.ho_ten }}";
+        if (name) {
+            const initials = name.split(' ').map(n => n[0]).slice(-2).join('').toUpperCase();
+            document.getElementById('ownerAvatar').textContent = initials;
+        } else {
+            document.getElementById('ownerAvatar').textContent = "?";
+        }
+    });
+</script>
+{% endblock %}

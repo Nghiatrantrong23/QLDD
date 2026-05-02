@@ -72,10 +72,13 @@
             </tr>
         </thead>
         <tbody>
-            {% for loai, dt in dien_tich_theo_loai.items %}
+            {% for item in dien_tich_theo_loai %}
             <tr>
-                <td>{{ loai }}</td>
-                <td><strong>{{ dt|floatformat:1 }}</strong></td>
+                <td>{{ item.loai }}</td>
+                <td>
+                    <strong>{{ item.tong_dien_tich|floatformat:1 }} m²</strong>
+                    <span style="color:var(--mau-chu-nhat);font-size:11px;margin-left:8px;">({{ item.phan_tram }}%)</span>
+                </td>
             </tr>
             {% endfor %}
         </tbody>
