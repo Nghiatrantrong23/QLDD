@@ -1,0 +1,1784 @@
+{% extends 'myapp/co_so/khung_chinh.html' %}
+{% load static %}
+{% block tieu_de %}Quản lý Công dân & Tài khoản | GIS QLDD{% endblock %}
+
+{% block css_them %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<style>
+    /* ══════════════════════════════════════
+   QLDD — Quản lý Công dân & Tài khoản
+   Dark system, Syne + DM Sans
+   ══════════════════════════════════════ */
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0
+    }
+
+    :root {
+        --bg: #080d14;
+        --s1: #0d1520;
+        --s2: #111d2e;
+        --s3: #162338;
+        --s4: #1c2d40;
+        --bd: rgba(255, 255, 255, .07);
+        --bd2: rgba(255, 255, 255, .12);
+        --em: #10b981;
+        --em-d: rgba(16, 185, 129, .15);
+        --em-g: rgba(16, 185, 129, .25);
+        --bl: #3b82f6;
+        --bl-d: rgba(59, 130, 246, .15);
+        --ro: #f43f5e;
+        --ro-d: rgba(244, 63, 94, .15);
+        --am: #f59e0b;
+        --am-d: rgba(245, 158, 11, .15);
+        --vi: #8b5cf6;
+        --vi-d: rgba(139, 92, 246, .15);
+        --tx: #e2e8f0;
+        --mid: #94a3b8;
+        --dim: #4a6080;
+        --fh: 'Syne', sans-serif;
+        --fb: 'DM Sans', sans-serif;
+        --r: 14px;
+        --rs: 9px;
+    }
+
+    body {
+        font-family: var(--fb) !important;
+        background: var(--bg) !important;
+        color: var(--tx) !important
+    }
+
+    /* ── WRAP ── */
+    .qw {
+        padding: 28px;
+        max-width: 1600px;
+        margin: 0 auto
+    }
+
+    /* ── HEADER ── */
+    .qh {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 24px;
+        flex-wrap: wrap
+    }
+
+    .qh h1 {
+        font-family: var(--fh);
+        font-size: 26px;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -.4px
+    }
+
+    .qh .sub {
+        font-size: 13px;
+        color: var(--mid);
+        margin-top: 5px
+    }
+
+    .qh .sub b {
+        color: var(--em)
+    }
+
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 9px 18px;
+        border-radius: var(--rs);
+        font-family: var(--fb);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: .15s;
+        text-decoration: none
+    }
+
+    .btn-em {
+        background: var(--em);
+        color: #fff
+    }
+
+    .btn-em:hover {
+        opacity: .88
+    }
+
+    .btn-ghost {
+        background: var(--s2);
+        color: var(--mid);
+        border: 1px solid var(--bd2)
+    }
+
+    .btn-ghost:hover {
+        border-color: var(--em);
+        color: var(--em)
+    }
+
+    /* ── STATS ── */
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 14px;
+        margin-bottom: 22px
+    }
+
+    .sc {
+        background: var(--s1);
+        border: 1px solid var(--bd);
+        border-radius: var(--r);
+        padding: 18px 20px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        transition: .2s;
+        position: relative;
+        overflow: hidden
+    }
+
+    .sc:hover {
+        border-color: var(--bd2);
+        transform: translateY(-2px)
+    }
+
+    .sc-ic {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        flex-shrink: 0
+    }
+
+    .em-ic {
+        background: var(--em-d);
+        color: var(--em)
+    }
+
+    .bl-ic {
+        background: var(--bl-d);
+        color: var(--bl)
+    }
+
+    .ro-ic {
+        background: var(--ro-d);
+        color: var(--ro)
+    }
+
+    .am-ic {
+        background: var(--am-d);
+        color: var(--am)
+    }
+
+    .sc-num {
+        font-family: var(--fh);
+        font-size: 26px;
+        font-weight: 800;
+        color: #fff;
+        line-height: 1
+    }
+
+    .sc-lbl {
+        font-size: 10.5px;
+        font-weight: 600;
+        color: var(--dim);
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-top: 3px
+    }
+
+    /* ── TOOLBAR ── */
+    .tb {
+        background: var(--s1);
+        border: 1px solid var(--bd);
+        border-radius: var(--r);
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 16px
+    }
+
+    .tb-search {
+        flex: 1;
+        min-width: 200px;
+        position: relative
+    }
+
+    .tb-search i {
+        position: absolute;
+        left: 11px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--dim);
+        font-size: 13px;
+        pointer-events: none
+    }
+
+    .tb-inp {
+        width: 100%;
+        background: var(--s2);
+        border: 1px solid var(--bd);
+        border-radius: var(--rs);
+        padding: 8px 12px 8px 34px;
+        font-size: 13px;
+        color: var(--tx);
+        font-family: var(--fb);
+        outline: none;
+        transition: .15s
+    }
+
+    .tb-inp::placeholder {
+        color: var(--dim)
+    }
+
+    .tb-inp:focus {
+        border-color: var(--em);
+        box-shadow: 0 0 0 3px var(--em-d)
+    }
+
+    .tb-sel {
+        background: var(--s2);
+        border: 1px solid var(--bd);
+        border-radius: var(--rs);
+        padding: 8px 12px;
+        font-size: 13px;
+        color: var(--tx);
+        font-family: var(--fb);
+        outline: none;
+        cursor: pointer
+    }
+
+    .tb-sel:focus {
+        border-color: var(--em)
+    }
+
+    .tb-r {
+        margin-left: auto;
+        display: flex;
+        gap: 8px
+    }
+
+    /* ── TABLE CARD ── */
+    .tc {
+        background: var(--s1);
+        border: 1px solid var(--bd);
+        border-radius: var(--r);
+        overflow: hidden
+    }
+
+    .table-wrap {
+        overflow-x: auto
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px
+    }
+
+    thead tr {
+        background: var(--s2)
+    }
+
+    th {
+        padding: 12px 16px;
+        text-align: left;
+        font-size: 10.5px;
+        font-weight: 700;
+        color: var(--dim);
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        white-space: nowrap;
+        border-bottom: 1px solid var(--bd)
+    }
+
+    td {
+        padding: 13px 16px;
+        border-bottom: 1px solid var(--bd);
+        vertical-align: middle
+    }
+
+    tbody tr:hover {
+        background: var(--s2);
+        cursor: pointer
+    }
+
+    tbody tr:last-child td {
+        border-bottom: none
+    }
+
+    /* ── BADGES ── */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 10.5px;
+        font-weight: 700;
+        white-space: nowrap
+    }
+
+    .b-em {
+        background: var(--em-d);
+        color: var(--em);
+        border: 1px solid rgba(16, 185, 129, .2)
+    }
+
+    .b-bl {
+        background: var(--bl-d);
+        color: var(--bl);
+        border: 1px solid rgba(59, 130, 246, .2)
+    }
+
+    .b-ro {
+        background: var(--ro-d);
+        color: var(--ro);
+        border: 1px solid rgba(244, 63, 94, .2)
+    }
+
+    .b-am {
+        background: var(--am-d);
+        color: var(--am);
+        border: 1px solid rgba(245, 158, 11, .2)
+    }
+
+    .b-vi {
+        background: var(--vi-d);
+        color: var(--vi);
+        border: 1px solid rgba(139, 92, 246, .2)
+    }
+
+    .b-gray {
+        background: rgba(100, 116, 139, .15);
+        color: var(--mid);
+        border: 1px solid rgba(100, 116, 139, .2)
+    }
+
+    /* ── AVATAR CELL ── */
+    .av-row {
+        display: flex;
+        align-items: center;
+        gap: 11px
+    }
+
+    .av {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        background: var(--bl-d);
+        color: var(--bl);
+        font-family: var(--fh);
+        font-size: 13px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0
+    }
+
+    .av.has-tk {
+        background: var(--em-d);
+        color: var(--em)
+    }
+
+    .av-name {
+        font-weight: 600;
+        color: #fff;
+        font-size: 13px
+    }
+
+    .av-cccd {
+        font-size: 11px;
+        color: var(--dim);
+        margin-top: 2px;
+        font-family: monospace
+    }
+
+    /* ── PAGINATION ── */
+    .pag {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        border-top: 1px solid var(--bd);
+        flex-wrap: wrap;
+        gap: 10px
+    }
+
+    .pag-info {
+        font-size: 12px;
+        color: var(--mid)
+    }
+
+    .pag-btns {
+        display: flex;
+        gap: 5px
+    }
+
+    .pb {
+        padding: 5px 11px;
+        background: var(--s2);
+        border: 1px solid var(--bd);
+        border-radius: 6px;
+        font-size: 12px;
+        color: var(--mid);
+        cursor: pointer;
+        text-decoration: none;
+        transition: .15s
+    }
+
+    .pb:hover {
+        border-color: var(--em);
+        color: var(--em)
+    }
+
+    .pb.active {
+        background: var(--em);
+        color: #fff;
+        border-color: var(--em)
+    }
+
+    .pb.disabled {
+        opacity: .35;
+        pointer-events: none
+    }
+
+    /* ══════════════════════════
+   DRAWER (slide from right)
+   ══════════════════════════ */
+    .drawer-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, .6);
+        z-index: 8000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .25s;
+        backdrop-filter: blur(3px)
+    }
+
+    .drawer-overlay.open {
+        opacity: 1;
+        pointer-events: auto
+    }
+
+    .drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 520px;
+        max-width: 95vw;
+        background: var(--s1);
+        border-left: 1px solid var(--bd2);
+        z-index: 8001;
+        display: flex;
+        flex-direction: column;
+        transform: translateX(100%);
+        transition: transform .3s cubic-bezier(.4, 0, .2, 1)
+    }
+
+    .drawer.open {
+        transform: translateX(0)
+    }
+
+    /* Drawer header */
+    .dr-head {
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--bd);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-shrink: 0
+    }
+
+    .dr-av {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        background: var(--em-d);
+        color: var(--em);
+        font-family: var(--fh);
+        font-size: 20px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0
+    }
+
+    .dr-name {
+        font-family: var(--fh);
+        font-size: 18px;
+        font-weight: 800;
+        color: #fff
+    }
+
+    .dr-cccd {
+        font-size: 12px;
+        color: var(--dim);
+        margin-top: 3px;
+        font-family: monospace
+    }
+
+    .dr-close {
+        margin-left: auto;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: var(--s3);
+        border: 1px solid var(--bd);
+        color: var(--mid);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        transition: .15s;
+        flex-shrink: 0
+    }
+
+    .dr-close:hover {
+        border-color: var(--ro);
+        color: var(--ro)
+    }
+
+    /* Drawer tabs */
+    .dr-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--bd);
+        flex-shrink: 0
+    }
+
+    .dr-tab {
+        flex: 1;
+        padding: 11px;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--dim);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: .15s
+    }
+
+    .dr-tab:hover:not(.active) {
+        color: var(--mid)
+    }
+
+    .dr-tab.active {
+        color: var(--em);
+        border-bottom-color: var(--em)
+    }
+
+    /* Drawer body */
+    .dr-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px 24px
+    }
+
+    .dr-body::-webkit-scrollbar {
+        width: 3px
+    }
+
+    .dr-body::-webkit-scrollbar-thumb {
+        background: var(--bd2);
+        border-radius: 3px
+    }
+
+    /* Form fields inside drawer */
+    .dr-section {
+        margin-bottom: 22px
+    }
+
+    .dr-section-title {
+        font-size: 10.5px;
+        font-weight: 700;
+        color: var(--dim);
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 7px
+    }
+
+    .dr-section-title::before {
+        content: '';
+        width: 3px;
+        height: 12px;
+        background: var(--em);
+        border-radius: 2px;
+        flex-shrink: 0
+    }
+
+    .f-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 12px
+    }
+
+    .f-row.full {
+        grid-template-columns: 1fr
+    }
+
+    .f-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px
+    }
+
+    .f-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--mid)
+    }
+
+    .f-inp {
+        background: var(--s2);
+        border: 1px solid var(--bd2);
+        border-radius: var(--rs);
+        padding: 9px 12px;
+        font-size: 13px;
+        color: var(--tx);
+        font-family: var(--fb);
+        outline: none;
+        transition: .15s;
+        width: 100%
+    }
+
+    .f-inp:focus {
+        border-color: var(--em);
+        box-shadow: 0 0 0 3px var(--em-d)
+    }
+
+    .f-sel {
+        background: var(--s2);
+        border: 1px solid var(--bd2);
+        border-radius: var(--rs);
+        padding: 9px 12px;
+        font-size: 13px;
+        color: var(--tx);
+        font-family: var(--fb);
+        outline: none;
+        cursor: pointer;
+        width: 100%
+    }
+
+    .f-sel:focus {
+        border-color: var(--em)
+    }
+
+    /* Info rows (read-only) */
+    .info-pair {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--bd)
+    }
+
+    .info-pair:last-child {
+        border-bottom: none
+    }
+
+    .ip-lbl {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--dim);
+        text-transform: uppercase;
+        letter-spacing: .04em
+    }
+
+    .ip-val {
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+        text-align: right;
+        max-width: 240px;
+        word-break: break-all
+    }
+
+    /* Thửa đất list in drawer */
+    .thua-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        background: var(--s2);
+        border: 1px solid var(--bd);
+        border-radius: var(--rs);
+        margin-bottom: 8px;
+        text-decoration: none;
+        transition: .15s
+    }
+
+    .thua-item:hover {
+        border-color: var(--bl);
+        background: var(--s3)
+    }
+
+    .thua-ic {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        background: var(--bl-d);
+        color: var(--bl);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        flex-shrink: 0
+    }
+
+    .thua-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff
+    }
+
+    .thua-sub {
+        font-size: 11px;
+        color: var(--mid);
+        margin-top: 2px
+    }
+
+    .thua-area {
+        margin-left: auto;
+        font-family: var(--fh);
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--em)
+    }
+
+    /* Drawer footer */
+    .dr-foot {
+        padding: 16px 24px;
+        border-top: 1px solid var(--bd);
+        display: flex;
+        gap: 10px;
+        flex-shrink: 0
+    }
+
+    .df-btn {
+        flex: 1;
+        padding: 10px;
+        border-radius: var(--rs);
+        font-family: var(--fb);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: .15s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px
+    }
+
+    .df-save {
+        background: var(--em);
+        color: #fff
+    }
+
+    .df-save:hover {
+        opacity: .88
+    }
+
+    .df-lock {
+        background: var(--am-d);
+        color: var(--am);
+        border: 1px solid rgba(245, 158, 11, .2)
+    }
+
+    .df-lock:hover {
+        background: var(--am-d)
+    }
+
+    .df-unlock {
+        background: var(--em-d);
+        color: var(--em);
+        border: 1px solid rgba(16, 185, 129, .2)
+    }
+
+    .df-unlock:hover {
+        background: var(--em-d)
+    }
+
+    .df-del {
+        background: var(--ro-d);
+        color: var(--ro);
+        border: 1px solid rgba(244, 63, 94, .2)
+    }
+
+    .df-del:hover {
+        background: var(--ro-d)
+    }
+
+    /* Status line */
+    .tk-status-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        border-radius: var(--rs);
+        margin-bottom: 16px;
+    }
+
+    .tk-status-bar.active {
+        background: var(--em-d);
+        border: 1px solid rgba(16, 185, 129, .2)
+    }
+
+    .tk-status-bar.inactive {
+        background: var(--ro-d);
+        border: 1px solid rgba(244, 63, 94, .2)
+    }
+
+    .tk-status-bar.no-tk {
+        background: var(--s3);
+        border: 1px solid var(--bd2)
+    }
+
+    .tks-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0
+    }
+
+    /* Password strength */
+    .pw-strength {
+        height: 3px;
+        border-radius: 2px;
+        margin-top: 6px;
+        transition: .3s;
+        background: var(--bd2)
+    }
+
+    .pw-weak .pw-strength {
+        background: var(--ro);
+        width: 33%
+    }
+
+    .pw-medium .pw-strength {
+        background: var(--am);
+        width: 66%
+    }
+
+    .pw-strong .pw-strength {
+        background: var(--em);
+        width: 100%
+    }
+
+    /* Toast */
+    .toast-wrap {
+        position: fixed;
+        top: 18px;
+        right: 22px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        pointer-events: none
+    }
+
+    .toast {
+        background: var(--s2);
+        border: 1px solid var(--bd2);
+        border-radius: var(--rs);
+        padding: 11px 16px;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        min-width: 260px;
+        max-width: 340px;
+        pointer-events: auto;
+        animation: slideIn .25s ease
+    }
+
+    .toast.ok {
+        border-left: 3px solid var(--em)
+    }
+
+    .toast.err {
+        border-left: 3px solid var(--ro)
+    }
+
+    .toast.warn {
+        border-left: 3px solid var(--am)
+    }
+
+    .t-title {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #fff
+    }
+
+    .t-msg {
+        font-size: 11.5px;
+        color: var(--mid);
+        margin-top: 2px
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateX(18px)
+        }
+    }
+
+    /* Confirm dialog */
+    .confirm-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, .7);
+        z-index: 9000;
+        display: none;
+        align-items: center;
+        justify-content: center
+    }
+
+    .confirm-overlay.open {
+        display: flex
+    }
+
+    .confirm-box {
+        background: var(--s2);
+        border: 1px solid var(--bd2);
+        border-radius: var(--r);
+        padding: 28px 24px;
+        max-width: 380px;
+        width: 90%;
+        text-align: center
+    }
+
+    .confirm-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        margin: 0 auto 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px
+    }
+
+    .confirm-title {
+        font-family: var(--fh);
+        font-size: 17px;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 8px
+    }
+
+    .confirm-sub {
+        font-size: 13px;
+        color: var(--mid);
+        line-height: 1.6;
+        margin-bottom: 22px
+    }
+
+    .confirm-btns {
+        display: flex;
+        gap: 10px
+    }
+
+    .confirm-btns button {
+        flex: 1;
+        padding: 10px;
+        border-radius: var(--rs);
+        font-family: var(--fb);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: .15s
+    }
+
+    /* Empty state */
+    .empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 20px;
+        gap: 10px;
+        color: var(--dim);
+        text-align: center
+    }
+
+    .empty i {
+        font-size: 32px;
+        opacity: .3
+    }
+
+    /* FadeUp */
+    @keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(14px)
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0)
+        }
+    }
+
+    .qw>* {
+        animation: fadeUp .4s ease both
+    }
+
+    .qw>*:nth-child(1) {
+        animation-delay: .05s
+    }
+
+    .qw>*:nth-child(2) {
+        animation-delay: .1s
+    }
+
+    .qw>*:nth-child(3) {
+        animation-delay: .15s
+    }
+
+    .qw>*:nth-child(4) {
+        animation-delay: .2s
+    }
+</style>
+{% endblock %}
+
+{% block noi_dung %}
+<div class="qw">
+
+    <!-- ── HEADER ── -->
+    <div class="qh">
+        <div>
+            <h1>Quản lý Công dân & Tài khoản</h1>
+            <div class="sub">Hồ sơ pháp lý · Tài khoản đăng nhập · <b>{{ stats.tong }} công dân</b></div>
+        </div>
+        <div style="display:flex;gap:10px">
+            <a href="{% url 'chu_them_moi' %}" class="btn btn-ghost">
+                <i class="fa fa-user-plus"></i> Thêm công dân
+            </a>
+        </div>
+    </div>
+
+    <!-- ── STATS ── -->
+    <div class="stats">
+        <div class="sc">
+            <div class="sc-ic em-ic"><i class="fa fa-users"></i></div>
+            <div>
+                <div class="sc-num">{{ stats.tong }}</div>
+                <div class="sc-lbl">Tổng công dân</div>
+            </div>
+        </div>
+        <div class="sc">
+            <div class="sc-ic bl-ic"><i class="fa fa-circle-check"></i></div>
+            <div>
+                <div class="sc-num">{{ stats.co_tk }}</div>
+                <div class="sc-lbl">Có tài khoản</div>
+            </div>
+        </div>
+        <div class="sc">
+            <div class="sc-ic am-ic"><i class="fa fa-user-clock"></i></div>
+            <div>
+                <div class="sc-num">{{ stats.chua_tk }}</div>
+                <div class="sc-lbl">Chưa có TK</div>
+            </div>
+        </div>
+        <div class="sc">
+            <div class="sc-ic ro-ic"><i class="fa fa-user-lock"></i></div>
+            <div>
+                <div class="sc-num">{{ stats.bi_khoa }}</div>
+                <div class="sc-lbl">Bị khóa</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── TOOLBAR ── -->
+    <form method="get" class="tb" id="filter-form">
+        <div class="tb-search">
+            <i class="fa fa-search"></i>
+            <input class="tb-inp" type="text" name="q" value="{{ q }}" placeholder="Tìm tên, CCCD, SĐT..." />
+        </div>
+        <select name="loai" class="tb-sel" onchange="this.form.submit()">
+            <option value="">Tất cả loại</option>
+            <option value="ca_nhan" {% if loai=='ca_nhan' %}selected{% endif %}>Cá nhân</option>
+            <option value="to_chuc" {% if loai=='to_chuc' %}selected{% endif %}>Tổ chức</option>
+            <option value="ho_gia_dinh" {% if loai=='ho_gia_dinh' %}selected{% endif %}>Hộ gia đình</option>
+        </select>
+        <select name="tk" class="tb-sel" onchange="this.form.submit()">
+            <option value="">Tất cả TK</option>
+            <option value="co_tk" {% if tk_filter=='co_tk' %}selected{% endif %}>Có tài khoản</option>
+            <option value="chua_tk" {% if tk_filter=='chua_tk' %}selected{% endif %}>Chưa có TK</option>
+            <option value="bi_khoa" {% if tk_filter=='bi_khoa' %}selected{% endif %}>Bị khóa</option>
+        </select>
+        <button type="submit" class="btn btn-ghost" style="padding:8px 14px">
+            <i class="fa fa-filter"></i> Lọc
+        </button>
+        {% if q or loai or tk_filter %}
+        <a href="{% url 'quan_ly_cong_dan' %}" class="btn btn-ghost" style="padding:8px 14px">
+            <i class="fa fa-xmark"></i> Xóa lọc
+        </a>
+        {% endif %}
+    </form>
+
+    <!-- ── TABLE ── -->
+    <div class="tc">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Công dân</th>
+                        <th>Loại đối tượng</th>
+                        <th>Liên hệ</th>
+                        <th>Số thửa đất</th>
+                        <th>Tài khoản</th>
+                        <th>Trạng thái TK</th>
+                        <th style="text-align:right">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for chu in page_obj %}
+                    <tr onclick="openDrawer({{ chu.id }})" data-id="{{ chu.id }}">
+                        <td>
+                            <div class="av-row">
+                                <div class="av {% if chu.so_giay_to in user_cccd_set %}has-tk{% endif %}">
+                                    {{ chu.ho_ten|slice:":1"|upper }}
+                                </div>
+                                <div>
+                                    <div class="av-name">{{ chu.ho_ten }}</div>
+                                    <div class="av-cccd">{{ chu.so_giay_to }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if chu.loai_doi_tuong == 'ca_nhan' %}
+                            <span class="badge b-bl"><i class="fa fa-user" style="font-size:9px"></i> Cá nhân</span>
+                            {% elif chu.loai_doi_tuong == 'to_chuc' %}
+                            <span class="badge b-vi"><i class="fa fa-building" style="font-size:9px"></i> Tổ chức</span>
+                            {% else %}
+                            <span class="badge b-am"><i class="fa fa-house" style="font-size:9px"></i> Hộ GĐ</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="font-size:12.5px;color:var(--tx)">{{ chu.so_dien_thoai|default:"—" }}</div>
+                            <div style="font-size:11px;color:var(--dim)">{{ chu.dia_chi|truncatechars:28|default:"—" }}
+                            </div>
+                        </td>
+                        <td>
+                            <span style="font-family:var(--fh);font-size:16px;font-weight:800;color:var(--em)">
+                                {{ chu.thua_dat.count }}
+                            </span>
+                            <span style="font-size:11px;color:var(--dim)"> thửa</span>
+                        </td>
+                        <td>
+                            {% with user=chu.so_giay_to|stringformat:"s" %}
+                            {% if chu.so_giay_to in user_cccd_set %}
+                            <span class="badge b-em"><i class="fa fa-circle-check" style="font-size:9px"></i> Có
+                                TK</span>
+                            {% else %}
+                            <span class="badge b-gray"><i class="fa fa-circle-xmark" style="font-size:9px"></i> Chưa
+                                có</span>
+                            {% endif %}
+                            {% endwith %}
+                        </td>
+                        <td>
+                            {% if chu.so_giay_to in locked_cccd_set %}
+                            <span class="badge b-ro"><i class="fa fa-lock" style="font-size:9px"></i> Bị khóa</span>
+                            {% elif chu.so_giay_to in user_cccd_set %}
+                            <span class="badge b-em"><i class="fa fa-unlock" style="font-size:9px"></i> Hoạt động</span>
+                            {% else %}
+                            <span style="font-size:12px;color:var(--dim)">—</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align:right" onclick="event.stopPropagation()">
+                            <div style="display:flex;justify-content:flex-end;gap:6px">
+                                <button onclick="openDrawer({{ chu.id }})" title="Xem / Chỉnh sửa"
+                                    style="width:30px;height:30px;border-radius:7px;background:var(--bl-d);border:1px solid rgba(59,130,246,.2);color:var(--bl);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">
+                                    <i class="fa fa-pen-to-square"></i>
+                                </button>
+                                <button onclick="confirmDelete({{ chu.id }}, '{{ chu.ho_ten|escapejs }}')" title="Xóa"
+                                    style="width:30px;height:30px;border-radius:7px;background:var(--ro-d);border:1px solid rgba(244,63,94,.2);color:var(--ro);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="empty"><i class="fa fa-users-slash"></i><span>Không tìm thấy công dân nào</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Phân trang -->
+        {% if page_obj.has_other_pages %}
+        <div class="pag">
+            <div class="pag-info">
+                Hiển thị {{ page_obj.start_index }}–{{ page_obj.end_index }} / {{ page_obj.paginator.count }}
+            </div>
+            <div class="pag-btns">
+                {% if page_obj.has_previous %}
+                <a class="pb"
+                    href="?page={{ page_obj.previous_page_number }}&q={{ q }}&loai={{ loai }}&tk={{ tk_filter }}">‹</a>
+                {% else %}
+                <span class="pb disabled">‹</span>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <span class="pb active">{{ num }}</span>
+                {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %} <a class="pb"
+                    href="?page={{ num }}&q={{ q }}&loai={{ loai }}&tk={{ tk_filter }}">{{ num }}</a>
+                    {% endif %}
+                    {% endfor %}
+                    {% if page_obj.has_next %}
+                    <a class="pb"
+                        href="?page={{ page_obj.next_page_number }}&q={{ q }}&loai={{ loai }}&tk={{ tk_filter }}">›</a>
+                    {% else %}
+                    <span class="pb disabled">›</span>
+                    {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div><!-- /qw -->
+
+<!-- ══════════════════════════════════
+     DRAWER
+     ══════════════════════════════════ -->
+<div class="drawer-overlay" id="dr-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+    <!-- Head -->
+    <div class="dr-head">
+        <div class="dr-av" id="dr-av">?</div>
+        <div>
+            <div class="dr-name" id="dr-name">Đang tải...</div>
+            <div class="dr-cccd" id="dr-cccd"></div>
+        </div>
+        <button class="dr-close" onclick="closeDrawer()"><i class="fa fa-xmark"></i></button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="dr-tabs">
+        <div class="dr-tab active" data-tab="ho-so" onclick="switchTab('ho-so')">
+            <i class="fa fa-id-card" style="margin-right:5px"></i> Hồ sơ pháp lý
+        </div>
+        <div class="dr-tab" data-tab="tai-khoan" onclick="switchTab('tai-khoan')">
+            <i class="fa fa-key" style="margin-right:5px"></i> Tài khoản
+        </div>
+        <div class="dr-tab" data-tab="thua-dat" onclick="switchTab('thua-dat')">
+            <i class="fa fa-map" style="margin-right:5px"></i> Thửa đất
+        </div>
+    </div>
+
+    <!-- Body -->
+    <div class="dr-body">
+
+        <!-- TAB: HỒ SƠ ──────────────────── -->
+        <div id="tab-ho-so">
+            <div class="dr-section">
+                <div class="dr-section-title">Thông tin cá nhân</div>
+                <div class="f-row">
+                    <div class="f-group" style="grid-column:1/-1">
+                        <label class="f-label">Họ và tên <span style="color:var(--ro)">*</span></label>
+                        <input class="f-inp" id="f-ho-ten" type="text" placeholder="Nguyễn Văn A" />
+                    </div>
+                </div>
+                <div class="f-row">
+                    <div class="f-group">
+                        <label class="f-label">Loại đối tượng</label>
+                        <select class="f-sel" id="f-loai">
+                            <option value="ca_nhan">Cá nhân</option>
+                            <option value="to_chuc">Tổ chức</option>
+                            <option value="ho_gia_dinh">Hộ gia đình</option>
+                        </select>
+                    </div>
+                    <div class="f-group">
+                        <label class="f-label">Số CCCD / MST</label>
+                        <input class="f-inp" id="f-cccd" type="text" disabled style="opacity:.5;cursor:not-allowed" />
+                    </div>
+                </div>
+                <div class="f-row">
+                    <div class="f-group">
+                        <label class="f-label">Số điện thoại</label>
+                        <input class="f-inp" id="f-sdt" type="text" placeholder="0901 234 567" />
+                    </div>
+                    <div class="f-group">
+                        <label class="f-label">Email</label>
+                        <input class="f-inp" id="f-email" type="email" placeholder="vd@gmail.com" />
+                    </div>
+                </div>
+                <div class="f-row full">
+                    <div class="f-group">
+                        <label class="f-label">Địa chỉ</label>
+                        <input class="f-inp" id="f-dia-chi" type="text" placeholder="Số nhà, đường, phường/xã..." />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: TÀI KHOẢN ─────────────── -->
+        <div id="tab-tai-khoan" style="display:none">
+
+            <!-- Trạng thái TK -->
+            <div id="tk-status-bar" class="tk-status-bar no-tk">
+                <div class="tks-dot" id="tks-dot" style="background:var(--dim)"></div>
+                <div id="tks-text" style="font-size:13px;font-weight:600;color:var(--mid)">Chưa có tài khoản</div>
+            </div>
+
+            <!-- Thông tin TK (hiện khi có TK) -->
+            <div id="tk-info-section" style="display:none">
+                <div class="dr-section">
+                    <div class="dr-section-title">Thông tin tài khoản</div>
+                    <div class="info-pair">
+                        <div class="ip-lbl">Username</div>
+                        <div class="ip-val" id="tk-username" style="font-family:monospace">—</div>
+                    </div>
+                    <div class="info-pair">
+                        <div class="ip-lbl">Ngày tạo</div>
+                        <div class="ip-val" id="tk-created">—</div>
+                    </div>
+                    <div class="info-pair">
+                        <div class="ip-lbl">Đăng nhập gần nhất</div>
+                        <div class="ip-val" id="tk-last-login">—</div>
+                    </div>
+                    <div class="info-pair">
+                        <div class="ip-lbl">Phân quyền</div>
+                        <div class="ip-val" id="tk-role">—</div>
+                    </div>
+                </div>
+
+                <!-- Đổi mật khẩu -->
+                <div class="dr-section">
+                    <div class="dr-section-title">Đặt lại mật khẩu</div>
+                    <div class="f-group" style="margin-bottom:10px">
+                        <label class="f-label">Mật khẩu mới <span style="color:var(--ro)">*</span></label>
+                        <input class="f-inp" id="new-pw" type="password" placeholder="Tối thiểu 6 ký tự"
+                            oninput="checkPwStrength(this.value)" />
+                        <div class="pw-strength" id="pw-bar"></div>
+                        <div style="font-size:10.5px;color:var(--dim);margin-top:4px" id="pw-hint"></div>
+                    </div>
+                    <button onclick="doResetPassword()"
+                        style="width:100%;padding:9px;border-radius:var(--rs);background:var(--am-d);border:1px solid rgba(245,158,11,.2);color:var(--am);font-family:var(--fb);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px">
+                        <i class="fa fa-key"></i> Đặt lại mật khẩu
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tạo TK mới (khi chưa có TK) -->
+            <div id="tk-create-section" style="display:none">
+                <div class="dr-section">
+                    <div class="dr-section-title">Tạo tài khoản</div>
+                    <p style="font-size:12.5px;color:var(--mid);margin-bottom:14px;line-height:1.6">
+                        Tạo tài khoản đăng nhập cho công dân này. Username sẽ là số CCCD/MST.
+                        Mặc định mật khẩu = số CCCD (nên yêu cầu đổi sau).
+                    </p>
+                    <div class="f-group" style="margin-bottom:10px">
+                        <label class="f-label">Mật khẩu ban đầu</label>
+                        <input class="f-inp" id="new-pw-create" type="text" placeholder="Để trống = dùng CCCD làm MK" />
+                    </div>
+                    <button onclick="doCreateAccount()"
+                        style="width:100%;padding:9px;border-radius:var(--rs);background:var(--em-d);border:1px solid rgba(16,185,129,.2);color:var(--em);font-family:var(--fb);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px">
+                        <i class="fa fa-user-plus"></i> Tạo tài khoản
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: THỬA ĐẤT ──────────────── -->
+        <div id="tab-thua-dat" style="display:none">
+            <div class="dr-section">
+                <div class="dr-section-title">Thửa đất đứng tên</div>
+                <div id="thua-list">
+                    <div class="empty"><i class="fa fa-spinner fa-spin"></i><span>Đang tải...</span></div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /dr-body -->
+
+    <!-- Footer -->
+    <div class="dr-foot">
+        <button class="df-btn df-save" onclick="doSaveHoSo()">
+            <i class="fa fa-floppy-disk"></i> Lưu hồ sơ
+        </button>
+        <button class="df-btn" id="btn-lock-toggle" onclick="doToggleLock()">
+            <i class="fa fa-lock"></i> Khóa TK
+        </button>
+        <button class="df-btn df-del"
+            onclick="confirmDelete(currentId, document.getElementById('dr-name').textContent)">
+            <i class="fa fa-trash"></i>
+        </button>
+    </div>
+</div>
+
+
+<!-- ══ CONFIRM DIALOG ══ -->
+<div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-box">
+        <div class="confirm-icon ro-ic" id="confirm-icon" style="background:var(--ro-d);color:var(--ro)">
+            <i class="fa fa-triangle-exclamation"></i>
+        </div>
+        <div class="confirm-title" id="confirm-title">Xác nhận xóa?</div>
+        <div class="confirm-sub" id="confirm-sub">Hành động này không thể hoàn tác.</div>
+        <div class="confirm-btns">
+            <button onclick="closeConfirm()" style="background:var(--s3);color:var(--mid)">Hủy</button>
+            <button id="confirm-ok" style="background:var(--ro);color:#fff">Xác nhận xóa</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+{% endblock %}
+
+{% block js_them %}
+<script>
+    const CSRF = '{{ csrf_token }}';
+    const URL_CHI_TIET = '/quan-ly-cong-dan/api/chi-tiet/';    // + pk + /
+    const URL_CAP_NHAT = '/quan-ly-cong-dan/api/cap-nhat/';    // + pk + /
+    const URL_LOCK = '/quan-ly-cong-dan/api/khoa/';        // + pk + /
+    const URL_TAO_TK = '/quan-ly-cong-dan/api/tao-tai-khoan/'; // + pk + /
+    const URL_RESET_MK = '/quan-ly-cong-dan/api/reset-mk/';    // + pk + /
+    const URL_XOA = '/quan-ly-cong-dan/api/xoa/';         // + pk + /
+
+    let currentId = null;
+    let currentData = null;   // data từ api_chi_tiet
+
+    /* ══ DRAWER ══════════════════════════════════════════════════ */
+    async function openDrawer(id) {
+        currentId = id;
+        // Reset tabs
+        switchTab('ho-so');
+        // Show drawer
+        document.getElementById('drawer').classList.add('open');
+        document.getElementById('dr-overlay').classList.add('open');
+        document.body.style.overflow = 'hidden';
+        // Reset UI
+        document.getElementById('dr-name').textContent = 'Đang tải...';
+        document.getElementById('dr-cccd').textContent = '';
+        document.getElementById('dr-av').textContent = '?';
+        document.getElementById('thua-list').innerHTML =
+            '<div class="empty"><i class="fa fa-spinner fa-spin"></i><span>Đang tải...</span></div>';
+
+        try {
+            const res = await fetch(`${URL_CHI_TIET}${id}/`);
+            const data = await res.json();
+            currentData = data;
+            populateDrawer(data);
+        } catch (e) {
+            toast('Lỗi', 'Không thể tải dữ liệu', 'err');
+        }
+    }
+
+    function closeDrawer() {
+        document.getElementById('drawer').classList.remove('open');
+        document.getElementById('dr-overlay').classList.remove('open');
+        document.body.style.overflow = '';
+        currentId = null;
+        currentData = null;
+    }
+
+    function populateDrawer(d) {
+        // Header
+        document.getElementById('dr-av').textContent = (d.ho_ten || '?')[0].toUpperCase();
+        document.getElementById('dr-name').textContent = d.ho_ten;
+        document.getElementById('dr-cccd').textContent = d.so_giay_to;
+
+        // Tab Hồ sơ
+        document.getElementById('f-ho-ten').value = d.ho_ten || '';
+        document.getElementById('f-cccd').value = d.so_giay_to || '';
+        document.getElementById('f-loai').value = d.loai_doi_tuong || 'ca_nhan';
+        document.getElementById('f-sdt').value = d.so_dien_thoai || '';
+        document.getElementById('f-email').value = d.email || '';
+        document.getElementById('f-dia-chi').value = d.dia_chi || '';
+
+        // Tab Tài khoản
+        const tkBar = document.getElementById('tk-status-bar');
+        const tksDot = document.getElementById('tks-dot');
+        const tksText = document.getElementById('tks-text');
+        const tkInfo = document.getElementById('tk-info-section');
+        const tkCreate = document.getElementById('tk-create-section');
+        const btnLock = document.getElementById('btn-lock-toggle');
+
+        if (d.has_account) {
+            tkInfo.style.display = 'block';
+            tkCreate.style.display = 'none';
+            document.getElementById('tk-username').textContent = d.so_giay_to;
+            document.getElementById('tk-created').textContent = d.date_joined || '—';
+            document.getElementById('tk-last-login').textContent = d.last_login || 'Chưa đăng nhập';
+            document.getElementById('tk-role').innerHTML = d.is_superuser
+                ? '<span class="badge b-ro">Superuser</span>'
+                : d.is_staff
+                    ? '<span class="badge b-am">Cán bộ</span>'
+                    : '<span class="badge b-bl">Công dân</span>';
+
+            if (d.is_active) {
+                tkBar.className = 'tk-status-bar active';
+                tksDot.style.background = 'var(--em)';
+                tksText.style.color = 'var(--em)';
+                tksText.textContent = 'Tài khoản đang hoạt động';
+                btnLock.className = 'df-btn df-lock';
+                btnLock.innerHTML = '<i class="fa fa-lock"></i> Khóa TK';
+            } else {
+                tkBar.className = 'tk-status-bar inactive';
+                tksDot.style.background = 'var(--ro)';
+                tksText.style.color = 'var(--ro)';
+                tksText.textContent = 'Tài khoản đang bị khóa';
+                btnLock.className = 'df-btn df-unlock';
+                btnLock.innerHTML = '<i class="fa fa-unlock"></i> Mở khóa';
+            }
+            btnLock.style.display = 'flex';
+        } else {
+            tkBar.className = 'tk-status-bar no-tk';
+            tksDot.style.background = 'var(--dim)';
+            tksText.style.color = 'var(--mid)';
+            tksText.textContent = 'Công dân này chưa có tài khoản đăng nhập';
+            tkInfo.style.display = 'none';
+            tkCreate.style.display = 'block';
+            btnLock.style.display = 'none';
+        }
+
+        // Tab Thửa đất
+        renderThuaList(d.danh_sach_thua || []);
+    }
+
+    function renderThuaList(list) {
+        const el = document.getElementById('thua-list');
+        if (!list.length) {
+            el.innerHTML = '<div class="empty"><i class="fa fa-folder-open"></i><span>Chưa có thửa đất nào</span></div>';
+            return;
+        }
+        el.innerHTML = list.map(t => `
+    <a href="/ho-so-dat/${t.id}/" class="thua-item">
+      <div class="thua-ic"><i class="fa fa-vector-square"></i></div>
+      <div>
+        <div class="thua-name">${t.ma_thua || 'N/A'}</div>
+        <div class="thua-sub">Tờ ${t.so_to} · Thửa ${t.so_thua} · ${t.loai_dat}</div>
+      </div>
+      <div class="thua-area">${Number(t.dien_tich).toLocaleString()} m²</div>
+    </a>
+  `).join('');
+    }
+
+    /* ══ TABS ══ */
+    function switchTab(name) {
+        document.querySelectorAll('.dr-tab').forEach(t => {
+            t.classList.toggle('active', t.dataset.tab === name);
+        });
+        ['ho-so', 'tai-khoan', 'thua-dat'].forEach(n => {
+            document.getElementById(`tab-${n}`).style.display = n === name ? 'block' : 'none';
+        });
+    }
+
+    /* ══ SAVE HỒ SƠ ══ */
+    async function doSaveHoSo() {
+        if (!currentId) return;
+        const body = {
+            ho_ten: document.getElementById('f-ho-ten').value.trim(),
+            loai_doi_tuong: document.getElementById('f-loai').value,
+            so_dien_thoai: document.getElementById('f-sdt').value.trim(),
+            dia_chi: document.getElementById('f-dia-chi').value.trim(),
+        };
+        if (!body.ho_ten) { toast('Thiếu thông tin', 'Họ tên không được để trống', 'warn'); return; }
+
+        try {
+            const res = await post(`${URL_CAP_NHAT}${currentId}/`, body);
+            const data = await res.json();
+            if (data.ok) {
+                toast('Đã lưu', `Cập nhật hồ sơ ${data.ho_ten} thành công`, 'ok');
+                document.getElementById('dr-name').textContent = data.ho_ten;
+                // Cập nhật dòng trong bảng
+                const row = document.querySelector(`tr[data-id="${currentId}"] .av-name`);
+                if (row) row.textContent = data.ho_ten;
+            } else {
+                toast('Lỗi', data.error || 'Không thể lưu', 'err');
+            }
+        } catch (e) { toast('Lỗi mạng', e.message, 'err'); }
+    }
+
+    /* ══ KHÓA / MỞ KHÓA ══ */
+    async function doToggleLock() {
+        if (!currentId) return;
+        try {
+            const res = await post(`${URL_LOCK}${currentId}/`, {});
+            const data = await res.json();
+            if (data.ok) {
+                const action = data.is_active ? 'Mở khóa' : 'Khóa';
+                toast(action + ' thành công', `Tài khoản đã được ${action.toLowerCase()}`, 'ok');
+                // Reload data để cập nhật UI
+                const res2 = await fetch(`${URL_CHI_TIET}${currentId}/`);
+                const data2 = await res2.json();
+                currentData = data2;
+                populateDrawer(data2);
+                refreshRow(currentId, data2);
+            } else {
+                toast('Lỗi', data.error, 'err');
+            }
+        } catch (e) { toast('Lỗi mạng', e.message, 'err'); }
+    }
+
+    /* ══ TẠO TÀI KHOẢN ══ */
+    async function doCreateAccount() {
+        if (!currentId) return;
+        const pw = document.getElementById('new-pw-create').value.trim();
+        try {
+            const res = await post(`${URL_TAO_TK}${currentId}/`, { password: pw || undefined });
+            const data = await res.json();
+            if (data.ok) {
+                toast('Thành công', 'Tài khoản đã được tạo', 'ok');
+                // Reload
+                const res2 = await fetch(`${URL_CHI_TIET}${currentId}/`);
+                const data2 = await res2.json();
+                currentData = data2;
+                populateDrawer(data2);
+                refreshRow(currentId, data2);
+            } else {
+                toast('Lỗi', data.error, 'err');
+            }
+        } catch (e) { toast('Lỗi mạng', e.message, 'err'); }
+    }
+
+    /* ══ RESET MẬT KHẨU ══ */
+    async function doResetPassword() {
+        if (!currentId) return;
+        const pw = document.getElementById('new-pw').value.trim();
+        if (pw.length < 6) { toast('Mật khẩu quá ngắn', 'Cần tối thiểu 6 ký tự', 'warn'); return; }
+        try {
+            const res = await post(`${URL_RESET_MK}${currentId}/`, { password: pw });
+            const data = await res.json();
+            if (data.ok) {
+                toast('Đã đặt lại', 'Mật khẩu đã được cập nhật', 'ok');
+                document.getElementById('new-pw').value = '';
+                document.getElementById('pw-bar').style.width = '0';
+            } else {
+                toast('Lỗi', data.error, 'err');
+            }
+        } catch (e) { toast('Lỗi mạng', e.message, 'err'); }
+    }
+
+    /* ══ XÓA ══ */
+    function confirmDelete(id, name) {
+        document.getElementById('confirm-title').textContent = `Xóa "${name}"?`;
+        document.getElementById('confirm-sub').textContent =
+            'Tài khoản đăng nhập (nếu có) cũng sẽ bị xóa. Không thể hoàn tác.';
+        document.getElementById('confirm-overlay').classList.add('open');
+        document.getElementById('confirm-ok').onclick = () => doDelete(id);
+    }
+    function closeConfirm() {
+        document.getElementById('confirm-overlay').classList.remove('open');
+    }
+    async function doDelete(id) {
+        closeConfirm();
+        try {
+            const res = await post(`${URL_XOA}${id}/`, {});
+            const data = await res.json();
+            if (data.ok) {
+                toast('Đã xóa', 'Công dân đã bị xóa khỏi hệ thống', 'ok');
+                closeDrawer();
+                // Xóa hàng khỏi bảng
+                const row = document.querySelector(`tr[data-id="${id}"]`);
+                if (row) row.remove();
+            } else {
+                toast('Không thể xóa', data.error, 'err');
+            }
+        } catch (e) { toast('Lỗi mạng', e.message, 'err'); }
+    }
+
+    /* ══ REFRESH ROW ══ */
+    function refreshRow(id, d) {
+        const row = document.querySelector(`tr[data-id="${id}"]`);
+        if (!row) return;
+        // Badge TK
+        const tkBadge = row.querySelector('td:nth-child(5)');
+        const stBadge = row.querySelector('td:nth-child(6)');
+        if (tkBadge) tkBadge.innerHTML = d.has_account
+            ? '<span class="badge b-em"><i class="fa fa-circle-check" style="font-size:9px"></i> Có TK</span>'
+            : '<span class="badge b-gray"><i class="fa fa-circle-xmark" style="font-size:9px"></i> Chưa có</span>';
+        if (stBadge) {
+            if (!d.has_account) stBadge.innerHTML = '<span style="font-size:12px;color:var(--dim)">—</span>';
+            else if (!d.is_active) stBadge.innerHTML = '<span class="badge b-ro"><i class="fa fa-lock" style="font-size:9px"></i> Bị khóa</span>';
+            else stBadge.innerHTML = '<span class="badge b-em"><i class="fa fa-unlock" style="font-size:9px"></i> Hoạt động</span>';
+        }
+    }
+
+    /* ══ PW STRENGTH ══ */
+    function checkPwStrength(pw) {
+        const bar = document.getElementById('pw-bar');
+        const hint = document.getElementById('pw-hint');
+        const wrap = document.getElementById('new-pw')?.parentElement;
+        if (!pw) { bar.style.width = '0'; hint.textContent = ''; return; }
+        let score = 0;
+        if (pw.length >= 8) score++;
+        if (/[A-Z]/.test(pw)) score++;
+        if (/[0-9]/.test(pw)) score++;
+        if (/[^A-Za-z0-9]/.test(pw)) score++;
+        const levels = [
+            { cls: '', w: '0', msg: '' },
+            { cls: 'pw-weak', w: '25%', msg: 'Yếu — thêm số hoặc chữ hoa', c: 'var(--ro)' },
+            { cls: 'pw-medium', w: '55%', msg: 'Trung bình', c: 'var(--am)' },
+            { cls: 'pw-strong', w: '85%', msg: 'Tốt', c: 'var(--em)' },
+            { cls: 'pw-strong', w: '100%', msg: 'Rất mạnh', c: 'var(--em)' },
+        ];
+        const l = levels[Math.min(score, 4)];
+        bar.style.width = l.w;
+        bar.style.background = l.c || 'var(--bd2)';
+        hint.textContent = l.msg;
+        hint.style.color = l.c || 'var(--dim)';
+    }
+
+    /* ══ HELPERS ══ */
+    function post(url, body) {
+        return fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify(body),
+        });
+    }
+
+    function toast(title, msg, type) {
+        const icons = { ok: '✅', err: '❌', warn: '⚠️' };
+        const el = document.createElement('div');
+        el.className = `toast ${type}`;
+        el.innerHTML = `
+    <div style="font-size:15px;flex-shrink:0">${icons[type] || 'ℹ️'}</div>
+    <div><div class="t-title">${title}</div><div class="t-msg">${msg || ''}</div></div>`;
+        document.getElementById('toast-wrap').appendChild(el);
+        setTimeout(() => el.remove(), 4500);
+    }
+
+    // Đóng drawer bằng ESC
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            if (document.getElementById('confirm-overlay').classList.contains('open')) closeConfirm();
+            else closeDrawer();
+        }
+    });
+</script>
+{% endblock %}

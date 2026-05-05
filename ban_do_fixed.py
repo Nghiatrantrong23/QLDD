@@ -50,9 +50,9 @@ def api_danh_sach_thua_dat(request):
                 'ma_thua':    thua.ma_thua,
                 'ma_thua_dat': thua.ma_thua,          # alias cho JS cũ
                 # BUG FIX: trả MÃ để getLandColor() map đúng màu
-                'loai_dat':   thua.loai_dat_hien_trang.strip() if thua.loai_dat_hien_trang else 'DDT',
+                'loai_dat':   thua.loai_dat_hien_trang,
                 # Thêm text để popup hiển thị
-                'loai_dat_text': thua.get_loai_dat_hien_trang_display().strip() if thua.loai_dat_hien_trang else 'Đất phi nông nghiệp khác',
+                'loai_dat_text': thua.get_loai_dat_hien_trang_display(),
                 'so_to':       thua.so_to,
                 'so_thua':     thua.so_thua,
                 'dien_tich':   float(thua.dien_tich or 0),

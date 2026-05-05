@@ -9,15 +9,14 @@ MapApp.layers = {
     // MÀU SẮC CHUẨN THEO LOẠI ĐẤT
     // ====================================================================
     colors: {
-        'Đất ở đô thị': '#ef4444',           // Đỏ
-        'Đất ở nông thôn': '#f97316',        // Cam
-        'Đất cây lâu năm': '#22c55e',        // Xanh lá đậm
-        'Đất trồng lúa': '#86efac',          // Xanh lá nhạt
-        'Đất trụ sở cơ quan': '#a855f7',     // Tím
-        'Đất giao thông': '#6b7280',         // Xám
-        'Đất sản xuất kinh doanh': '#3b82f6', // Xanh dương
-        'Đất phi nông nghiệp khác': '#eab308', // Vàng
-        'DDT': '#eab308'                      // Mặc định vàng
+        'ODT': '#ef4444', // Đất ở đô thị - Đỏ
+        'ONT': '#f97316', // Đất ở nông thôn - Cam
+        'CLN': '#10b981', // Đất cây lâu năm - Xanh lá đậm
+        'LUA': '#84cc16', // Đất trồng lúa - Xanh lá mạ
+        'TSC': '#6366f1', // Đất trụ sở cơ quan - Xanh tím
+        'DGT': '#94a3b8', // Đất giao thông - Xám xanh
+        'SKC': '#ec4899', // Đất sản xuất kinh doanh - Hồng
+        'DDT': '#eab308', // Đất phi nông nghiệp khác - Vàng
     },
 
     colorNames: {
@@ -25,9 +24,9 @@ MapApp.layers = {
         'ONT': 'Đất ở nông thôn',
         'CLN': 'Đất cây lâu năm',
         'LUA': 'Đất trồng lúa',
-        'TSC': 'Đất trụ sở cơ quan',
+        'TSC': 'Trụ sở cơ quan',
         'DGT': 'Đất giao thông',
-        'SKC': 'Đất sản xuất kinh doanh',
+        'SKC': 'Cơ sở SXKD',
         'DDT': 'Đất phi nông nghiệp khác',
     },
 
@@ -239,28 +238,56 @@ MapApp.layers = {
     },
 
     styleParcel: function(feature) {
-        const loai = feature.properties?.loai_dat || 'DDT';
-        const color = this.colors[loai] || '#94a3b8';
+        const p = feature.properties;
+        const loai = (p.loai_dat || '').trim();
+        const loaiText = (p.loai_dat_text || '').trim();
+        
+        let color = this.colors[loai];
+        if (!color && loaiText) {
+            // Fallback: Tìm theo tên tiếng Việt
+            for (const [code, name] of Object.entries(this.colorNames)) {
+                if (loaiText === name.trim() || loai === name.trim()) {
+                    color = this.colors[code];
+                    break;
+                }
+            }
+        }
+
         return {
-            fillColor: color,
-            fillOpacity: 0.55,   // Giảm độ đậm để nhìn rõ lớp nền (🟠 Item 9)
+            fillColor: color || '#94a3b8',
+            fillOpacity: 0.6,
             color: '#fff',
-            weight: 1.2,        // Viền thanh mảnh hơn
+            weight: 1,
             opacity: 1
         };
     },
 
     onEachParcel: function(feature, layer) {
         const p = feature.properties;
-        const color = this.colors[p.loai_dat] || '#94a3b8';
-        const name = this.colorNames[p.loai_dat] || p.loai_dat;
+        const loai = (p.loai_dat || '').trim();
+        const loaiText = (p.loai_dat_text || '').trim();
+        
+        let color = this.colors[loai];
+        let name = this.colorNames[loai];
+
+        if (!color && loaiText) {
+            for (const [c, n] of Object.entries(this.colorNames)) {
+                if (loaiText === n.trim() || loai === n.trim()) {
+                    color = this.colors[c];
+                    name = n;
+                    break;
+                }
+            }
+        }
+        if (!name) name = loaiText || loai;
+        if (!color) color = '#94a3b8';
 
         // Tooltip khi hover
         layer.bindTooltip(`
             <div style="font-size:12px; min-width:140px;">
                 <b style="color:${color}">${p.ma_thua || 'N/A'}</b><br>
-                <span style="color:#94a3b8">${name}</span><br>
-                📐 ${p.dien_tich ? parseFloat(p.dien_tich).toFixed(1) : '-'} m²
+                <span style="color:#64748b; font-weight:600">${name}</span><br>
+                📐 ${p.dien_tich ? parseFloat(p.dien_tich).toLocaleString('vi-VN') : '-'} m²
             </div>`, { sticky: true, opacity: 0.97 });
 
         // Click → mở Side Panel (Giai đoạn 2)

@@ -1,7 +1,8 @@
 from django.urls import path, include
-from myapp.views import tong_quan, ban_do, ho_so_dat, phan_tich_gis, bao_cao, canh_bao, quy_hoach, chu_su_dung, export_import, auth_views, bien_dong, nguoi_dung, quan_ly_nguoi_dung
+from django.contrib.auth import views as django_auth_views
+from myapp.views import tong_quan, ban_do, ho_so_dat, phan_tich_gis, bao_cao, canh_bao, quy_hoach, chu_su_dung, export_import, auth_views, bien_dong, nguoi_dung, quan_ly_cong_dan
 from myapp.views import routing_views
-# from myapp.views import quan_ly_nguoi_dung, api, can_bo
+# from myapp.views import api, can_bo
 
 urlpatterns = [
    
@@ -18,6 +19,28 @@ urlpatterns = [
     path('dang-nhap/', auth_views.UserLoginView.as_view(), name='dang_nhap'),
     path('dang-xuat/', auth_views.UserLogoutView.as_view(), name='dang_xuat'),
     path('dang-ky/', auth_views.UserRegisterView.as_view(), name='dang_ky'),
+
+    # Quên / Đặt lại mật khẩu
+    path('quen-mat-khau/', django_auth_views.PasswordResetView.as_view(
+        template_name='myapp/tai_khoan/quen_mat_khau.html',
+        email_template_name='registration/password_reset_email.txt',       # Plain text fallback
+        html_email_template_name='registration/password_reset_email.html', # HTML đẹp
+        subject_template_name='registration/password_reset_subject.txt',
+        success_url='/quen-mat-khau/gui-thanh-cong/',
+    ), name='password_reset'),
+
+    path('quen-mat-khau/gui-thanh-cong/', django_auth_views.PasswordResetDoneView.as_view(
+        template_name='myapp/tai_khoan/gui_email_thanh_cong.html',
+    ), name='password_reset_done'),
+
+    path('dat-lai-mat-khau/<uidb64>/<token>/', django_auth_views.PasswordResetConfirmView.as_view(
+        template_name='myapp/tai_khoan/dat_lai_mat_khau.html',
+        success_url='/dat-lai-mat-khau/thanh-cong/',
+    ), name='password_reset_confirm'),
+
+    path('dat-lai-mat-khau/thanh-cong/', django_auth_views.PasswordResetCompleteView.as_view(
+        template_name='myapp/tai_khoan/dat_lai_thanh_cong.html',
+    ), name='password_reset_complete'),
 
     # Bản đồ
     path('ban-do/', ban_do.ban_do, name='ban_do'),
@@ -49,10 +72,27 @@ urlpatterns = [
     path('ho-so-dat/<int:pk>/giao-dich/', bien_dong.them_bien_dong, name='hs_them_giao_dich'),
     path('giao-dich/<int:bd_id>/', bien_dong.chi_tiet_bien_dong, name='bd_chi_tiet'),
 
-    # Phân tích GIS
-    path('phan-tich-gis/', phan_tich_gis.cong_cu, name='pt_cong_cu'),
-    path('phan-tich-gis/ket-qua/', phan_tich_gis.ket_qua, name='pt_ket_qua'),
-    path('phan-tich-gis/thuc-hien/', phan_tich_gis.thuc_hien_phan_tich, name='pt_thuc_hien'),
+    # ── Trang GIS ──────────────────────────────────────────────────────
+    path('phan-tich/cong-cu/',          phan_tich_gis.cong_cu,              name='pt_cong_cu'),
+    path('phan-tich/ket-qua/',          phan_tich_gis.ket_qua,              name='pt_ket_qua'),
+
+    # ── API GIS (POST) ─────────────────────────────────────────────────
+    path('api/gis/buffer/',             phan_tich_gis.api_buffer,           name='api_buffer'),
+    path('api/gis/intersect/',          phan_tich_gis.api_intersect,        name='api_intersect'),
+    path('api/gis/thong-ke/',           phan_tich_gis.api_thong_ke,         name='api_thong_ke'),
+
+    # ── API Lịch sử: base URL (không có pk) để template {% url %} dùng được
+    # JS sẽ nối: fetch(`${GIS_CONFIG.apiLichSu}${id}/`) → '/api/gis/lich-su/5/'
+    path('api/gis/lich-su/',            phan_tich_gis.api_chi_tiet_lich_su, name='api_lich_su_phan_tich'),
+    path('api/gis/lich-su/<int:pk>/',   phan_tich_gis.api_chi_tiet_lich_su, name='api_chi_tiet_lich_su'),
+
+    # ── API bản đồ (GET) ───────────────────────────────────────────────
+    path('api/thua-dat/geojson/',       ban_do.api_danh_sach_thua_dat,  name='api_thua_dat_geojson'),
+    path('api/quy-hoach/geojson/',      ban_do.api_danh_sach_quy_hoach, name='api_vung_quy_hoach_geojson'),
+    path('api/thua-dat/tim-kiem/',      ban_do.api_tim_kiem_thua_dat,   name='api_tim_kiem_thua_dat'),
+
+    # ── Xuất Excel (tạm trỏ về trang kết quả) ─────────────────────────
+    path('api/gis/export-excel/',       phan_tich_gis.ket_qua,          name='api_export_excel'),
 
     # Báo cáo
     path('bao-cao/', bao_cao.danh_sach, name='bc_danh_sach'),
@@ -88,13 +128,19 @@ urlpatterns = [
     # Quản lý người dùng (Dành cho công dân)
     path('profile/', nguoi_dung.user_dashboard, name='profile_dashboard'),
     path('api/my-parcels/', nguoi_dung.api_user_parcels, name='api_my_parcels'),
+    path('api/cap-nhat-email/', nguoi_dung.api_cap_nhat_email, name='api_cap_nhat_email'),
 
-    # Quản lý người dùng (admin)
-    path('nguoi-dung/', quan_ly_nguoi_dung.danh_sach_nguoi_dung, name='nd_danh_sach'),
-    path('nguoi-dung/them-moi/', quan_ly_nguoi_dung.them_nguoi_dung, name='nd_them_moi'),
-    path('nguoi-dung/<int:pk>/chinh-sua/', quan_ly_nguoi_dung.chinh_sua_nguoi_dung, name='nd_chinh_sua'),
-    path('nguoi-dung/<int:pk>/xoa/', quan_ly_nguoi_dung.xoa_nguoi_dung, name='nd_xoa'),
-    path('api/user-actions/', quan_ly_nguoi_dung.api_thao_tac_tai_khoan, name='api_user_actions'),
+    # Quản lý người dùng (admin - phiên bản mới: quản lý công dân)
+    path('quan-ly-cong-dan/', quan_ly_cong_dan.danh_sach, name='quan_ly_cong_dan'),
+    path('quan-ly-cong-dan/api/chi-tiet/<int:pk>/', quan_ly_cong_dan.api_chi_tiet, name='qlcd_api_chi_tiet'),
+    path('quan-ly-cong-dan/api/cap-nhat/<int:pk>/', quan_ly_cong_dan.api_cap_nhat_ho_so, name='qlcd_api_cap_nhat'),
+    path('quan-ly-cong-dan/api/khoa/<int:pk>/', quan_ly_cong_dan.api_toggle_lock, name='qlcd_api_khoa'),
+    path('quan-ly-cong-dan/api/tao-tai-khoan/<int:pk>/', quan_ly_cong_dan.api_tao_tai_khoan, name='qlcd_api_tao_tk'),
+    path('quan-ly-cong-dan/api/reset-mk/<int:pk>/', quan_ly_cong_dan.api_reset_mat_khau, name='qlcd_api_reset_mk'),
+    path('quan-ly-cong-dan/api/xoa/<int:pk>/', quan_ly_cong_dan.api_xoa, name='qlcd_api_xoa'),
+
+    # Thêm API cho công dân tự đổi mật khẩu nếu cần (đã có ở file view, thêm route)
+    path('api/doi-mat-khau-ca-nhan/', quan_ly_cong_dan.api_doi_mat_khau_ca_nhan, name='api_doi_mk_ca_nhan'),
     
   
 ]

@@ -134,6 +134,18 @@
 
         input:focus + i { color: var(--primary-blue); }
 
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 14px;
+            transition: color 0.3s;
+            z-index: 20;
+        }
+
+        .toggle-password:hover { color: var(--primary-blue); }
+
         .error-message {
             background: rgba(239, 68, 68, 0.1);
             border-left: 4px solid #ef4444;
@@ -213,18 +225,25 @@
         <form method="post">
             {% csrf_token %}
             <div class="form-group">
-                <label>Tên đăng nhập</label>
+                <label>Tên đăng nhập / Email</label>
                 <div class="input-wrapper">
                     <i class="fas fa-user-astronaut"></i>
-                    <input type="text" name="username" placeholder="Nhập username" required autofocus>
+                    <input type="text" name="username" placeholder="Nhập username hoặc email" required autofocus>
                 </div>
             </div>
 
             <div class="form-group">
                 <label>Mật khẩu</label>
-                <div class="input-wrapper">
+                <div class="input-wrapper" x-data="{ show: false }">
                     <i class="fas fa-fingerprint"></i>
-                    <input type="password" name="password" placeholder="••••••••" required>
+                    <input :type="show ? 'text' : 'password'" name="password" id="id_password" placeholder="••••••••" required>
+                    <i class="fas" :class="show ? 'fa-eye-slash' : 'fa-eye'" class="toggle-password" @click="show = !show" style="left: auto; right: 18px;"></i>
+                </div>
+                <div style="text-align:right; margin-top:10px;">
+                    <a href="{% url 'password_reset' %}" style="font-size:13px; color:#60a5fa; text-decoration:none; font-weight:500; transition:color 0.3s;"
+                       onmouseover="this.style.color='#93c5fd'" onmouseout="this.style.color='#60a5fa'">
+                        <i class="fas fa-key" style="font-size:11px; margin-right:4px;"></i>Quên mật khẩu?
+                    </a>
                 </div>
             </div>
 
@@ -239,5 +258,7 @@
         </div>
     </div>
 
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </body>
 </html>

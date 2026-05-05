@@ -16,7 +16,7 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
-from django.db.models import Q, Sum, Count, F
+from django.db.models import Q, Sum, Count
 from django.contrib.auth import get_user_model
 
 from myapp.decorators import admin_required
@@ -372,40 +372,6 @@ def api_thong_ke(request):
             rows.append({
                 'ma':            ma,
                 'ten':           loai_map.get(ma, ma),
-                'so_thua':       r['so_thua'],
-                'tong_dien_tich': round(safe_float(r['tong_dien_tich']), 1),
-            })
-
-    elif nhom == 'khu_vuc':
-        # Nhóm theo địa chỉ (field dia_chi_thua hoặc field tương đương)
-        qs = (
-            ThuaDat.objects
-            .values('dia_chi_thua')
-            .annotate(so_thua=Count('id'), tong_dien_tich=Sum('dien_tich'))
-            .order_by('-tong_dien_tich')
-        )
-        for r in qs:
-            ten = r['dia_chi_thua'] or 'Không xác định'
-            rows.append({
-                'ma':            ten,
-                'ten':           ten,
-                'so_thua':       r['so_thua'],
-                'tong_dien_tich': round(safe_float(r['tong_dien_tich']), 1),
-            })
-
-    elif nhom == 'chu_su_dung':
-        qs = (
-            ThuaDat.objects
-            .filter(danh_sach_chu_su_dung__isnull=False)
-            .values(ten_chu=F('danh_sach_chu_su_dung__ho_ten'))
-            .annotate(so_thua=Count('id', distinct=True), tong_dien_tich=Sum('dien_tich'))
-            .order_by('-tong_dien_tich')[:50]  # giới hạn 50 chủ hàng đầu
-        )
-        for r in qs:
-            ten = r['ten_chu'] or 'Không xác định'
-            rows.append({
-                'ma':            ten,
-                'ten':           ten,
                 'so_thua':       r['so_thua'],
                 'tong_dien_tich': round(safe_float(r['tong_dien_tich']), 1),
             })

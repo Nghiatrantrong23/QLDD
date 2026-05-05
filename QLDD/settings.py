@@ -99,6 +99,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # --- Authentication ---
+AUTHENTICATION_BACKENDS = [
+    'myapp.backends.EmailOrUsernameModelBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 LOGIN_URL = 'dang_nhap'
 LOGIN_REDIRECT_URL = 'tong_quan'
 LOGOUT_REDIRECT_URL = 'dang_nhap'
@@ -106,3 +110,11 @@ LOGOUT_REDIRECT_URL = 'dang_nhap'
 # --- OpenRouteService API Key ---
 # Đăng ký miễn phí tại: https://openrouteservice.org/dev/
 ORS_API_KEY = '5b3ce3597851110001cf6248fd2a9ff7c8864417a0ef3f6ea0d6ab28'
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'sandbox.smtp.mailtrap.io'
+EMAIL_HOST_USER = '1929e1ebd55848'
+EMAIL_HOST_PASSWORD = '0eb20f68a7c36f'
+EMAIL_PORT = '2525'
+EMAIL_USE_TLS = True

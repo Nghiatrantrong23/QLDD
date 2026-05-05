@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quên mật khẩu - Hệ thống WebGIS QLĐD</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --primary-blue: #3b82f6;
+            --accent-amber: #f59e0b;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-gradient);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .ambient-blob {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            filter: blur(120px);
+            border-radius: 50%;
+            z-index: 0;
+            opacity: 0.15;
+            animation: float 20s infinite alternate;
+        }
+        .blob-1 { background: #f59e0b; top: -100px; left: -100px; }
+        .blob-2 { background: var(--primary-blue); bottom: -150px; right: -100px; animation-delay: -5s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(80px, 40px) scale(1.2); }
+        }
+
+        .card {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 440px;
+            padding: 45px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header { text-align: center; margin-bottom: 35px; }
+
+        .icon-wrap {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(59,130,246,0.2));
+            border: 1px solid rgba(245,158,11,0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            animation: pulse 3s infinite;
+        }
+        .icon-wrap i { font-size: 36px; color: var(--accent-amber); }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245,158,11,0.3); }
+            50% { transform: scale(1.03); box-shadow: 0 0 0 12px rgba(245,158,11,0); }
+        }
+
+        h1 { color: var(--text-main); font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+        .subtitle { color: var(--text-muted); font-size: 14px; line-height: 1.6; }
+
+        .info-box {
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 28px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .info-box i { color: var(--accent-amber); margin-top: 2px; flex-shrink: 0; }
+        .info-box p { color: #fde68a; font-size: 13px; line-height: 1.6; }
+
+        .form-group { margin-bottom: 24px; }
+        .form-group label {
+            display: block;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .input-wrapper { position: relative; display: flex; align-items: center; }
+        .input-wrapper i {
+            position: absolute;
+            left: 18px;
+            color: var(--text-muted);
+            font-size: 16px;
+            transition: color 0.3s;
+        }
+
+        input[type="email"] {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 15px 15px 15px 50px;
+            color: white;
+            font-size: 15px;
+            font-family: inherit;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            outline: none;
+        }
+        input[type="email"]:focus {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: var(--accent-amber);
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
+        }
+
+        .btn-submit {
+            width: 100%;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 10px 20px -5px rgba(245, 158, 11, 0.4);
+            margin-top: 8px;
+        }
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 25px -5px rgba(245, 158, 11, 0.5);
+        }
+        .btn-submit:active { transform: translateY(0); }
+
+        .footer-links {
+            margin-top: 28px;
+            text-align: center;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+        .footer-links a {
+            color: var(--primary-blue);
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+        .footer-links a:hover { color: #60a5fa; }
+
+        @media (max-width: 480px) {
+            .card { padding: 35px 25px; border-radius: 20px; margin: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-blob blob-1"></div>
+    <div class="ambient-blob blob-2"></div>
+
+    <div class="card">
+        <div class="header">
+            <div class="icon-wrap">
+                <i class="fas fa-key"></i>
+            </div>
+            <h1>Quên mật khẩu?</h1>
+            <p class="subtitle">Nhập email đăng ký của bạn, chúng tôi sẽ gửi link đặt lại mật khẩu ngay lập tức.</p>
+        </div>
+
+        <div class="info-box">
+            <i class="fas fa-shield-alt"></i>
+            <p>Link đặt lại mật khẩu sẽ hết hạn sau <strong>3 ngày</strong> vì lý do bảo mật.</p>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Địa chỉ Email</label>
+                <div class="input-wrapper">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" name="email" id="id_email"
+                           placeholder="example@email.com" required autofocus>
+                </div>
+                {% if form.email.errors %}
+                    <p style="color:#fca5a5;font-size:13px;margin-top:8px;">{{ form.email.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn-submit" id="btn-send">
+                <i class="fas fa-paper-plane"></i> Gửi link đặt lại mật khẩu
+            </button>
+        </form>
+
+        <div class="footer-links">
+            <a href="{% url 'dang_nhap' %}"><i class="fas fa-arrow-left" style="font-size:12px;"></i> Quay về đăng nhập</a>
+        </div>
+    </div>
+
+    <script>
+        document.querySelector('form').addEventListener('submit', function() {
+            const btn = document.getElementById('btn-send');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...';
+            btn.disabled = true;
+        });
+    </script>
+</body>
+</html>

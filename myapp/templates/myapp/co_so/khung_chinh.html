@@ -21,6 +21,17 @@
             height: 100%;
             margin: 0;
             overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        /* Biến màu sắc hiện đại */
+        :root {
+            --mau-chinh: #2563eb;
+            --mau-phu: #1e40af;
+            --mau-nen: #f1f5f9;
+            --sidebar-bg: #0f172a;
+            --text-light: #f8fafc;
         }
 
         .bo_cuc {
@@ -28,15 +39,44 @@
             height: 100vh;
             width: 100vw;
             overflow: hidden;
+            position: relative;
         }
 
-        /* Sidebar cố định */
+        /* Sidebar Responsive */
         .sidebar {
             width: 260px;
             flex-shrink: 0;
             height: 100%;
-            overflow-y: auto;
-            overflow-x: hidden;
+            background: var(--sidebar-bg);
+            color: var(--text-light);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1100; /* Cao hơn Leaflet map (max ~1000) */
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Khi Sidebar đóng trên Mobile */
+        @media (max-width: 1024px) {
+            .sidebar {
+                position: absolute;
+                left: -260px;
+            }
+            .sidebar.active {
+                left: 0;
+                box-shadow: 10px 0 15px -3px rgba(0, 0, 0, 0.1);
+            }
+        }
+
+        /* Overlay khi mở sidebar trên mobile */
+        .sidebar-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1050; /* Giữa overlay và sidebar */
+            display: none;
+        }
+        .sidebar-overlay.active {
+            display: block;
         }
 
         /* Main content area */
@@ -47,14 +87,79 @@
             min-width: 0;
             height: 100%;
             overflow: hidden;
+            background: white;
         }
 
         /* Header */
         .header {
             flex-shrink: 0;
             height: 64px;
-            position: static;
-            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px 0 20px;
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            gap: 12px;
+        }
+
+        .header__trai {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .header__trai > div {
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .header__tieu_de {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .header__phu {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Nút Hamburger cho Mobile */
+        .menu-toggle {
+            display: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #334155;
+            padding: 8px;
+            flex-shrink: 0;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .menu-toggle:hover {
+            background: #f1f5f9;
+        }
+
+        @media (max-width: 1024px) {
+            .menu-toggle {
+                display: block;
+            }
+        }
+
+        /* Responsive header phai */
+        @media (max-width: 640px) {
+            .btn-text {
+                display: none;
+            }
+            .header__phu {
+                display: none;
+            }
         }
 
         /* Content scrollable */
@@ -62,16 +167,50 @@
             flex: 1;
             overflow-y: auto;
             overflow-x: hidden;
-            display: flex;
-            flex-direction: column; /* Để footer luôn ở dưới cùng của content flow */
-            background: var(--mau-nen);
-            margin: 0;
+            background: #f8fafc;
+        }
+
+        /* KPI Grid - Tự động responsive */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        /* Table Responsive Wrapper */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background: white;
+        }
+
+        /* Map Full Height Utility */
+        .map-container {
+            width: 100%;
+            height: calc(100vh - 128px); /* Trừ header và padding */
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        @media (max-width: 768px) {
+            .map-container {
+                height: 60vh;
+            }
         }
 
         /* Container của nội dung block */
         .noi_dung_khoi {
             flex: 1;
-            padding: 12px;
+            padding: 16px 20px;
+        }
+
+        @media (max-width: 768px) {
+            .noi_dung_khoi {
+                padding: 12px;
+            }
         }
 
         /* Footer Nâng cao - Giai đoạn 4 */
@@ -188,11 +327,13 @@
     </style>
 </head>
 
-<body>
+<body x-data="{ sidebarOpen: false }">
     <div class="bo_cuc">
+        <!-- Overlay for mobile -->
+        <div class="sidebar-overlay" :class="{'active': sidebarOpen}" @click="sidebarOpen = false"></div>
 
         <!-- SIDEBAR -->
-        <aside class="sidebar">
+        <aside class="sidebar" :class="{'active': sidebarOpen}">
             <div class="sidebar__logo">
                 <div class="sidebar__logo-icon">GIS</div>
                 <div class="sidebar__logo-text">
@@ -208,12 +349,12 @@
                 {% if user.is_superuser %}
                 <a href="{% url 'tong_quan' %}"
                     class="sidebar__item {% if request.resolver_match.url_name == 'tong_quan' %}active{% endif %}">
-                    Tổng quan
+                    <i class="fas fa-tachometer-alt"></i> Tổng quan
                 </a>
                 {% endif %}
                 <a href="{% url 'ban_do' %}"
                     class="sidebar__item {% if request.resolver_match.url_name == 'ban_do' %}active{% endif %}">
-                    Bản đồ
+                    <i class="fas fa-map"></i> Bản đồ
                 </a>
 
                 {% if user.is_superuser %}
@@ -222,19 +363,19 @@
                 </div>
                 <a href="{% url 'hs_danh_sach' %}"
                     class="sidebar__item {% if 'hs_' in request.resolver_match.url_name %}active{% endif %}">
-                    Hồ sơ Đất
+                    <i class="fas fa-folder-open"></i> Hồ sơ Đất
                 </a>
                 <a href="{% url 'chu_danh_sach' %}"
                     class="sidebar__item {% if 'chu_' in request.resolver_match.url_name %}active{% endif %}">
-                    Chủ sử dụng
+                    <i class="fas fa-users"></i> Chủ sử dụng
                 </a>
                 <a href="{% url 'qh_ban_do' %}"
                     class="sidebar__item {% if 'qh_' in request.resolver_match.url_name %}active{% endif %}">
-                    Quy hoạch
+                    <i class="fas fa-layer-group"></i> Quy hoạch
                 </a>
-                <a href="{% url 'nd_danh_sach' %}"
-                    class="sidebar__item {% if 'nd_' in request.resolver_match.url_name %}active{% endif %}">
-                    Quản lý người dùng
+                <a href="{% url 'quan_ly_cong_dan' %}"
+                    class="sidebar__item {% if 'quan_ly_cong_dan' in request.resolver_match.url_name or 'qlcd_' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-user-cog"></i> Quản lý người dùng
                 </a>
                 {% endif %}
 
@@ -244,11 +385,11 @@
                 </div>
                 <a href="{% url 'pt_cong_cu' %}"
                     class="sidebar__item {% if 'pt_' in request.resolver_match.url_name %}active{% endif %}">
-                    Phân tích GIS
+                    <i class="fas fa-search-location"></i> Phân tích GIS
                 </a>
                 <a href="{% url 'cb_danh_sach' %}"
                     class="sidebar__item {% if 'cb_' in request.resolver_match.url_name %}active{% endif %}">
-                    Cảnh báo
+                    <i class="fas fa-bell"></i> Cảnh báo
                 </a>
                 {% endif %}
                 {% if user.is_superuser %}
@@ -257,7 +398,7 @@
                 </div>
                 <a href="{% url 'bc_danh_sach' %}"
                     class="sidebar__item {% if 'bc_' in request.resolver_match.url_name %}active{% endif %}">
-                    <i class="fas fa-chart-line mr-2"></i> Báo cáo thống kê
+                    <i class="fas fa-chart-line"></i> Báo cáo thống kê
                 </a>
                 {% else %}
                 <div class="sidebar__nhom">
@@ -265,17 +406,15 @@
                 </div>
                 <a href="{% url 'profile_dashboard' %}"
                     class="sidebar__item {% if request.resolver_match.url_name == 'profile_dashboard' %}active{% endif %}">
-                    <i class="fas fa-user-circle mr-2"></i> Hồ sơ của tôi
+                    <i class="fas fa-user-circle"></i> Hồ sơ của tôi
                 </a>
                 {% endif %}
 
-                <div class="mt-auto pt-4 border-t border-gray-100 mx-4 mb-4">
+                <div class="sidebar__logout">
                     <form action="{% url 'dang_xuat' %}" method="post">
                         {% csrf_token %}
-                        <button type="submit"
-                            class="flex items-center w-full px-3 py-2 text-sm font-medium text-red-600 transition-colors rounded-lg hover:bg-red-50 hover:text-red-700">
-                            <i class="fas fa-sign-out-alt mr-3 text-lg"></i>
-                            Đăng xuất
+                        <button type="submit" class="sidebar__item sidebar__item--logout" style="width:100%; border:none; cursor:pointer; background:transparent;">
+                            <i class="fas fa-sign-out-alt"></i> Đăng xuất
                         </button>
                     </form>
                 </div>
@@ -291,14 +430,19 @@
 
             <!-- HEADER -->
             <header class="header">
-                <div>
-                    <div class="header__tieu_de">{% block header_tieu_de %}{{ tieu_de_trang }}{% endblock %}</div>
-                    <div class="header__phu">{% block header_phu %}Hệ thống Quản lý Đất đai & GIS{% endblock %}</div>
+                <div class="header__trai">
+                    <button class="menu-toggle" @click="sidebarOpen = true">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <div class="header__tieu_de">{% block header_tieu_de %}{{ tieu_de_trang }}{% endblock %}</div>
+                        <div class="header__phu">{% block header_phu %}Hệ thống Quản lý Đất đai & GIS{% endblock %}</div>
+                    </div>
                 </div>
                 <div class="header__phai">
                     {% block header_nut %}{% endblock %}
                     {% if user.is_superuser %}
-                    <a href="{% url 'hs_them_moi' %}" class="nut_header nut_header--chinh">+ Thêm hồ sơ</a>
+                    <a href="{% url 'hs_them_moi' %}" class="nut_header nut_header--chinh them-ho-so-btn"><i class="fas fa-plus"></i> <span class="btn-text">Thêm hồ sơ</span></a>
                     {% endif %}
                 </div>
             </header>

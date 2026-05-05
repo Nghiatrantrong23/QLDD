@@ -975,7 +975,7 @@
         legendContent.innerHTML = Object.entries(MapApp.layers.colors).map(([name, color]) => `
             <div class="legend-item" data-type="${name}" onclick="toggleParcelLegend(this)">
                 <span class="legend-color" style="background: ${color}"></span>
-                <span>${name}</span>
+                <span>${MapApp.layers.colorNames[name] || name}</span>
             </div>
         `).join('');
     }

@@ -1879,7 +1879,8 @@
         <div class="parcel-list">
           {% for t in thua_dat_list %}
           <div class="pi" id="parcel-{{ t.id }}"
-            onclick="highlightParcel({{ t.id }}, {{ t.dien_tich|floatformat:0 }}, '{{ t.dia_chi_thua|default:' Chưa có địa chỉ' }}', '{{ t.loai_dat_hien_trang }}' , '{{ t.so_thua }}' , '{{ t.so_to }}' )">
+            onclick="highlightParcel({{ t.id }}, {{ t.dien_tich|floatformat:0 }}, '{{ t.dia_chi_thua|default:\" Chưa có
+            địa chỉ\" }}', '{{ t.loai_dat_hien_trang }}' , '{{ t.so_thua }}' , '{{ t.so_to }}' )">
             <div class="pi-ico ic-bl"><i class="fa fa-vector-square"></i></div>
             <div style="flex:1;min-width:0">
               <div class="pi-name">Thửa {{ t.so_thua }} · Tờ {{ t.so_to }}</div>
@@ -1965,7 +1966,8 @@
           </div>
           <div class="info-row">
             <div class="info-label">Địa chỉ</div>
-            <div class="info-value" style="font-size:11px;text-align:right;max-width:180px">{{ user_info.dia_chi|default:"Chưa có" }}</div>
+            <div class="info-value" style="font-size:11px;text-align:right;max-width:180px">{{
+              user_info.dia_chi|default:"Chưa có" }}</div>
           </div>
         </div>
         <!-- Quick actions -->
@@ -1985,7 +1987,8 @@
           </div>
           {% if canh_bao.count > 0 %}
           <span
-            style="background:var(--rose-dim);color:var(--rose);border:1px solid rgba(225,29,72,.2);padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700">{{ canh_bao.count }} mới</span>
+            style="background:var(--rose-dim);color:var(--rose);border:1px solid rgba(225,29,72,.2);padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700">{{
+            canh_bao.count }} mới</span>
           {% endif %}
         </div>
         {% for c in canh_bao %}
@@ -2018,8 +2021,10 @@
             <div class="tl-dot"><i class="fa fa-arrows-rotate"></i></div>
             <div>
               <div class="tl-type">{{ l.get_loai_bien_dong_display }}</div>
-              <div class="tl-date"><i class="fa fa-calendar-days" style="margin-right:4px"></i>{{ l.ngay_bien_dong|date:"d/m/Y" }}</div>
-              <div class="tl-desc">Thửa {{ l.thua_dat.so_thua }}, Tờ {{ l.thua_dat.so_to }} · {{ l.so_van_ban|default:"" }}</div>
+              <div class="tl-date"><i class="fa fa-calendar-days" style="margin-right:4px"></i>{{
+                l.ngay_bien_dong|date:"d/m/Y" }}</div>
+              <div class="tl-desc">Thửa {{ l.thua_dat.so_thua }}, Tờ {{ l.thua_dat.so_to }} · {{ l.so_van_ban|default:""
+                }}</div>
             </div>
           </div>
           {% empty %}
@@ -2374,23 +2379,21 @@
     const cf = document.getElementById('pw-confirm').value;
     if (!old || !nw || !cf) { showToast('Vui lòng điền đầy đủ thông tin', 'am'); return; }
     if (nw !== cf) { showToast('Mật khẩu xác nhận không khớp!', 'ro'); return; }
-    if (nw.length < 6) { showToast('Mật khẩu mới tối thiểu 6 ký tự', 'am'); return; }
+    if (nw.length < 8) { showToast('Mật khẩu mới tối thiểu 8 ký tự', 'am'); return; }
     try {
-      const res = await fetch('{% url "api_doi_mk_ca_nhan" %}', {
+      const res = await fetch('{% url "api_doi_mat_khau" "" %}'.replace('//', '/').replace(/\/[^\/]*$/, '/'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-        body: JSON.stringify({ mat_khau_cu: old, mat_khau_moi: nw, xac_nhan: cf })
+        body: JSON.stringify({ mat_khau_cu: old, mat_khau_moi: nw })
       });
       const data = await res.json();
-      if (data.ok) {
-        showToast('Đổi mật khẩu thành công!', 'em');
+      if (data.status === 'success') {
+        showToast('Đổi mật khẩu thành công! Vui lòng đăng nhập lại.', 'em');
         closeModal('settings-modal');
-        document.getElementById('pw-old').value = '';
-        document.getElementById('pw-new').value = '';
-        document.getElementById('pw-confirm').value = '';
-      } else { showToast(data.error || 'Đổi mật khẩu thất bại', 'ro'); }
+      } else { showToast(data.message || 'Đổi mật khẩu thất bại', 'ro'); }
     } catch (e) {
-      showToast('Tính năng đổi mật khẩu đang bị lỗi', 'am');
+      // Nếu chưa có API, hiển thị thông báo placeholder
+      showToast('Tính năng đổi mật khẩu đang được triển khai', 'am');
     }
   }
 

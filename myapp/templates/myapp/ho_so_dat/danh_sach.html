@@ -36,63 +36,64 @@
     </form>
 </div>
 
-<!-- BẢNG DANH SÃCH -->
+<!-- BẢNG DANH SÁCH -->
 <div class="bang_container">
     <div class="bang_tieu_de">
         <h3>Danh sách ({{ tong_so }} thửa)</h3>
         {% if user.is_superuser %}
-        <a href="{% url 'bc_xem' 'tong_hop' %}" class="nut nut--vien" style="font-size:12px;padding:5px 12px;">Xuất báo
-            cáo</a>
+        <a href="{% url 'bc_xem' 'tong_hop' %}" class="nut nut--vien" style="font-size:12px;padding:5px 12px;">Xuất báo cáo</a>
         {% endif %}
     </div>
     {% if danh_sach %}
-    <table class="bang">
-        <thead>
-            <tr>
-                <th>Mã thửa</th>
-                <th>Số tờ / Số thửa</th>
-                <th>Diện tích</th>
-                <th>Loại đất</th>
-                <th>Chủ sử dụng</th>
-                <th>Số GCN</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for thua in danh_sach %}
-            <tr>
-                <td><a href="{% url 'hs_chi_tiet' thua.pk %}"><strong>{{ thua.ma_thua }}</strong></a></td>
-                <td>Tờ {{ thua.so_to }} / Thửa {{ thua.so_thua }}</td>
-                <td>{{ thua.dien_tich|floatformat:1 }} m²</td>
-                <td><span class="huy_hieu huy_hieu--xanh-da-troi">{{ thua.get_loai_dat_hien_trang_display }}</span></td>
-                <td>
-                    {% for chu in thua.danh_sach_chu_su_dung.all %}
-                    {{ chu.ho_ten }}{% if not forloop.last %}, {% endif %}
-                    {% empty %}
-                    —
-                    {% endfor %}
-                </td>
-                <td>{{ thua.so_gcn|default:"—" }}</td>
-                <td>
-                    {% if thua.co_tranh_chap %}
-                    <span class="huy_hieu huy_hieu--do">Tranh chấp</span>
-                    {% else %}
-                    <span class="huy_hieu huy_hieu--xanh">Bình thường</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <a href="{% url 'hs_chi_tiet' thua.pk %}" class="nut nut--vien"
-                        style="font-size:12px;padding:4px 10px;">Chi tiết</a>
-                    {% if user.is_superuser %}
-                    <a href="{% url 'hs_chinh_sua' thua.pk %}" class="nut nut--cam"
-                        style="font-size:12px;padding:4px 10px;">Sửa</a>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="bang_wrapper">
+        <table class="bang">
+            <thead>
+                <tr>
+                    <th>Mã thửa</th>
+                    <th>Số tờ / Số thửa</th>
+                    <th>Diện tích</th>
+                    <th>Loại đất</th>
+                    <th>Chủ sử dụng</th>
+                    <th>Số GCN</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for thua in danh_sach %}
+                <tr>
+                    <td><a href="{% url 'hs_chi_tiet' thua.pk %}"><strong>{{ thua.ma_thua }}</strong></a></td>
+                    <td>Tờ {{ thua.so_to }} / Thửa {{ thua.so_thua }}</td>
+                    <td>{{ thua.dien_tich|floatformat:1 }} m²</td>
+                    <td><span class="huy_hieu huy_hieu--xanh-da-troi">{{ thua.get_loai_dat_hien_trang_display }}</span></td>
+                    <td>
+                        {% for chu in thua.danh_sach_chu_su_dung.all %}
+                        {{ chu.ho_ten }}{% if not forloop.last %}, {% endif %}
+                        {% empty %}
+                        —
+                        {% endfor %}
+                    </td>
+                    <td>{{ thua.so_gcn|default:"—" }}</td>
+                    <td>
+                        {% if thua.co_tranh_chap %}
+                        <span class="huy_hieu huy_hieu--do">Tranh chấp</span>
+                        {% else %}
+                        <span class="huy_hieu huy_hieu--xanh">Bình thường</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div style="display:flex; gap:5px;">
+                            <a href="{% url 'hs_chi_tiet' thua.pk %}" class="nut nut--vien" style="font-size:11px;padding:4px 8px;">Chi tiết</a>
+                            {% if user.is_superuser %}
+                            <a href="{% url 'hs_chinh_sua' thua.pk %}" class="nut nut--cam" style="font-size:11px;padding:4px 8px;">Sửa</a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
     <div class="trang_trong">
         <div class="trang_trong__bieu_tuong">--</div>

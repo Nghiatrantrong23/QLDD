@@ -54,13 +54,23 @@
     /* ── Table ── */
     .cb-table-wrap {
         background: white; border-radius: 14px; border: 1px solid #e2e8f0;
-        overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+        box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+        display: flex; flex-direction: column;
     }
+    .table-scroll {
+        max-height: calc(100vh - 300px); /* Fixed height for scrolling */
+        overflow-y: auto;
+    }
+    /* Custom scrollbar for table */
+    .table-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .table-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    
     .cb-table { width: 100%; border-collapse: collapse; }
     .cb-table thead th {
         padding: 11px 16px; background: #f8fafc; font-size: 11px; font-weight: 700;
         text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;
         border-bottom: 1px solid #e2e8f0; text-align: left;
+        position: sticky; top: 0; z-index: 10; /* Sticky header */
     }
     .cb-table tbody tr { border-bottom: 1px solid #f1f5f9; transition: background 0.15s; }
     .cb-table tbody tr:last-child { border-bottom: none; }
@@ -140,6 +150,25 @@
         width: 26px; height: 26px; border-radius: 50%; font-size: 13px;
         font-weight: 800; background: #fee2e2; color: #dc2626;
     }
+    
+    /* Pagination */
+    .pagination {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 14px 20px; border-top: 1px solid #e2e8f0; background: #f8fafc;
+        border-radius: 0 0 14px 14px;
+    }
+    .page-info { font-size: 13px; color: #64748b; }
+    .page-controls { display: flex; gap: 6px; }
+    .page-btn {
+        padding: 6px 12px; border: 1px solid #e2e8f0; background: white;
+        border-radius: 6px; font-size: 13px; color: #475569; cursor: pointer;
+        transition: all 0.2s; font-weight: 600; min-width: 34px;
+        display: flex; justify-content: center; align-items: center;
+    }
+    .page-btn:hover:not(:disabled) { background: #f1f5f9; color: #1e293b; border-color: #cbd5e1; }
+    .page-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; }
+    .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
 </style>
 {% endblock %}
 
@@ -186,100 +215,110 @@
 
     <!-- Table -->
     <div class="cb-table-wrap">
-        <table class="cb-table">
-            <thead>
-                <tr>
-                    <th>Thửa đất vi phạm</th>
-                    <th>Loại vi phạm</th>
-                    <th>Mức độ</th>
-                    <th>Ngày ghi nhận</th>
-                    <th>Trạng thái</th>
-                    <th>Thao tác</th>
-                </tr>
-            </thead>
-            <tbody>
-                <template x-for="cb in filtered" :key="cb.id">
+        <div class="table-scroll">
+            <table class="cb-table">
+                <thead>
                     <tr>
-                        <!-- Thửa đất -->
-                        <td>
-                            <div class="row-title">
-                                <a :href="'/canh-bao/'+cb.id+'/'" x-text="cb.tieu_de"></a>
-                            </div>
-                            <div class="row-sub">
-                                <i class="fas fa-map-pin" style="color:#94a3b8;font-size:10px;"></i>
-                                <span x-text="cb.ma_thua && cb.ma_thua!='N/A' ? 'Thửa '+cb.ma_thua : 'Chưa liên kết thửa đất'"></span>
-                                <span x-show="cb.dia_diem && cb.dia_diem!='Không xác định'"> ·
-                                    <span x-text="cb.dia_diem"></span>
+                        <th>Thửa đất vi phạm</th>
+                        <th>Loại vi phạm</th>
+                        <th>Mức độ</th>
+                        <th>Ngày ghi nhận</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="cb in paginated" :key="cb.id">
+                        <tr>
+                            <!-- Thửa đất -->
+                            <td>
+                                <div class="row-title">
+                                    <a :href="'/canh-bao/'+cb.id+'/'" x-text="cb.tieu_de"></a>
+                                </div>
+                                <div class="row-sub">
+                                    <i class="fas fa-map-pin" style="color:#94a3b8;font-size:10px;"></i>
+                                    <span x-text="cb.ma_thua && cb.ma_thua!='N/A' ? 'Thửa '+cb.ma_thua : 'Chưa liên kết thửa đất'"></span>
+                                    <span x-show="cb.dia_diem && cb.dia_diem!='Không xác định'"> ·
+                                        <span x-text="cb.dia_diem"></span>
+                                    </span>
+                                </div>
+                            </td>
+
+                            <!-- Loại vi phạm -->
+                            <td style="color:#475569;" x-text="cb.loai || '—'"></td>
+
+                            <!-- Mức độ -->
+                            <td>
+                                <span class="muc-do-badge" :class="'md-'+cb.muc_do">
+                                    <span x-text="mdEmoji(cb.muc_do)"></span>
+                                    <span x-text="mdLabel(cb.muc_do)"></span>
                                 </span>
-                            </div>
-                        </td>
+                            </td>
 
-                        <!-- Loại vi phạm -->
-                        <td style="color:#475569;" x-text="cb.loai || '—'"></td>
+                            <!-- Ngày -->
+                            <td style="color:#64748b;white-space:nowrap;" x-text="fmtDate(cb.ngay_tao)"></td>
 
-                        <!-- Mức độ -->
-                        <td>
-                            <span class="muc-do-badge" :class="'md-'+cb.muc_do">
-                                <span x-text="mdEmoji(cb.muc_do)"></span>
-                                <span x-text="mdLabel(cb.muc_do)"></span>
-                            </span>
-                        </td>
+                            <!-- Trạng thái -->
+                            <td>
+                                <span class="trang-thai-badge" :class="ttClass(cb.trang_thai)">
+                                    <span class="tt-dot" :class="ttDotClass(cb.trang_thai)"></span>
+                                    <span x-text="ttLabel(cb.trang_thai)"></span>
+                                </span>
+                            </td>
 
-                        <!-- Ngày -->
-                        <td style="color:#64748b;white-space:nowrap;" x-text="fmtDate(cb.ngay_tao)"></td>
+                            <!-- Thao tác -->
+                            <td>
+                                <div class="row-actions">
+                                    <button class="btn-hoan"
+                                            x-show="cb.trang_thai === 'chua_xu_ly'"
+                                            @click="markDone(cb)"
+                                            :disabled="processing === cb.id">
+                                        <span x-show="processing !== cb.id"><i class="fas fa-check"></i> Xử lý xong</span>
+                                        <span x-show="processing === cb.id"><i class="fas fa-spinner fa-spin"></i></span>
+                                    </button>
+                                    <a :href="'/canh-bao/'+cb.id+'/'" class="btn-detail" title="Xem chi tiết">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
 
-                        <!-- Trạng thái -->
-                        <td>
-                            <span class="trang-thai-badge" :class="ttClass(cb.trang_thai)">
-                                <span class="tt-dot" :class="ttDotClass(cb.trang_thai)"></span>
-                                <span x-text="ttLabel(cb.trang_thai)"></span>
-                            </span>
-                        </td>
-
-                        <!-- Thao tác -->
-                        <td>
-                            <div class="row-actions">
-                                <button class="btn-hoan"
-                                        x-show="cb.trang_thai === 'chua_xu_ly'"
-                                        @click="markDone(cb)"
-                                        :disabled="processing === cb.id">
-                                    <span x-show="processing !== cb.id"><i class="fas fa-check"></i> Xử lý xong</span>
-                                    <span x-show="processing === cb.id"><i class="fas fa-spinner fa-spin"></i></span>
-                                </button>
-                                <a :href="'/canh-bao/'+cb.id+'/'" class="btn-detail" title="Xem chi tiết">
-                                    <i class="fas fa-eye"></i>
-                                </a>
+                    <!-- Empty state -->
+                    <tr x-show="filtered.length === 0">
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <i class="fas fa-shield-alt"></i>
+                                <div style="font-weight:600;font-size:15px;color:#64748b;margin-bottom:6px;">
+                                    <span x-text="search || filterMucDo || filter ? 'Không tìm thấy kết quả phù hợp' : 'Chưa có cảnh báo vi phạm nào'"></span>
+                                </div>
+                                <div style="font-size:13px;">
+                                    <span x-show="!search && !filterMucDo && !filter">
+                                        <a href="{% url 'cb_them_moi' %}" style="color:#3b82f6;font-weight:600;">
+                                            + Ghi nhận vi phạm đầu tiên
+                                        </a>
+                                    </span>
+                                </div>
                             </div>
                         </td>
                     </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination UI -->
+        <div class="pagination" x-show="filtered.length > 0">
+            <div class="page-info">
+                Hiển thị <strong x-text="startIndex + 1"></strong> - <strong x-text="Math.min(endIndex, filtered.length)"></strong> / <strong x-text="filtered.length"></strong> cảnh báo
+            </div>
+            <div class="page-controls">
+                <button class="page-btn" @click="currentPage--" :disabled="currentPage === 1"><i class="fas fa-chevron-left"></i></button>
+                <template x-for="p in visiblePages" :key="p">
+                    <button class="page-btn" :class="{active: p === currentPage}" @click="currentPage = p" x-text="p"></button>
                 </template>
-
-                <!-- Empty state -->
-                <tr x-show="filtered.length === 0">
-                    <td colspan="6">
-                        <div class="empty-state">
-                            <i class="fas fa-shield-alt"></i>
-                            <div style="font-weight:600;font-size:15px;color:#64748b;margin-bottom:6px;">
-                                <span x-text="search || filterMucDo || filter ? 'Không tìm thấy kết quả phù hợp' : 'Chưa có cảnh báo vi phạm nào'"></span>
-                            </div>
-                            <div style="font-size:13px;">
-                                <span x-show="!search && !filterMucDo && !filter">
-                                    <a href="{% url 'cb_them_moi' %}" style="color:#3b82f6;font-weight:600;">
-                                        + Ghi nhận vi phạm đầu tiên
-                                    </a>
-                                </span>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Count info -->
-    <div style="margin-top:12px;font-size:12px;color:#94a3b8;text-align:right;"
-         x-show="filtered.length > 0">
-        Hiển thị <strong x-text="filtered.length"></strong> / <strong x-text="list.length"></strong> cảnh báo
+                <button class="page-btn" @click="currentPage++" :disabled="currentPage === totalPages"><i class="fas fa-chevron-right"></i></button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -296,6 +335,10 @@ function cbApp() {
         filterMucDo: '',
         search: '',
         processing: null,
+        
+        // Pagination state
+        currentPage: 1,
+        itemsPerPage: 10,
 
         get chuaXuLy()  { return this.list.filter(c => c.trang_thai === 'chua_xu_ly').length; },
         get daHoanTat() { return this.list.filter(c => c.trang_thai === 'da_hoan_tat').length; },
@@ -312,8 +355,27 @@ function cbApp() {
                 return matchFilter && matchMucDo && matchSearch;
             });
         },
+        
+        // Pagination logic
+        get totalPages() { return Math.max(1, Math.ceil(this.filtered.length / this.itemsPerPage)); },
+        get startIndex() { return (this.currentPage - 1) * this.itemsPerPage; },
+        get endIndex() { return this.currentPage * this.itemsPerPage; },
+        get paginated() { return this.filtered.slice(this.startIndex, this.endIndex); },
+        get visiblePages() {
+            let pages = [];
+            let start = Math.max(1, this.currentPage - 2);
+            let end = Math.min(this.totalPages, start + 4);
+            if (end - start < 4) start = Math.max(1, end - 4);
+            for (let i = start; i <= end; i++) pages.push(i);
+            return pages;
+        },
 
-        init() { /* no async needed */ },
+        init() {
+            // Reset to page 1 when filters change
+            this.$watch('filter', () => this.currentPage = 1);
+            this.$watch('filterMucDo', () => this.currentPage = 1);
+            this.$watch('search', () => this.currentPage = 1);
+        },
 
         async markDone(cb) {
             this.processing = cb.id;

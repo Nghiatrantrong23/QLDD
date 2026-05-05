@@ -82,3 +82,27 @@ def api_user_parcels(request):
         'type': 'FeatureCollection',
         'features': features
     })
+
+@login_required
+def api_cap_nhat_email(request):
+    """API cho phép người dùng cập nhật email thật của mình"""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+    try:
+        data = json.loads(request.body)
+        email_moi = data.get('email', '').strip()
+
+        if not email_moi or '@' not in email_moi:
+            return JsonResponse({'status': 'error', 'message': 'Email không hợp lệ'}, status=400)
+
+        from django.contrib.auth.models import User
+        # Kiểm tra email đã tồn tại chưa (trừ chính mình)
+        if User.objects.filter(email=email_moi).exclude(pk=request.user.pk).exists():
+            return JsonResponse({'status': 'error', 'message': 'Email này đã được sử dụng bởi tài khoản khác'}, status=400)
+
+        request.user.email = email_moi
+        request.user.save(update_fields=['email'])
+        return JsonResponse({'status': 'success', 'message': 'Cập nhật email thành công!', 'email': email_moi})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+

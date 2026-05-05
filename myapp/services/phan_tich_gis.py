@@ -76,8 +76,8 @@ def tim_thua_dat_trong_vung_dem(thua_queryset, lat, lng, ban_kinh_m):
 
 def phan_tich_vi_pham_quy_hoach(thua_list, qh_list, max_items=201):
     """
-    Tìm sự chồng lấn ranh giới bằng PostGIS Spatial Query thay vì loop Python.
-    Tối ưu hiệu năng và độ chính xác.
+    Tìm sự chồng lấn ranh giới. Tránh lỗi TopologyException bằng cách
+    chỉ dùng ST_Intersects để lọc, sau đó dùng Python xử lý geometry.
     """
     ket_qua = []
     so_luong = 0
@@ -86,29 +86,39 @@ def phan_tich_vi_pham_quy_hoach(thua_list, qh_list, max_items=201):
     for qh in qh_list:
         if not qh.geom: continue
         
-        # Lọc các thửa đất giao cắt với vùng quy hoạch này ngay trong database
-        # Sử dụng Intersection để lấy phần chung và Area để tính diện tích
-        thua_vi_pham = thua_list.filter(mpoly__intersects=qh.geom).annotate(
-            dien_tich_overlap=Area(Intersection('mpoly', qh.geom))
-        )
+        geom_q = qh.geom
+        # Sửa lỗi invalid geometry của vùng quy hoạch
+        if not geom_q.valid:
+            try:
+                geom_q = geom_q.buffer(0)
+            except:
+                continue
+        
+        # Lọc các thửa đất giao cắt với vùng quy hoạch này
+        # Bỏ annotate(Area(Intersection)) vì dễ gây lỗi DB (TopologyException)
+        thua_vi_pham = thua_list.filter(mpoly__intersects=geom_q)
         
         for t in thua_vi_pham:
             if so_luong >= max_items: break
+            if not t.mpoly: continue
             
-            # Chuyển đổi diện tích sang mét vuông chuẩn VN-2000
-            # Lưu ý diện tích trả về từ Area có thể là Float hoặc Measure tùy phiên bản
-            raw_area = t.dien_tich_overlap.sq_m if hasattr(t.dien_tich_overlap, 'sq_m') else t.dien_tich_overlap
-            
-            # Dự phòng: Tính lại diện tích bằng GEOS trong Python nếu cần độ chính xác UTM
-            if t.mpoly.intersects(qh.geom):
+            geom_t = t.mpoly
+            # Sửa lỗi invalid geometry của thửa đất
+            if not geom_t.valid:
                 try:
-                    giao_geos = t.mpoly.intersection(qh.geom)
+                    geom_t = geom_t.buffer(0)
+                except:
+                    continue
+            
+            try:
+                if geom_t.intersects(geom_q):
+                    giao_geos = geom_t.intersection(geom_q)
                     m2_correct = compute_area_m2(giao_geos)
                     
                     if m2_correct > 0.05: # Ngưỡng sai số 5cm2
-                        dt_thua = compute_area_m2(t.mpoly)
+                        dt_thua = compute_area_m2(geom_t)
                         phan_tram = (m2_correct / dt_thua * 100) if dt_thua > 0 else 0
-                        loai_qh_text = qh.loai_dat_quy_hoach if qh.loai_dat_quy_hoach else qh.get_loai_quy_hoach_display()
+                        loai_qh_text = qh.loai_dat_quy_hoach if hasattr(qh, 'loai_dat_quy_hoach') and qh.loai_dat_quy_hoach else qh.get_loai_quy_hoach_display()
                         
                         ket_qua.append({
                             'thua': t,
@@ -119,8 +129,8 @@ def phan_tich_vi_pham_quy_hoach(thua_list, qh_list, max_items=201):
                             'mo_ta': f"Chồng lấn {m2_correct:.2f} m² ({phan_tram:.1f}%) vào {qh.ten_vung} ({loai_qh_text})"
                         })
                         so_luong += 1
-                except Exception as e:
-                    print(f"Lỗi tính toán giao thoa thửa {t.ma_thua}: {e}")
+            except Exception as e:
+                print(f"Lỗi tính toán giao thoa thửa {t.ma_thua}: {e}")
 
     return ket_qua
 
@@ -130,6 +140,10 @@ def kiem_tra_chong_lan_geos(geom_thua, geom_qh):
     hình học thửa đất có đè lên hình học quy hoạch không và tính diện tích.
     """
     try:
+        # Xử lý invalid geometry
+        if not geom_thua.valid: geom_thua = geom_thua.buffer(0)
+        if not geom_qh.valid: geom_qh = geom_qh.buffer(0)
+        
         if geom_thua.intersects(geom_qh):
             giao_nhau = geom_thua.intersection(geom_qh)
             dien_tich_m2 = compute_area_m2(giao_nhau)
@@ -144,17 +158,28 @@ def analyze_geometry_overlap(vung_dem_geom, qh_list):
     Trả về danh sách các vùng trùng khớp kèm diện tích.
     """
     ket_qua = []
+    
+    # Xử lý invalid geometry input
+    if not vung_dem_geom.valid: 
+        try:
+            vung_dem_geom = vung_dem_geom.buffer(0)
+        except:
+            pass
+            
     # ST_Intersects trong DB
     qh_overlap = qh_list.filter(geom__intersects=vung_dem_geom)
     
     # Tính toán chi tiết bằng GEOS trong Python cho độ chính xác cao
     for qh in qh_overlap:
         try:
-            inter = vung_dem_geom.intersection(qh.geom)
+            geom_q = qh.geom
+            if not geom_q.valid: geom_q = geom_q.buffer(0)
+            
+            inter = vung_dem_geom.intersection(geom_q)
             if inter and not inter.empty:
                 area_m2 = compute_area_m2(inter)
                 if area_m2 > 0.01: # 1cm2 threshold
-                    total_qh_area = compute_area_m2(qh.geom)
+                    total_qh_area = compute_area_m2(geom_q)
                     phan_tram = (area_m2 / total_qh_area * 100) if total_qh_area > 0 else 0
                     
                     ket_qua.append({

@@ -1,6 +1,31 @@
 {% extends 'myapp/co_so/khung_chinh.html' %}
 {% block tieu_de %}{{ tieu_de_trang }}{% endblock %}
 
+{% block css_them %}
+<!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+    /* Chỉnh sửa Select2 để khớp với giao diện hiện tại */
+    .select2-container--default .select2-selection--single {
+        height: 38px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding-top: 5px;
+    }
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px;
+    }
+    .select2-container {
+        width: 100% !important;
+    }
+    .select2-dropdown {
+        border-color: #d1d5db;
+        border-radius: 6px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
 {% block noi_dung %}
 <div class="duong_dan">
     <a href="{% url 'hs_danh_sach' %}">Hồ sơ đất</a>
@@ -115,4 +140,25 @@
         transition: border-color 0.2s;
     }
 </style>
+{% endblock %}
+
+{% block js_them %}
+<!-- jQuery (bắt buộc cho Select2) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Kích hoạt Select2 cho ô Chủ Cũ và Chủ Mới
+        $('select[name="chu_cu"], select[name="chu_moi"]').select2({
+            placeholder: "Gõ tên hoặc số CMND để tìm...",
+            allowClear: true,
+            language: {
+                noResults: function() {
+                    return "Không tìm thấy người này";
+                }
+            }
+        });
+    });
+</script>
 {% endblock %}

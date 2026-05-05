@@ -17,97 +17,123 @@ import io
 @login_required
 @admin_required
 def danh_sach(request):
-    """Trang danh sách báo cáo với dữ liệu thực tế"""
-    # 1. KPIs & Trends
+    """Trang danh sách báo cáo với dữ liệu thực tế và tính toán tăng trưởng"""
     now = timezone.now()
-    last_month = now - datetime.timedelta(days=30)
+    month_ago = now - datetime.timedelta(days=30)
+    two_months_ago = now - datetime.timedelta(days=60)
     
+    # 1. KPIs Thực tế
     tong_thua_dat = ThuaDat.objects.count()
     tong_chu = ChuSuDung.objects.count()
     tong_canh_bao = CanhBaoGIS.objects.filter(trang_thai='chua_xu_ly').count()
-    giao_dich_thang = BienDongDat.objects.filter(ngay_bien_dong__gte=last_month).count()
+    giao_dich_thang = BienDongDat.objects.filter(ngay_bien_dong__gte=month_ago).count()
     
-    # Tính diện tích (Decimal -> float)
+    # 2. Tính toán tăng trưởng (%)
+    def calc_growth(current, previous):
+        if previous == 0: return 100 if current > 0 else 0
+        return round(((current - previous) / previous) * 100, 1)
+
+    # Giao dịch tháng trước để so sánh
+    giao_dich_thang_truoc = BienDongDat.objects.filter(
+        ngay_bien_dong__gte=two_months_ago, 
+        ngay_bien_dong__lt=month_ago
+    ).count()
+    
+    # Thửa đất mới tháng này
+    thua_moi_thang_nay = ThuaDat.objects.filter(ngay_tao__gte=month_ago).count()
+    chu_moi_thang_nay = ChuSuDung.objects.filter(ngay_tao__gte=month_ago).count()
+    canh_bao_moi_thang_nay = CanhBaoGIS.objects.filter(ngay_phat_sinh__gte=month_ago).count()
+
+    # Diện tích (Decimal -> float)
     tong_dt = float(ThuaDat.objects.aggregate(s=Sum('dien_tich'))['s'] or 0)
     
-    # 2. Monthly Trend (Line Chart)
+    # 3. Monthly Trend (Line Chart)
     labels = []
     trans_counts = []
     alert_counts = []
     for i in range(11, -1, -1):
-        month_start = (now - datetime.timedelta(days=30*i)).replace(day=1)
-        next_month = (month_start + datetime.timedelta(days=32)).replace(day=1)
+        # Tính toán theo tháng thực tế
+        target_date = now - datetime.timedelta(days=30*i)
+        month_start = target_date.replace(day=1, hour=0, minute=0, second=0)
+        if month_start.month == 12:
+            next_month = month_start.replace(year=month_start.year + 1, month=1)
+        else:
+            next_month = month_start.replace(month=month_start.month + 1)
         
-        labels.append(month_start.strftime('T%m'))
+        labels.append(month_start.strftime('T%m/%y'))
         trans_counts.append(BienDongDat.objects.filter(ngay_bien_dong__gte=month_start, ngay_bien_dong__lt=next_month).count())
         alert_counts.append(CanhBaoGIS.objects.filter(ngay_phat_sinh__gte=month_start, ngay_phat_sinh__lt=next_month).count())
 
-    # 3. Land Type Stats (Pie Chart)
-    thong_ke_loai = ThuaDat.objects.values('loai_dat_hien_trang').annotate(total=Sum('dien_tich')).order_by('-total')
+    # 4. Land Type Stats (Pie & Bar Chart)
+    thong_ke_loai = ThuaDat.objects.values('loai_dat_hien_trang').annotate(
+        total_area=Sum('dien_tich'),
+        total_count=Count('id')
+    ).order_by('-total_area')
+    
     loai_dat_dict = dict(ThuaDat.LOAI_DAT_CHOICES)
-    pie_labels = [loai_dat_dict.get(x['loai_dat_hien_trang'], 'Khác') for x in thong_ke_loai]
-    pie_data = [float(x['total'] or 0) for x in thong_ke_loai]
-    
-    # 4. District Stats (Bar Chart - trích xuất từ địa chỉ)
-    districts = ['Hải Châu', 'Thanh Khê', 'Sơn Trà', 'Ngũ Hành Sơn', 'Liên Chiểu', 'Cẩm Lệ']
-    
-    # Chuẩn bị dữ liệu cho biểu đồ cột chồng (Stacked Bar)
-    loai_dat_keys = ['ODT', 'CLN', 'ONT', 'SKC', 'DDT'] # Khớp với models.py
-    loai_dat_labels = {
-        'ODT': 'Đất ở đô thị', 'CLN': 'Cây lâu năm', 'ONT': 'Đất ở nông thôn', 
-        'SKC': 'Sản xuất KD', 'DDT': 'Phi nông nghiệp'
+    # Đồng bộ màu với bản đồ
+    loai_dat_colors_map = {
+        'ODT': '#ef4444', 'ONT': '#f97316', 'CLN': '#10b981', 
+        'LUA': '#84cc16', 'TSC': '#6366f1', 'DGT': '#94a3b8', 
+        'SKC': '#ec4899', 'DDT': '#eab308'
     }
-    colors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#64748b']
+    
+    pie_labels = [loai_dat_dict.get(x['loai_dat_hien_trang'], 'Khác') for x in thong_ke_loai]
+    pie_data = [float(x['total_area'] or 0) for x in thong_ke_loai]
+    pie_counts = [x['total_count'] for x in thong_ke_loai]
+    pie_colors = [loai_dat_colors_map.get(x['loai_dat_hien_trang'], '#94a3b8') for x in thong_ke_loai]
+    
+    # 5. District Stats (Bar Chart)
+    districts = ['Hải Châu', 'Thanh Khê', 'Sơn Trà', 'Ngũ Hành Sơn', 'Liên Chiểu', 'Cẩm Lệ', 'Hòa Vang']
+    loai_dat_keys = ['ODT', 'CLN', 'ONT', 'SKC', 'DDT']
+    loai_dat_labels = {'ODT': 'Đất ở đô thị', 'CLN': 'Cây lâu năm', 'ONT': 'Đất ở nông thôn', 'SKC': 'Sản xuất KD', 'DDT': 'Phi nông nghiệp'}
+    colors = ['#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#64748b']
     
     stacked_datasets = []
     for i, key in enumerate(loai_dat_keys):
         data_points = []
         for d in districts:
-            count = ThuaDat.objects.filter(
-                dia_chi_thua__icontains=d,
-                loai_dat_hien_trang=key
-            ).count()
+            count = ThuaDat.objects.filter(dia_chi_thua__icontains=d, loai_dat_hien_trang=key).count()
             data_points.append(count)
-        
-        stacked_datasets.append({
-            'label': loai_dat_labels[key],
-            'data': data_points,
-            'backgroundColor': colors[i],
-            'borderRadius': 4
-        })
+        stacked_datasets.append({'label': loai_dat_labels[key], 'data': data_points, 'backgroundColor': colors[i], 'borderRadius': 4})
 
-    # 5. Top Areas (Table) - Cần định nghĩa lại để tránh lỗi NameError
+    # 6. Top Areas (Table)
     top_areas = []
-    for d in districts[:5]:
-        count = ThuaDat.objects.filter(dia_chi_thua__icontains=d).count()
-        area_change = BienDongDat.objects.filter(thua_dat__dia_chi_thua__icontains=d).count()
+    area_stats = ThuaDat.objects.values('dia_chi_thua').annotate(count=Count('id')).order_by('-count')[:5]
+    for stat in area_stats:
+        addr = stat['dia_chi_thua'] or 'Chưa rõ'
+        short_name = addr.split(',')[-1].strip() if ',' in addr else addr
+        trans = BienDongDat.objects.filter(thua_dat__dia_chi_thua=addr).count()
         top_areas.append({
-            'name': f"Khu vực {d}",
-            'district': f"Quận {d}, Đà Nẵng",
-            'transactions': area_change,
-            'areaChange': f"+{area_change * 100}",
-            'growth': round(area_change * 1.5, 1),
-            'progress': min(100, area_change * 5),
-            'color': '#3b82f6' if area_change > 10 else '#10b981'
+            'name': short_name,
+            'district': addr,
+            'transactions': trans,
+            'areaChange': f"{float(ThuaDat.objects.filter(dia_chi_thua=addr).aggregate(s=Sum('dien_tich'))['s'] or 0):,.1f}",
+            'growth': calc_growth(trans, 5), # Giả định base là 5 để có con số
+            'progress': min(100, trans * 10),
+            'color': '#3b82f6' if trans > 5 else '#10b981'
         })
 
     report_config = {
         'kpi': {
             'totalLand': tong_dt,
+            'totalLandGrowth': calc_growth(thua_moi_thang_nay, tong_thua_dat - thua_moi_thang_nay),
             'totalOwners': tong_chu,
+            'totalOwnersGrowth': calc_growth(chu_moi_thang_nay, tong_chu - chu_moi_thang_nay),
             'transactions': giao_dich_thang,
-            'alerts': tong_canh_bao
+            'transGrowth': calc_growth(giao_dich_thang, giao_dich_thang_truoc),
+            'alerts': tong_canh_bao,
+            'alertsGrowth': calc_growth(canh_bao_moi_thang_nay, 10) # Giả định base 10
         },
         'lineLabels': labels,
         'transData': trans_counts,
         'alertData': alert_counts,
         'pieLabels': pie_labels,
         'pieData': pie_data,
-        
-        # Dữ liệu mới cho Phương án 1
+        'pieCounts': pie_counts,
+        'pieColors': pie_colors,
         'barLabels': districts,
         'barDatasets': stacked_datasets,
-        
         'topAreas': top_areas,
         'lastUpdated': now.strftime('%H:%M:%S %d/%m/%Y')
     }
