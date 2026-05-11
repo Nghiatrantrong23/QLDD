@@ -1,7 +1,20 @@
 from django import forms
 from django.contrib.gis import forms as gis_forms
+from django.contrib.auth.forms import UserCreationForm, PasswordResetForm
 from myapp.models import ThuaDat, ChuSuDung, VungQuyHoach, BienDongDat
+import time
 
+class CustomPasswordResetForm(PasswordResetForm):
+    def send_mail(self, subject_template_name, email_template_name,
+                  context, from_email, to_email, html_email_template_name=None):
+        """
+        Ghi đè phương thức gửi email để thêm độ trễ (delay)
+        tránh lỗi giới hạn của Mailtrap (Too many emails per second).
+        """
+        time.sleep(1.5)  # Nghỉ 1.5 giây giữa các email
+        super().send_mail(subject_template_name, email_template_name,
+                          context, from_email, to_email, html_email_template_name)
+                          
 class BienDongDatForm(forms.ModelForm):
     class Meta:
         model = BienDongDat

@@ -167,32 +167,42 @@
     document.getElementById('loai_quy_hoach_id').addEventListener('change', function() {
         const newColor = getCurrentColor();
         m.pm.setPathOptions({ color: newColor, fillColor: newColor });
-        currentLayerGroup.eachLayer(layer => {
-            layer.setStyle({ color: newColor, fillColor: newColor });
+        m.eachLayer(layer => {
+            if (layer instanceof L.Polygon && !layer.pm?._isMarker) {
+                layer.setStyle({ color: newColor, fillColor: newColor });
+            }
         });
     });
 
     // 6. Cập nhật và tính diện tích
     function updateGeoJSONAndArea() {
-        if(currentLayerGroup.getLayers().length === 0) {
+        // Lấy toàn bộ các polygon trên bản đồ (an toàn cho các thao tác cắt/chia tách của Geoman)
+        let mapPolygons = [];
+        m.eachLayer(l => {
+            if (l instanceof L.Polygon && !l.pm?._isMarker) {
+                mapPolygons.push(l);
+            }
+        });
+
+        if(mapPolygons.length === 0) {
             geojsonInput.value = '';
             document.getElementById('dien_tich_live').value = 0;
             return;
         }
 
-        let isMulti = currentLayerGroup.getLayers().length > 1;
+        let isMulti = mapPolygons.length > 1;
         let finalGeojson;
         if(isMulti) {
             // Merge multiple polygons to multi-polygon
             let coords = [];
-            currentLayerGroup.eachLayer(l => {
+            mapPolygons.forEach(l => {
                 let j = l.toGeoJSON();
                 if(j.geometry.type === 'Polygon') coords.push(j.geometry.coordinates);
                 else if(j.geometry.type === 'MultiPolygon') coords.push(...j.geometry.coordinates);
             });
             finalGeojson = { type: 'MultiPolygon', coordinates: coords };
         } else {
-            finalGeojson = currentLayerGroup.getLayers()[0].toGeoJSON().geometry;
+            finalGeojson = mapPolygons[0].toGeoJSON().geometry;
         }
 
         geojsonInput.value = JSON.stringify(finalGeojson);
@@ -219,5 +229,10 @@
         // Thông báo nho nhỏ góc màn hình
         alert('Đã tính lại diện tích chính xác: ' + document.getElementById('dien_tich_live').value + ' m²');
     };
+
+    // Đảm bảo cập nhật GeoJSON trước khi submit form
+    document.querySelector('form').addEventListener('submit', function(e) {
+        updateGeoJSONAndArea();
+    });
 </script>
 {% endblock %}

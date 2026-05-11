@@ -109,21 +109,29 @@ git checkout dev
    - ✅ Đúng: `backup_qldd.sql`
    - ❌ Sai: `backup quản lý đất đai.sql`
 
-### Bước 4.2 – Nạp SQL bằng pgAdmin (cách dễ nhất)
-1. Mở **pgAdmin 4**
-2. Click vào `qldd_db` → **Tools** → **Query Tool**
-3. Nhấn biểu tượng **📂 Open File** (góc trên trái của Query Tool)
-4. Chọn file `.sql` backup của bạn
-5. Nhấn **F5** để chạy toàn bộ
-6. Chờ chạy xong (có thể mất 1-3 phút)
-7. Thấy `Query returned successfully` → ✅ Nạp xong!
+### Bước 4.2 – Xóa 2 dòng lỗi trong file SQL trước khi nạp
 
-### Bước 4.3 – Nạp SQL bằng Command Prompt (nếu cách trên lỗi)
-Mở cmd, gõ lệnh sau (thay `Admin123` bằng mật khẩu của bạn):
-```bash
-"C:\Program Files\PostgreSQL\15\bin\psql.exe" -U postgres -d qldd_db -f "C:\backup_qldd.sql"
+> ⚠️ File SQL có 2 dòng đặc biệt (`\restrict` và `\unrestrict`) gây lỗi khi nạp. Phải xóa trước!
+
+Mở **PowerShell** (`Windows + R` → gõ `powershell` → Enter) rồi chạy lệnh sau (thay đường dẫn cho đúng):
+```powershell
+(Get-Content "C:\Users\USER\QLDD\backup_qldd.sql") | Where-Object { $_ -notmatch "\\restrict|\\unrestrict" } | Set-Content "C:\Users\USER\QLDD\web_qldd_clean.sql"
 ```
-Nhập mật khẩu PostgreSQL khi được hỏi → Chờ chạy xong.
+Không thấy thông báo gì → ✅ File `web_qldd_clean.sql` đã được tạo!
+
+### Bước 4.3 – Nạp SQL bằng Command Prompt (bắt buộc dùng CMD, không dùng pgAdmin)
+
+> ⚠️ File SQL dùng lệnh `COPY ... FROM stdin` nên **bắt buộc phải nạp qua cmd**, pgAdmin không hỗ trợ cú pháp này.
+
+1. Mở **cmd** (`Windows + R` → gõ `cmd` → Enter)
+2. Dán lệnh sau (thay đường dẫn file và mật khẩu cho đúng):
+```bash
+"C:\Program Files\PostgreSQL\15\bin\psql.exe" -U postgres -d qldd_db -f "C:\Users\USER\QLDD\web_qldd_clean.sql"
+```
+3. Nhập mật khẩu PostgreSQL khi hỏi → Enter
+   > Khi gõ mật khẩu sẽ **không thấy gì hiện ra** — bình thường, cứ gõ rồi Enter!
+4. Chờ chạy xong, thấy nhiều dòng `COPY`, `CREATE TABLE`... là thành công
+5. Không thấy chữ `ERROR` đỏ → ✅ Nạp xong!
 
 ### Bước 4.4 – Kiểm tra dữ liệu đã nạp
 Trong pgAdmin → Query Tool → gõ và nhấn F5:

@@ -2,6 +2,7 @@ from django.urls import path, include
 from django.contrib.auth import views as django_auth_views
 from myapp.views import tong_quan, ban_do, ho_so_dat, phan_tich_gis, bao_cao, canh_bao, quy_hoach, chu_su_dung, export_import, auth_views, bien_dong, nguoi_dung, quan_ly_cong_dan
 from myapp.views import routing_views
+from myapp.forms import CustomPasswordResetForm
 # from myapp.views import api, can_bo
 
 urlpatterns = [
@@ -26,6 +27,7 @@ urlpatterns = [
         email_template_name='registration/password_reset_email.txt',       # Plain text fallback
         html_email_template_name='registration/password_reset_email.html', # HTML đẹp
         subject_template_name='registration/password_reset_subject.txt',
+        form_class=CustomPasswordResetForm,
         success_url='/quen-mat-khau/gui-thanh-cong/',
     ), name='password_reset'),
 
