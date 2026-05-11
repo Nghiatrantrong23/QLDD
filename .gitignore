@@ -7,4 +7,6 @@ db.sqlite3
 # File video lớn - không upload lên GitHub
 *.mp4
 *.avi
-*.mov
+*.mov
+*.zip
+*.rar
