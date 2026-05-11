@@ -8,6 +8,11 @@ Hệ thống WebGIS quản lý thông tin đất đai toàn diện, giúp số h
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-%23316192.svg?style=flat&logo=postgresql&logoColor=white)
 ![PostGIS](https://img.shields.io/badge/PostGIS-3.x-%2300A4C6.svg?style=flat)
 
+
+## 📦 Tài Nguyên & Demo
+
+> 📁 **Google Drive** (Video demo, Báo cáo, SQL): [Xem tại đây](https://drive.google.com/drive/folders/1hWeDURimbofL3WsPZeMk8d75vShTcdp6?usp=sharing)
+
 ## ✨ Tính Năng Chính
 
 ### 📊 Tổng Quan Hệ Thống
